@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: resqai_db
+    environment:
+      POSTGRES_DB: resqai
+      POSTGRES_USER: resqai_user
+      POSTGRES_PASSWORD: resqai_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: resqai_redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:
