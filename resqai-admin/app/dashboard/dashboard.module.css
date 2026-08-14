@@ -2,10 +2,12 @@
   display: flex;
   gap: 16px;
   margin-bottom: 24px;
+  flex-wrap: wrap;
 }
 
 .statBox {
   flex: 1;
+  min-width: 120px;
   border: 1px solid #000;
   padding: 16px;
 }
@@ -26,6 +28,8 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .sectionHeader h2 {
@@ -52,6 +56,7 @@
   gap: 24px;
   margin-bottom: 12px;
   font-size: 13px;
+  flex-wrap: wrap;
 }
 
 .reportStats strong {
@@ -135,4 +140,28 @@
 .resolveBtn {
   padding: 3px 10px;
   font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .statsRow {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .statBox {
+    min-width: unset;
+  }
+
+  .statNumber {
+    font-size: 22px;
+  }
+
+  .reportStats {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .chatBox {
+    height: 200px;
+  }
 }

@@ -2,6 +2,7 @@
   display: flex;
   gap: 12px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .filterRow select {
@@ -14,6 +15,7 @@
   align-items: center;
   margin-top: 16px;
   font-size: 13px;
+  flex-wrap: wrap;
 }
 
 .pagination button {
@@ -60,4 +62,10 @@
 
 .newAlertBtn {
   margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+  .filterRow select {
+    width: 100%;
+  }
 }

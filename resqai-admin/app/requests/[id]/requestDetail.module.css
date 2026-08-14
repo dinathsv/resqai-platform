@@ -59,6 +59,7 @@
   gap: 12px;
   align-items: center;
   margin-bottom: 24px;
+  flex-wrap: wrap;
 }
 
 .assignRow select {
@@ -74,4 +75,11 @@
   gap: 12px;
   padding-top: 24px;
   border-top: 1px solid #eee;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .assignRow select {
+    max-width: 100%;
+  }
 }

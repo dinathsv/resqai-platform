@@ -3,6 +3,7 @@
   gap: 12px;
   margin-bottom: 16px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .filterRow select,
@@ -16,6 +17,7 @@
   align-items: center;
   margin-top: 16px;
   font-size: 13px;
+  flex-wrap: wrap;
 }
 
 .pagination button {
@@ -60,3 +62,10 @@
 .urgency5 { color: #DC2626; font-weight: bold; }
 .urgency4 { color: #EA580C; font-weight: bold; }
 .urgencyNormal { color: inherit; }
+
+@media (max-width: 768px) {
+  .filterRow select,
+  .filterRow input {
+    width: 100%;
+  }
+}

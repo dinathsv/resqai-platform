@@ -12,6 +12,7 @@
   align-items: center;
   margin-top: 16px;
   font-size: 13px;
+  flex-wrap: wrap;
 }
 
 .pagination button {
@@ -51,4 +52,10 @@
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+@media (max-width: 768px) {
+  .searchRow input {
+    max-width: 100%;
+  }
 }

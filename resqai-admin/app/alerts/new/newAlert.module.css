@@ -92,6 +92,7 @@
 .buttonRow {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .responseText {
@@ -100,4 +101,10 @@
   padding: 12px;
   border: 1px solid #000;
   background: #f9f9f9;
+}
+
+@media (max-width: 480px) {
+  .form {
+    max-width: 100%;
+  }
 }

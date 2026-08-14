@@ -6,6 +6,13 @@
   font-size: 14px;
 }
 
+@media (max-width: 480px) {
+  .definitionList {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
+
 .label {
   font-weight: bold;
   color: #555;
