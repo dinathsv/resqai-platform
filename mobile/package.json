@@ -33,5 +33,9 @@
     "@types/react": "~19.2.2",
     "typescript": "~6.0.3"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "glob": "^13.0.6",
+    "@xmldom/xmldom": "^0.9.11"
+  }
 }
