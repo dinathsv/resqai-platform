@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "ResQAI",
+    "slug": "resqai",
+    "version": "1.0.0",
+    "scheme": "resqai",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.resqai.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "ResQAI needs your location to find nearby hospitals and emergency services."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.resqai.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-location"
+    ]
+  }
+}

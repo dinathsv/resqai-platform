@@ -1,0 +1,54 @@
+/**
+ * ResQAI — Requests Routes
+ * GET /api/requests/locate — proxy to AI service /api/ai/locate-resources
+ *
+ * Converts query params (lat, lng, emergency_type) to a POST body
+ * and forwards to the AI microservice.
+ */
+
+const express = require('express');
+const { optionalAuth } = require('../middleware/auth');
+
+const router = express.Router();
+
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
+
+/**
+ * GET /api/requests/locate?lat=6.9271&lng=79.8612&emergency_type=medical
+ * Proxies to AI service POST /api/ai/locate-resources
+ */
+router.get('/locate', optionalAuth, async (req, res) => {
+  try {
+    const { lat, lng, emergency_type } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).json({ error: 'lat and lng query params are required' });
+    }
+
+    const payload = {
+      lat: parseFloat(lat),
+      lng: parseFloat(lng),
+      emergency_type: emergency_type || 'medical',
+    };
+
+    const response = await fetch(`${AI_SERVICE_URL}/api/ai/locate-resources`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('AI service /locate-resources error:', response.status, errText);
+      return res.status(502).json({ error: 'AI service unavailable' });
+    }
+
+    const data = await response.json();
+    return res.json(data);
+  } catch (err) {
+    console.error('GET /api/requests/locate error:', err.message);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+module.exports = router;
