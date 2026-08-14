@@ -3,8 +3,10 @@
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
-import api from '@/lib/api';
+import axios from 'axios';
 import styles from './login.module.css';
+
+const AUTH_API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://localhost:8000';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,9 +21,9 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await api.post('/api/auth/admin/login', { email, password });
-      const { token } = res.data;
-      Cookies.set('admin_token', token, { expires: 7 });
+      const res = await axios.post(`${AUTH_API_URL}/api/auth/admin/login`, { email, password });
+      const { access_token } = res.data;
+      Cookies.set('admin_token', access_token, { expires: 7 });
       router.push('/dashboard');
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
