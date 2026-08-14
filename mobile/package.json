@@ -13,7 +13,7 @@
     "@react-native-community/netinfo": "12.0.1",
     "axios": "^1.19.0",
     "expo": "~57.0.12",
-    "expo-constants": "~17.0.0",
+    "expo-constants": "~57.0.10",
     "expo-device": "~57.0.1",
     "expo-linking": "~7.0.0",
     "expo-location": "~18.0.0",
