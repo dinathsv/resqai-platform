@@ -4,10 +4,12 @@
   justify-content: center;
   min-height: 100vh;
   background: #fff;
+  padding: 16px;
 }
 
 .form {
-  width: 360px;
+  width: 100%;
+  max-width: 360px;
   border: 1px solid #000;
   padding: 32px;
 }
@@ -38,4 +40,12 @@
   color: #DC2626;
   font-size: 13px;
   margin-top: 8px;
+}
+
+@media (max-width: 480px) {
+  .form {
+    padding: 24px 16px;
+    border-left: none;
+    border-right: none;
+  }
 }
