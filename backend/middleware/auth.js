@@ -5,7 +5,10 @@
 
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'resqai-dev-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable must be set');
+}
 
 /**
  * Middleware: require a valid JWT in the Authorization header.

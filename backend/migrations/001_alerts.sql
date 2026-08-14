@@ -2,6 +2,18 @@
 -- ResQAI — Alerts System Tables
 -- ============================================================================
 
+-- Required extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Utility function for auto-updating timestamps
+CREATE OR REPLACE FUNCTION fn_set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Alerts issued by administrators for disaster events
 CREATE TABLE IF NOT EXISTS alerts (
     alert_id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -29,6 +41,7 @@ CREATE TABLE IF NOT EXISTS alert_acknowledgements (
 );
 
 -- Auto-update trigger for alerts.updated_at
+DROP TRIGGER IF EXISTS trg_alerts_updated_at ON alerts;
 CREATE TRIGGER trg_alerts_updated_at
     BEFORE UPDATE ON alerts
     FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();

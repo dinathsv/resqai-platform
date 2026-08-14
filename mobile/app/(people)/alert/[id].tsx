@@ -60,7 +60,11 @@ export default function AlertDetailScreen() {
       }
     }
 
-    if (id) fetchAlert();
+    if (id) {
+      fetchAlert();
+    } else {
+      setLoading(false);
+    }
   }, [id]);
 
   // ── Acknowledge handler ─────────────────────────────────

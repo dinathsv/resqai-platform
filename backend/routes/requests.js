@@ -25,10 +25,22 @@ router.get('/locate', optionalAuth, async (req, res) => {
       return res.status(400).json({ error: 'lat and lng query params are required' });
     }
 
+    // Validate lat/lng are strings and parse to valid numbers
+    if (typeof lat !== 'string' || typeof lng !== 'string') {
+      return res.status(400).json({ error: 'lat and lng must be single string values' });
+    }
+
+    const parsedLat = parseFloat(lat);
+    const parsedLng = parseFloat(lng);
+
+    if (isNaN(parsedLat) || isNaN(parsedLng)) {
+      return res.status(400).json({ error: 'lat and lng must be valid numbers' });
+    }
+
     const payload = {
-      lat: parseFloat(lat),
-      lng: parseFloat(lng),
-      emergency_type: emergency_type || 'medical',
+      lat: parsedLat,
+      lng: parsedLng,
+      emergency_type: typeof emergency_type === 'string' ? emergency_type : 'medical',
     };
 
     const response = await fetch(`${AI_SERVICE_URL}/api/ai/locate-resources`, {

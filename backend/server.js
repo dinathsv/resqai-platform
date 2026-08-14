@@ -32,7 +32,7 @@ const server = http.createServer(app);
 
 app.use(cors({
   origin: '*',          // Allow mobile app from any origin
-  credentials: true,
+  credentials: false,
 }));
 app.use(express.json());
 

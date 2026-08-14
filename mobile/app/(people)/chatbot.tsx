@@ -50,7 +50,7 @@ export default function ChatbotScreen() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [show1990, setShow1990] = useState(false);
-  const [detectedLang, setDetectedLang] = useState('en');
+  const [, setDetectedLang] = useState('en');
   const flatListRef = useRef<FlatList>(null);
 
   // Check for token on mount (just for context, not required)

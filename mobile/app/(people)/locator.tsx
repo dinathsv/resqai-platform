@@ -5,7 +5,7 @@
  * Uses expo-location for GPS and react-native-maps for map display.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -51,11 +51,16 @@ export default function LocatorScreen() {
     lng: number;
   } | null>(null);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
-  const [selected, setSelected] = useState<Hospital | null>(null);
   const [emergencyType, setEmergencyType] = useState('medical');
+  const emergencyTypeRef = useRef(emergencyType);
   const [loading, setLoading] = useState(false);
   const [locationError, setLocationError] = useState('');
   const [manualArea, setManualArea] = useState('');
+
+  // Keep ref in sync with latest emergencyType
+  useEffect(() => {
+    emergencyTypeRef.current = emergencyType;
+  }, [emergencyType]);
 
   // ── Request location on mount ───────────────────────────
   useEffect(() => {
@@ -73,7 +78,7 @@ export default function LocatorScreen() {
           lng: location.coords.longitude,
         };
         setUserLocation(coords);
-        fetchHospitals(coords.lat, coords.lng, emergencyType);
+        fetchHospitals(coords.lat, coords.lng, emergencyTypeRef.current);
       } catch (err) {
         console.error('Location error:', err);
         setLocationError('Could not get your location. Enter your area manually below.');
