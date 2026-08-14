@@ -1,0 +1,26 @@
+.definitionList {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 12px;
+  margin-bottom: 32px;
+  font-size: 14px;
+}
+
+.label {
+  font-weight: bold;
+  color: #555;
+}
+
+.value {
+  color: #000;
+}
+
+.section {
+  margin-bottom: 32px;
+}
+
+.suspendContainer {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid #eee;
+}

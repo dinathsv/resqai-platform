@@ -1,0 +1,103 @@
+.form {
+  max-width: 700px;
+}
+
+.field {
+  margin-bottom: 20px;
+}
+
+.label {
+  display: block;
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.helper {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+}
+
+.criticalWarning {
+  font-size: 12px;
+  color: #DC2626;
+  margin-top: 4px;
+}
+
+.severityRow {
+  display: flex;
+  gap: 0;
+}
+
+.severityBtn {
+  width: 48px;
+  text-align: center;
+  padding: 6px 0;
+  border: 1px solid #000;
+  background: #fff;
+  color: #000;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 0;
+}
+
+.severityBtn + .severityBtn {
+  border-left: none;
+}
+
+.severityBtnActive {
+  width: 48px;
+  text-align: center;
+  padding: 6px 0;
+  border: 1px solid #000;
+  background: #000;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 0;
+}
+
+.severityBtnActive + .severityBtn,
+.severityBtn + .severityBtnActive {
+  border-left: none;
+}
+
+.preview {
+  border: 1px solid #000;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.previewTitle {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.previewContent {
+  font-size: 14px;
+}
+
+.previewType {
+  font-weight: bold;
+}
+
+.previewWorkPlan {
+  margin-top: 8px;
+  color: #444;
+  font-size: 13px;
+}
+
+.buttonRow {
+  display: flex;
+  gap: 12px;
+}
+
+.responseText {
+  margin-top: 16px;
+  font-size: 14px;
+  padding: 12px;
+  border: 1px solid #000;
+  background: #f9f9f9;
+}

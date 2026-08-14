@@ -1,0 +1,63 @@
+.filterRow {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.filterRow select {
+  width: 180px;
+}
+
+.pagination {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 16px;
+  font-size: 13px;
+}
+
+.pagination button {
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+.pageNum {
+  padding: 4px 8px;
+  font-weight: bold;
+}
+
+.pageNumActive {
+  padding: 4px 8px;
+  font-weight: bold;
+  background: #000;
+  color: #fff;
+}
+
+.cancelBtn {
+  background: none;
+  border: none;
+  color: #DC2626;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.cancelBtn:hover {
+  text-decoration: none;
+}
+
+.statsLink {
+  font-size: 13px;
+  margin-right: 8px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.newAlertBtn {
+  margin-bottom: 16px;
+}
