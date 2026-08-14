@@ -1,0 +1,62 @@
+.filterRow {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+.filterRow select,
+.filterRow input {
+  width: 150px;
+}
+
+.pagination {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 16px;
+  font-size: 13px;
+}
+
+.pagination button {
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+.pageNum {
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.pageNumActive {
+  padding: 4px 8px;
+  cursor: pointer;
+  font-weight: bold;
+  background: #000;
+  color: #fff;
+}
+
+.flagBtn {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.viewLink {
+  font-size: 13px;
+  margin-right: 8px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.flaggedRow {
+  text-decoration: line-through;
+  color: #888;
+}
+
+.urgency5 { color: #DC2626; font-weight: bold; }
+.urgency4 { color: #EA580C; font-weight: bold; }
+.urgencyNormal { color: inherit; }
