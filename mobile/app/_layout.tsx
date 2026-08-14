@@ -1,26 +1,33 @@
-import React, { useEffect } from 'react'
-import { View, Text, StyleSheet } from 'react-native'
-import { Slot, useRouter } from 'expo-router'
-import { useNetworkSync } from '../hooks/useNetworkSync'
-import { initDB } from '../services/offlineStorage'
+/**
+ * ResQAI — Root Layout
+ * Expo Router root layout with offline banner and initialization.
+ */
+
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { Slot, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useNetworkSync } from '../hooks/useNetworkSync';
+import { initDB } from '../services/offlineStorage';
 import {
   registerForPushNotifications,
   setupNotificationListeners,
-} from '../services/notificationService'
+} from '../services/notificationService';
 
 export default function RootLayout() {
-  const { isOnline } = useNetworkSync()
-  const router = useRouter()
+  const { isOnline } = useNetworkSync();
+  const router = useRouter();
 
   useEffect(() => {
-    initDB()
-    registerForPushNotifications()
-    const cleanup = setupNotificationListeners(router)
-    return cleanup
-  }, [])
+    initDB();
+    registerForPushNotifications();
+    const cleanup = setupNotificationListeners(router);
+    return cleanup;
+  }, []);
 
   return (
     <View style={styles.root}>
+      <StatusBar style="dark" />
       {!isOnline && (
         <View style={styles.offlineBanner}>
           <Text style={styles.offlineText}>
@@ -30,7 +37,7 @@ export default function RootLayout() {
       )}
       <Slot />
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -48,4 +55,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
   },
-})
+});
