@@ -43,3 +43,22 @@ tr:nth-child(even) { background: #f9f9f9; }
 .error { color: #DC2626; font-size: 13px; margin-top: 4px; }
 a { color: #000; text-decoration: underline; }
 a:hover { text-decoration: none; }
+
+.tableWrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  .page { padding: 16px 12px; }
+
+  table {
+    font-size: 13px;
+  }
+
+  th, td {
+    padding: 6px 8px;
+    white-space: nowrap;
+  }
+}
+
