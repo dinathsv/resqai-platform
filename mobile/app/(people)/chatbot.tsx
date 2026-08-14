@@ -78,7 +78,7 @@ export default function ChatbotScreen() {
       text: trimmed,
       timestamp: new Date(),
     };
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev: Message[]) => [...prev, userMsg]);
     setInput('');
     setLoading(true);
 
@@ -100,7 +100,7 @@ export default function ChatbotScreen() {
           text: data.reply,
           timestamp: new Date(),
         };
-        setMessages((prev) => [...prev, assistantMsg]);
+        setMessages((prev: Message[]) => [...prev, assistantMsg]);
 
         if (data.language_detected) {
           setDetectedLang(data.language_detected);
@@ -117,7 +117,7 @@ export default function ChatbotScreen() {
           text: 'Sorry, I am temporarily unable to respond. If this is a life-threatening emergency, please call 1990 immediately.',
           timestamp: new Date(),
         };
-        setMessages((prev) => [...prev, assistantMsg]);
+        setMessages((prev: Message[]) => [...prev, assistantMsg]);
         setShow1990(true);
       }
     } catch (err) {
@@ -128,7 +128,7 @@ export default function ChatbotScreen() {
         text: 'Connection error. Please check your internet connection. For emergencies, call 1990.',
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, assistantMsg]);
+      setMessages((prev: Message[]) => [...prev, assistantMsg]);
       setShow1990(true);
     } finally {
       setLoading(false);
@@ -189,9 +189,9 @@ export default function ChatbotScreen() {
       >
         {/* Messages */}
         <FlatList
-          ref={flatListRef}
+          ref={flatListRef as any}
           data={messages}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item: Message) => item.id}
           renderItem={renderMessage}
           style={styles.messagesList}
           contentContainerStyle={styles.messagesContent}
