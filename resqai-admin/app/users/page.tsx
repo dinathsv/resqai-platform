@@ -45,17 +45,13 @@ export default function UsersPage() {
     try {
       await api.patch(`/api/admin/users/${id}`, { is_active: false });
       mutate();
-    } catch {
-      // silently fail
-    }
+    } catch 
   }
 
   async function resendOtp(id: string) {
     try {
       await api.post(`/api/admin/users/${id}/resend-otp`);
-    } catch {
-      // silently fail
-    }
+    } catch 
   }
 
   const totalPages = data?.pages ?? 1;
@@ -136,7 +132,6 @@ export default function UsersPage() {
         </tbody>
       </table>
 
-      {/* Pagination */}
       <div className={styles.pagination}>
         <button
           className="outline"
