@@ -1,7 +1,4 @@
-/**
- * ResQAI — People Layout
- * Stack navigator for the people (public user) screens.
- */
+
 
 import { Stack } from 'expo-router';
 
