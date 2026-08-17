@@ -36,8 +36,6 @@ SYSTEM_PROMPT = (
     "- Return ONLY the JSON object, nothing else."
 )
 
-# ── Fallback ─────────────────────────────────────────────────
-
 FALLBACK_RESPONSE = TranslateReportResponse(
     emergency_type="other",
     urgency_level=3,
@@ -46,7 +44,6 @@ FALLBACK_RESPONSE = TranslateReportResponse(
     summary_english="Unable to process report — please try again or contact an operator.",
     original_language="unknown",
 )
-
 
 def _detect_language(text: str) -> str:
     try:
@@ -58,9 +55,6 @@ def _detect_language(text: str) -> str:
         return lang
     except LangDetectException:
         return "unknown"
-
-
-# ── Endpoint ─────────────────────────────────────────────────
 
 @router.post("/translate-report", response_model=TranslateReportResponse)
 async def translate_report(req: TranslateReportRequest):
@@ -88,7 +82,6 @@ async def translate_report(req: TranslateReportRequest):
         fallback.original_language = detected_lang
         return fallback
 
-    # Clamp urgency_level to [1, 5]
     urgency = data.get("urgency_level", 3)
     urgency = max(1, min(5, int(urgency)))
 
