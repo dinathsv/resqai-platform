@@ -45,13 +45,17 @@ export default function UsersPage() {
     try {
       await api.patch(`/api/admin/users/${id}`, { is_active: false });
       mutate();
-    } catch 
+    } catch (error) {
+      console.error("Failed to suspend user:", error);
+    }
   }
 
   async function resendOtp(id: string) {
     try {
       await api.post(`/api/admin/users/${id}/resend-otp`);
-    } catch 
+    } catch (error) {
+      console.error("Failed to resend OTP:", error);
+    }
   }
 
   const totalPages = data?.pages ?? 1;
