@@ -32,13 +32,13 @@ export default function GuestScreen() {
     setLoading(true);
 
     try {
-      // Get location
+
       const { status } = await Location.requestForegroundPermissionsAsync();
       let lat = 0;
       let lng = 0;
 
       if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({});
+        const loc = await Location.getCurrentPositionAsync();
         lat = loc.coords.latitude;
         lng = loc.coords.longitude;
       }
