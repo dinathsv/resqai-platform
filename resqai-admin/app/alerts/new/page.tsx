@@ -61,7 +61,7 @@ export default function NewAlertPage() {
       <h1>Issue Emergency Alert</h1>
 
       <form className={styles.form} onSubmit={(e) => handleSubmit(e, false)}>
-        {/* Disaster Type */}
+
         <div className={styles.field}>
           <label className={styles.label} htmlFor="alert-type">Disaster Type</label>
           <select
@@ -77,7 +77,6 @@ export default function NewAlertPage() {
           </select>
         </div>
 
-        {/* Severity Level */}
         <div className={styles.field}>
           <label className={styles.label}>Severity Level</label>
           <div className={styles.severityRow}>
@@ -99,7 +98,6 @@ export default function NewAlertPage() {
           )}
         </div>
 
-        {/* Affected Zone */}
         <div className={styles.field}>
           <label className={styles.label} htmlFor="alert-zone">Affected Zone</label>
           <textarea
@@ -115,7 +113,6 @@ export default function NewAlertPage() {
           </div>
         </div>
 
-        {/* Preliminary Work Plan */}
         <div className={styles.field}>
           <label className={styles.label} htmlFor="alert-workplan">Preliminary Work Plan</label>
           <textarea
@@ -128,7 +125,6 @@ export default function NewAlertPage() {
           />
         </div>
 
-        {/* Expires After */}
         <div className={styles.field}>
           <label className={styles.label} htmlFor="alert-expires">Expires After</label>
           <select
@@ -142,7 +138,6 @@ export default function NewAlertPage() {
           </select>
         </div>
 
-        {/* Live Preview */}
         <div className={styles.preview}>
           <div className={styles.previewTitle}>Preview — Citizens will see this:</div>
           <div className={styles.previewContent}>
@@ -158,7 +153,6 @@ export default function NewAlertPage() {
           </div>
         </div>
 
-        {/* Buttons */}
         <div className={styles.buttonRow}>
           <button type="submit" disabled={loading}>
             {loading ? 'Issuing...' : 'Issue Alert'}
