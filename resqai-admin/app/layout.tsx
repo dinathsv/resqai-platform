@@ -2,8 +2,9 @@
 
 import './globals.css';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import Cookies from 'js-cookie';
 import styles from './layout.module.css';
 
 const NAV_ITEMS = [
@@ -18,7 +19,6 @@ const NAV_ITEMS = [
 function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const pathname = usePathname();
 
-  // Don't show sidebar on login page
   if (pathname === '/login') return null;
 
   return (
@@ -57,13 +57,28 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const isLoginPage = pathname === '/login';
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
-  // Close sidebar on route change
   useEffect(() => {
     setSidebarOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (isLoginPage) {
+      setAuthChecked(true);
+      return;
+    }
+
+    const token = Cookies.get('admin_token');
+    if (!token) {
+      router.replace('/login');
+    } else {
+      setAuthChecked(true);
+    }
+  }, [pathname, isLoginPage, router]);
 
   return (
     <html lang="en">
@@ -74,7 +89,7 @@ export default function RootLayout({
       </head>
       <body>
         <div className={styles.container}>
-          {!isLoginPage && (
+          {!isLoginPage && authChecked && (
             <button
               className={styles.hamburger}
               onClick={() => setSidebarOpen(true)}
@@ -85,10 +100,11 @@ export default function RootLayout({
           )}
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
           <main className={isLoginPage ? undefined : styles.main}>
-            {children}
+            {isLoginPage || authChecked ? children : null}
           </main>
         </div>
       </body>
     </html>
   );
 }
+
