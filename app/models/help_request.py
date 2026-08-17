@@ -10,7 +10,6 @@ from geoalchemy2 import Geometry
 
 from app.database import Base
 
-
 class HelpRequest(Base):
     __tablename__ = "help_requests"
 
