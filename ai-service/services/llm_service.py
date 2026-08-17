@@ -12,10 +12,7 @@ from anthropic.types import TextBlock
 
 logger = logging.getLogger("resqai.llm")
 
-# ── Singleton client (created on first call) ────────────────
-
 _client: AsyncAnthropic | None = None
-
 
 def _get_client() -> AsyncAnthropic:
     global _client
@@ -26,12 +23,8 @@ def _get_client() -> AsyncAnthropic:
         _client = AsyncAnthropic(api_key=api_key)
     return _client
 
-
 def get_model() -> str:
     return os.getenv("LLM_MODEL", "claude-sonnet-4-20250514")
-
-
-# ── Core call ────────────────────────────────────────────────
 
 async def chat(
     system_prompt: str,
@@ -57,7 +50,6 @@ async def chat(
         logger.error("LLM API call failed: %s", exc, exc_info=True)
         raise
 
-
 async def chat_json(
     system_prompt: str,
     user_message: str,
@@ -70,10 +62,9 @@ async def chat_json(
     """
     raw = await chat(system_prompt, user_message, max_tokens, temperature)
 
-    # Strip markdown code fences if present
     cleaned = raw.strip()
     if cleaned.startswith("```"):
-        # Remove opening fence (```json or ```)
+
         first_newline = cleaned.index("\n")
         cleaned = cleaned[first_newline + 1:]
     if cleaned.endswith("```"):
@@ -85,9 +76,6 @@ async def chat_json(
     except json.JSONDecodeError:
         logger.error("LLM returned non-JSON: %s", raw[:300])
         raise ValueError(f"LLM response was not valid JSON: {raw[:200]}")
-
-
-# ── Cleanup ──────────────────────────────────────────────────
 
 async def close():
     """Close the underlying HTTP client gracefully."""
