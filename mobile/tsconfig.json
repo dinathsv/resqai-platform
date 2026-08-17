@@ -4,7 +4,7 @@
     "strict": true,
     "esModuleInterop": true,
     "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "5.0",
     "jsx": "react-native",
     "lib": ["es2017", "dom"],
     "paths": {
