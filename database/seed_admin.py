@@ -21,18 +21,15 @@ ADMIN_NAME = "ResQAI Admin"
 ADMIN_AGENCY = "DMC"
 ADMIN_DISTRICT = "Colombo"
 
-
 def hash_password(password: str) -> str:
     """Hash password using bcrypt, compatible with passlib's bcrypt output."""
     salt = bcrypt.gensalt(rounds=12)
     hashed = bcrypt.hashpw(password.encode("utf-8"), salt)
     return hashed.decode("utf-8")
 
-
 async def main():
     conn = await asyncpg.connect(DB_URL)
 
-    # Check if admin already exists
     existing = await conn.fetchrow(
         "SELECT admin_id FROM administrators WHERE email = $1", ADMIN_EMAIL
     )
@@ -60,7 +57,6 @@ async def main():
     print(f"   Password: {ADMIN_PASSWORD}")
 
     await conn.close()
-
 
 if __name__ == "__main__":
     asyncio.run(main())
