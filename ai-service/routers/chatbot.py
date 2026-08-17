@@ -17,8 +17,6 @@ from services import llm_service
 logger = logging.getLogger("resqai.chatbot")
 router = APIRouter(tags=["Chatbot"])
 
-# ── Critical keywords (lowercase) ───────────────────────────
-
 CRITICAL_KEYWORDS = [
     "cardiac", "heart attack",
     "unconscious", "unresponsive",
@@ -39,8 +37,6 @@ SYSTEM_PROMPT = (
     "Keep your response under 150 words."
 )
 
-# ── Fallback when LLM is down ───────────────────────────────
-
 FALLBACK_REPLIES = {
     "en": (
         "I'm temporarily unable to provide detailed guidance. "
@@ -60,12 +56,11 @@ FALLBACK_REPLIES = {
     ),
 }
 
-
 def _detect_language(text: str, fallback: str = "en") -> str:
     """Detect language with langdetect, return ISO 639-1 code."""
     try:
         lang = detect(text)
-        # Map Sinhala/Tamil variants to our supported codes
+
         if lang.startswith("si"):
             return "si"
         if lang.startswith("ta"):
@@ -74,14 +69,10 @@ def _detect_language(text: str, fallback: str = "en") -> str:
     except LangDetectException:
         return fallback
 
-
 def _is_critical(text: str) -> bool:
     """Check if the LLM response mentions critical conditions."""
     lower = text.lower()
     return any(kw in lower for kw in CRITICAL_KEYWORDS)
-
-
-# ── Endpoint ─────────────────────────────────────────────────
 
 @router.post("/first-aid-chat", response_model=FirstAidResponse)
 async def first_aid_chat(req: FirstAidRequest):
@@ -89,13 +80,12 @@ async def first_aid_chat(req: FirstAidRequest):
     Accept a first-aid question in any language, detect the language,
     get an LLM-generated response, and flag critical emergencies.
     """
-    # 1. Language detection
+
     if req.language == "auto":
         detected = _detect_language(req.message)
     else:
         detected = req.language
 
-    # 2. Call LLM
     try:
         reply = await llm_service.chat(
             system_prompt=SYSTEM_PROMPT,
@@ -105,7 +95,7 @@ async def first_aid_chat(req: FirstAidRequest):
         )
     except Exception as exc:
         logger.error("LLM failed for first-aid-chat: %s", exc)
-        # Return safe fallback
+
         fallback = FALLBACK_REPLIES.get(detected, FALLBACK_REPLIES["en"])
         return FirstAidResponse(
             reply=fallback,
@@ -114,7 +104,6 @@ async def first_aid_chat(req: FirstAidRequest):
             is_critical=True,
         )
 
-    # 3. Determine criticality
     combined_text = f"{req.message} {reply}".lower()
     is_critical = _is_critical(combined_text)
     show_1990 = is_critical or "1990" in reply
