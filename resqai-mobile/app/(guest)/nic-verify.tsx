@@ -29,7 +29,7 @@ export default function NicVerifyScreen() {
       let lng = 0;
 
       if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({});
+        const loc = await Location.getCurrentPositionAsync();
         lat = loc.coords.latitude;
         lng = loc.coords.longitude;
       }
