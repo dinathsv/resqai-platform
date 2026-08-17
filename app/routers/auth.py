@@ -27,8 +27,6 @@ router = APIRouter(tags=["Authentication"])
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# ── Redis Dependency (Global instance for simplicity) ──────────
-
 _redis_pool = None
 
 async def get_redis():
@@ -37,9 +35,6 @@ async def get_redis():
         _redis_pool = redis.from_url(settings.REDIS_URL, decode_responses=True)
     return _redis_pool
 
-
-# ── Schemas ──────────────────────────────────────────────────
-
 class RegisterRequest(BaseModel):
     full_name: str
     email: EmailStr
@@ -47,24 +42,18 @@ class RegisterRequest(BaseModel):
     password: str = Field(..., min_length=6)
     language_pref: str = "en"
 
-
 class VerifyOtpRequest(BaseModel):
     user_id: str
     otp: str
-
 
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
-
 class GuestVerifyNicRequest(BaseModel):
     nic_number: str
     lat: float | None = None
     lng: float | None = None
-
-
-# ── Helpers ──────────────────────────────────────────────────
 
 def create_access_token(data: dict[str, Any], expires_delta: timedelta) -> str:
     to_encode = data.copy()
@@ -72,21 +61,17 @@ def create_access_token(data: dict[str, Any], expires_delta: timedelta) -> str:
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
-
-# ── Endpoints ────────────────────────────────────────────────
-
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(
     req: RegisterRequest,
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ):
-    # Check if email exists
+
     result = await db.execute(select(User).where(User.email == req.email))
     if result.scalars().first():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
-    # Insert user
     new_user = User(
         full_name=req.full_name,
         email=req.email,
@@ -99,14 +84,12 @@ async def register(
     await db.commit()
     await db.refresh(new_user)
 
-    # Generate and store OTP
     otp = f"{random.randint(100000, 999999)}"
     await redis_client.set(f"otp:{new_user.user_id}", otp, ex=300)
 
     print(f"--- [MOCK SMS] OTP for {req.email}: {otp} ---")
 
     return {"user_id": str(new_user.user_id), "message": "OTP sent"}
-
 
 @router.post("/verify-otp")
 async def verify_otp(
@@ -132,7 +115,6 @@ async def verify_otp(
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
     return {"access_token": access_token, "token_type": "bearer"}
-
 
 @router.post("/login")
 async def login(
@@ -166,7 +148,6 @@ async def login(
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
     return {"access_token": access_token, "token_type": "bearer"}
-
 
 @router.post("/admin/login")
 async def admin_login(
@@ -203,7 +184,6 @@ async def admin_login(
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-
 @router.post("/guest/verify-nic")
 async def verify_nic(req: GuestVerifyNicRequest, db: AsyncSession = Depends(get_db)):
     if not re.match(r"^[0-9]{9}[VvXx]$|^[0-9]{12}$", req.nic_number):
@@ -216,20 +196,15 @@ async def verify_nic(req: GuestVerifyNicRequest, db: AsyncSession = Depends(get_
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="NIC not in registry")
 
     expires = datetime.now(timezone.utc) + timedelta(minutes=settings.GUEST_TOKEN_EXPIRE_MINUTES)
-    
-    # We create the DB session without geometry first if we just use PostGIS functions later, 
-    # but geoalchemy2 handles ST_GeomFromText if we wanted to set it directly.
-    # The spec didn't strictly require saving the point directly on guest login except lat/lng,
-    # but we can set it via raw SQL or let it be null.
-    
+
     new_session = GuestSession(
         nic_number=req.nic_number,
         nic_verified=True,
         nic_format_valid=True,
-        temp_token="pending", # Temp placeholder
+        temp_token="pending", 
         expires_at=expires,
     )
-    # Note: for GPS location, we can use WKT if lat/lng provided
+
     if req.lat is not None and req.lng is not None:
         new_session.gps_location = f"SRID=4326;POINT({req.lng} {req.lat})"
 
@@ -237,12 +212,11 @@ async def verify_nic(req: GuestVerifyNicRequest, db: AsyncSession = Depends(get_
     await db.commit()
     await db.refresh(new_session)
 
-    # Generate JWT
     token = create_access_token(
         data={"sub": str(new_session.session_id), "role": "guest", "nic": req.nic_number},
         expires_delta=timedelta(minutes=settings.GUEST_TOKEN_EXPIRE_MINUTES),
     )
-    
+
     new_session.temp_token = token
     await db.commit()
 
