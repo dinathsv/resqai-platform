@@ -8,19 +8,19 @@ async def test_register_success(client):
         "password": "password123",
         "phone_number": "0779999999"
     })
-    # Might fail if endpoint not implemented, assuming 201 per spec
+
     assert r.status_code == 201
     assert 'user_id' in r.json()
 
 @pytest.mark.asyncio
 async def test_register_duplicate_email(client):
-    # Register first
+
     await client.post('/api/auth/register', json={
         "full_name": "Dup User",
         "email": "dup@example.com",
         "password": "password123"
     })
-    # Try again
+
     r = await client.post('/api/auth/register', json={
         "full_name": "Dup User",
         "email": "dup@example.com",
@@ -30,7 +30,7 @@ async def test_register_duplicate_email(client):
 
 @pytest.mark.asyncio
 async def test_login_valid(client, people_token):
-    # Assuming people_token fixture registered test@example.com
+
     r = await client.post('/api/auth/login', json={
         "email": "test@example.com",
         "password": "password123"
@@ -53,7 +53,7 @@ async def test_login_rate_limited(client):
             "email": "ratelimit@example.com",
             "password": "wrong"
         })
-    
+
     r = await client.post('/api/auth/login', json={
         "email": "ratelimit@example.com",
         "password": "wrong"
