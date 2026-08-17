@@ -10,7 +10,6 @@ from geoalchemy2 import Geometry
 
 from app.database import Base
 
-
 class EmergencyAlert(Base):
     __tablename__ = "emergency_alerts"
 
