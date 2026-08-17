@@ -45,7 +45,9 @@ export default function AlertsPage() {
     try {
       await api.patch(`/api/alerts/${id}`, { status: 'cancelled' });
       mutate();
-    } catch 
+    } catch (error) {
+      console.error("Failed to resolve alert:", error);
+    }
   }
 
   const totalPages = data?.pages ?? 1;
