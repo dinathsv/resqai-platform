@@ -9,7 +9,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 
-
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
