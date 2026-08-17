@@ -1,17 +1,10 @@
-/**
- * ResQAI — Auth Routes
- * GET /api/auth/me — return current user info from JWT + DB
- */
+
 
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-/**
- * GET /api/auth/me
- * Returns the authenticated user's profile.
- */
 router.get('/me', requireAuth, async (req, res) => {
   try {
     const { rows } = await req.app.locals.pool.query(
