@@ -18,25 +18,17 @@ import os
 
 router = APIRouter(tags=["Requests"])
 
-
-# ── Schemas ──────────────────────────────────────────────────
-
 class SubmitRequest(BaseModel):
     message: str
     lat: float
     lng: float
 
-
 class StatusUpdateRequest(BaseModel):
     status: str
 
-
-# ── Endpoints ────────────────────────────────────────────────
-
 async def notify_critical_request(request_id: str, emergency_type: str):
-    # Member 2 will replace this with Socket.IO emit
-    print(f"⚠ CRITICAL: {emergency_type} — Request #{request_id}")
 
+    print(f"⚠ CRITICAL: {emergency_type} — Request #{request_id}")
 
 @router.post("")
 async def create_request(
@@ -47,17 +39,14 @@ async def create_request(
     """Create a new help request (user or guest)."""
     user_id = current_user.get("sub")
     role = current_user.get("role")
-    
-    # Call AI translate-report
-    # Using localhost to call our own endpoint via httpx, or could import router directly.
-    # The spec explicitly states: "Call POST http://localhost:8000/api/ai/translate-report using httpx AsyncClient {message}"
+
     port = os.getenv("PORT", "8000")
     ai_url = f"http://localhost:{port}/api/ai/translate-report"
-    
+
     emergency_type = "other"
     urgency_level = 3
     ai_summary = None
-    
+
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(ai_url, json={"message": req.message}, timeout=10.0)
@@ -69,7 +58,6 @@ async def create_request(
     except Exception as e:
         print(f"AI translation failed: {e}")
 
-    # Prepare model
     new_req = HelpRequest(
         original_message=req.message,
         emergency_type=emergency_type,
@@ -77,24 +65,24 @@ async def create_request(
         ai_summary=ai_summary,
         status="submitted"
     )
-    
+
     if role == "guest":
         new_req.guest_session_id = user_id
         new_req.is_guest_request = True
     else:
         new_req.user_id = user_id
         new_req.is_guest_request = False
-        
+
     new_req.gps_location = f"SRID=4326;POINT({req.lng} {req.lat})"
-    
+
     db.add(new_req)
     await db.commit()
     await db.refresh(new_req)
-    
+
     req_id_str = str(new_req.request_id)
     if urgency_level >= 4:
         await notify_critical_request(req_id_str, emergency_type)
-        
+
     return {
         "request_id": req_id_str,
         "status": new_req.status,
@@ -102,7 +90,6 @@ async def create_request(
         "ai_summary": ai_summary,
         "emergency_type": emergency_type
     }
-
 
 @router.get("/locate")
 async def locate_resources(
@@ -112,7 +99,7 @@ async def locate_resources(
     db: AsyncSession = Depends(get_db),
 ):
     """Find nearest hospitals and get AI recommendation (public endpoint)."""
-    # Run PostGIS query
+
     sql = text("""
         SELECT hospital_id, name, phone, specialization,
                has_cardiac_icu, has_trauma_unit,
@@ -123,10 +110,10 @@ async def locate_resources(
         FROM hospitals WHERE is_active=true
         ORDER BY distance_meters ASC LIMIT 5
     """)
-    
+
     result = await db.execute(sql, {"lat": lat, "lng": lng})
     rows = result.mappings().all()
-    
+
     hospitals = []
     for row in rows:
         hospitals.append({
@@ -138,18 +125,17 @@ async def locate_resources(
             "has_trauma_unit": row["has_trauma_unit"],
             "distance_meters": float(row["distance_meters"])
         })
-        
-    # Call AI locate-resources
+
     port = os.getenv("PORT", "8000")
     ai_url = f"http://localhost:{port}/api/ai/locate-resources"
-    
+
     payload = {
         "lat": lat,
         "lng": lng,
         "emergency_type": emergency_type,
         "hospitals": hospitals
     }
-    
+
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(ai_url, json=payload, timeout=10.0)
@@ -157,14 +143,12 @@ async def locate_resources(
                 return resp.json()
     except Exception as e:
         print(f"AI locate resources failed: {e}")
-        
-    # Fallback
+
     return {
         "hospitals": hospitals,
         "recommendation": hospitals[0] if hospitals else None,
         "should_call_1990": emergency_type.lower() in ["medical", "accident"]
     }
-
 
 @router.get("")
 async def list_requests(
@@ -177,16 +161,16 @@ async def list_requests(
 ):
     """List all requests (Admin only)."""
     query = select(HelpRequest).order_by(desc(HelpRequest.created_at))
-    
+
     if status:
         query = query.where(HelpRequest.status == status)
     if emergency_type:
         query = query.where(HelpRequest.emergency_type == emergency_type)
-        
+
     query = query.offset((page - 1) * limit).limit(limit)
     result = await db.execute(query)
     requests = result.scalars().all()
-    
+
     return [
         {
             "request_id": str(r.request_id),
@@ -198,7 +182,6 @@ async def list_requests(
         for r in requests
     ]
 
-
 @router.get("/{request_id}")
 async def get_request(
     request_id: str,
@@ -208,20 +191,20 @@ async def get_request(
     """Get single request details. User/Guest can only see their own."""
     result = await db.execute(select(HelpRequest).where(HelpRequest.request_id == request_id))
     req = result.scalars().first()
-    
+
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
-        
+
     role = current_user.get("role")
     sub = current_user.get("sub")
-    
+
     if role != "admin":
-        # Check ownership
+
         if role == "guest" and str(req.guest_session_id) != sub:
             raise HTTPException(status_code=403, detail="Not authorized")
         if role == "people" and str(req.user_id) != sub:
             raise HTTPException(status_code=403, detail="Not authorized")
-            
+
     return {
         "request_id": str(req.request_id),
         "message": req.original_message,
@@ -230,7 +213,6 @@ async def get_request(
         "status": req.status,
         "ai_summary": req.ai_summary,
     }
-
 
 @router.patch("/{request_id}/status")
 async def update_status(
@@ -243,19 +225,19 @@ async def update_status(
     valid_statuses = ["submitted", "assigned", "in_progress", "resolved", "closed", "flagged"]
     if body.status not in valid_statuses:
         raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
-        
+
     result = await db.execute(select(HelpRequest).where(HelpRequest.request_id == request_id))
     req = result.scalars().first()
-    
+
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
-        
+
     req.status = body.status
     if body.status == "resolved":
         from datetime import datetime, timezone
         req.resolved_at = datetime.now(timezone.utc)
-        
+
     await db.commit()
     await db.refresh(req)
-    
+
     return {"message": "Status updated", "status": req.status, "request_id": str(req.request_id)}
