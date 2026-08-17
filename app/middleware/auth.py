@@ -13,7 +13,6 @@ from app.config import settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
-
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
 ) -> dict[str, Any]:
@@ -38,7 +37,6 @@ async def get_current_user(
         return payload
     except JWTError:
         raise credentials_exception
-
 
 def require_role(*roles: str):
     """
