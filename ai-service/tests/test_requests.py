@@ -22,13 +22,12 @@ async def test_submit_no_auth(client):
 
 @pytest.mark.asyncio
 async def test_locate_resources(client):
-    # Tests the POST /api/ai/locate-resources endpoint which is implemented in locator.py
+
     r = await client.post('/api/ai/locate-resources', json={
         "lat": 6.9,
         "lng": 79.8,
         "emergency_type": "medical"
     })
-    # If the user intended a GET on /api/requests/locate, testing the implemented AI route instead
-    # as the backend is the AI Microservice.
+
     assert r.status_code == 200
     assert 'hospitals' in r.json()
