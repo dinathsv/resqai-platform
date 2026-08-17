@@ -1,7 +1,4 @@
-/**
- * ResQAI — Root Layout
- * Expo Router root layout with offline banner and initialization.
- */
+
 
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
