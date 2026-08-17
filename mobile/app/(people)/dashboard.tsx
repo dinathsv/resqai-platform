@@ -69,6 +69,11 @@ export default function DashboardScreen() {
       try {
         const socket = await connectSocket();
 
+        if (!socket) {
+          console.warn('Socket not connected, skipping alert listener setup.');
+          return;
+        }
+
         socket.on('alert_received', (alert: Alert) => {
           if (!mounted) return;
           setAlerts((prev) => [alert, ...prev]);
