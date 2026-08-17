@@ -19,17 +19,12 @@ from sqlalchemy import text
 logger = logging.getLogger("resqai.ai_router")
 router = APIRouter(tags=["AI"])
 
-
-# ── Schemas ──────────────────────────────────────────────────
-
 class FirstAidRequest(BaseModel):
     message: str
     language: str = "auto"
 
-
 class TranslateReportRequest(BaseModel):
     message: str
-
 
 class HelpRequestItem(BaseModel):
     request_id: str | None = None
@@ -38,10 +33,8 @@ class HelpRequestItem(BaseModel):
     location: str | None = None
     message: str | None = None
 
-
 class GenerateSummaryRequest(BaseModel):
     requests: list[HelpRequestItem]
-
 
 class HospitalInfo(BaseModel):
     hospital_id: str
@@ -52,15 +45,11 @@ class HospitalInfo(BaseModel):
     has_trauma_unit: bool
     distance_meters: float
 
-
 class LocateResourcesRequest(BaseModel):
     lat: float
     lng: float
     emergency_type: str
     hospitals: list[HospitalInfo]
-
-
-# ── Endpoints ────────────────────────────────────────────────
 
 @router.post("/first-aid-chat")
 async def first_aid_chat(req: FirstAidRequest):
@@ -83,8 +72,7 @@ async def first_aid_chat(req: FirstAidRequest):
     )
 
     reply = await call_llm(system_prompt, req.message, max_tokens=256)
-    
-    # Fallback
+
     if not reply:
         return {
             "reply": "Please call 1990 Suwa Seriya immediately for emergency assistance.",
@@ -107,7 +95,6 @@ async def first_aid_chat(req: FirstAidRequest):
         "show_1990": show_1990,
         "is_critical": is_critical
     }
-
 
 @router.post("/translate-report")
 async def translate_report(req: TranslateReportRequest):
@@ -140,7 +127,6 @@ async def translate_report(req: TranslateReportRequest):
     if not reply:
         return fallback
 
-    # Strip markdown if present
     cleaned = reply.strip()
     if cleaned.startswith("```"):
         cleaned = cleaned.split("\n", 1)[-1]
@@ -150,8 +136,7 @@ async def translate_report(req: TranslateReportRequest):
 
     try:
         data = json.loads(cleaned)
-        
-        # If urgency cannot be determined and message sounds distressed (heuristic)
+
         urgency = data.get("urgency_level")
         if not urgency or not isinstance(urgency, int):
             distress_kws = ["help", "die", "save", "urgent", "emergency"]
@@ -159,7 +144,7 @@ async def translate_report(req: TranslateReportRequest):
                 urgency = 4
             else:
                 urgency = 3
-        
+
         data["urgency_level"] = urgency
         data["language_detected"] = lang
         return data
@@ -167,38 +152,36 @@ async def translate_report(req: TranslateReportRequest):
         logger.error(f"Failed to parse JSON from LLM: {reply}")
         return fallback
 
-
 @router.post("/generate-summary")
 async def generate_summary(req: GenerateSummaryRequest):
     requests_json = json.dumps([r.model_dump() for r in req.requests])
-    
+
     system_prompt = (
         "You are an emergency operations analyst for ResQAI Sri Lanka. "
         "The following are active help requests. Write a 3-paragraph situational report "
         "for a government administrator. Include: total incidents, most critical zones, "
         "predominant emergency types, top 3 priority actions."
     )
-    
+
     user_msg = f"Data: {requests_json}"
-    
+
     reply = await call_llm(system_prompt, user_msg, max_tokens=512)
-    
+
     critical_count = sum(1 for r in req.requests if r.urgency_level and r.urgency_level >= 4)
-    
+
     return {
         "narrative": reply or "Summary generation failed.",
         "total_incidents": len(req.requests),
         "critical_count": critical_count,
         "generated_at": datetime.now(timezone.utc).isoformat()
     }
-    
-from datetime import datetime, timezone
 
+from datetime import datetime, timezone
 
 @router.post("/locate-resources")
 async def locate_resources(req: LocateResourcesRequest):
     hospitals_json = json.dumps([h.model_dump() for h in req.hospitals])
-    
+
     system_prompt = (
         "Return ONLY JSON:\n"
         "{\n"
@@ -207,7 +190,7 @@ async def locate_resources(req: LocateResourcesRequest):
         '  "should_call_1990": true/false\n'
         "}"
     )
-    
+
     user_msg = (
         f"A user has reported a {req.emergency_type} emergency. "
         f"Their location: {req.lat},{req.lng}. "
@@ -215,14 +198,14 @@ async def locate_resources(req: LocateResourcesRequest):
         "Recommend the single most appropriate hospital for this emergency type "
         "and explain in one sentence why. Also state: should_call_1990: true or false."
     )
-    
+
     fallback_should_call = req.emergency_type.lower() in ["medical", "accident", "fire"]
     fallback = {
         "hospitals": [h.model_dump() for h in req.hospitals],
         "recommendation": req.hospitals[0].model_dump() if req.hospitals else None,
         "should_call_1990": fallback_should_call
     }
-    
+
     if not req.hospitals:
         return fallback
 
@@ -240,12 +223,11 @@ async def locate_resources(req: LocateResourcesRequest):
     try:
         data = json.loads(cleaned)
         rec_id = data.get("recommended_hospital_id")
-        
-        # Find recommended hospital object
+
         recommended = next((h.model_dump() for h in req.hospitals if str(h.hospital_id) == str(rec_id)), None)
         if not recommended:
             recommended = req.hospitals[0].model_dump()
-            
+
         return {
             "hospitals": [h.model_dump() for h in req.hospitals],
             "recommendation": recommended,
