@@ -45,9 +45,7 @@ export default function AlertsPage() {
     try {
       await api.patch(`/api/alerts/${id}`, { status: 'cancelled' });
       mutate();
-    } catch {
-      // silently fail
-    }
+    } catch 
   }
 
   const totalPages = data?.pages ?? 1;
@@ -60,7 +58,6 @@ export default function AlertsPage() {
         <button className={styles.newAlertBtn}>Issue New Alert</button>
       </Link>
 
-      {/* Filter Row */}
       <div className={styles.filterRow}>
         <select
           value={filterType}
@@ -87,7 +84,6 @@ export default function AlertsPage() {
         </select>
       </div>
 
-      {/* Table */}
       <table>
         <thead>
           <tr>
@@ -135,7 +131,6 @@ export default function AlertsPage() {
         </tbody>
       </table>
 
-      {/* Pagination */}
       <div className={styles.pagination}>
         <button
           className="outline"
