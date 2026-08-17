@@ -1,7 +1,4 @@
-/**
- * ResQAI — JWT Authentication Middleware
- * Verifies Bearer token and attaches user info to req.user
- */
+
 
 const jwt = require('jsonwebtoken');
 
@@ -10,10 +7,6 @@ if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable must be set');
 }
 
-/**
- * Middleware: require a valid JWT in the Authorization header.
- * Sets req.user = { user_id, email, role }
- */
 function requireAuth(req, res, next) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
@@ -34,9 +27,6 @@ function requireAuth(req, res, next) {
   }
 }
 
-/**
- * Optional auth — sets req.user if token present, otherwise continues.
- */
 function optionalAuth(req, res, next) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
@@ -58,9 +48,6 @@ function optionalAuth(req, res, next) {
   next();
 }
 
-/**
- * Generate a JWT for a user.
- */
 function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 }
