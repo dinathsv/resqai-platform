@@ -108,7 +108,9 @@ export default function DashboardPage() {
   async function resolveRequest(id: string) {
     try {
       await api.patch(`/api/requests/${id}/status`, { status: 'resolved' });
-    } catch 
+    } catch (error) {
+      console.error("Failed to resolve request:", error);
+    }
   }
 
   function urgencyClass(level: number) {
