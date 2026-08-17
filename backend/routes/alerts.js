@@ -1,20 +1,10 @@
-/**
- * ResQAI — Alerts Routes
- * GET  /api/alerts          — list active alerts
- * GET  /api/alerts/:id      — single alert detail
- * PATCH /api/alerts/:id/acknowledge — acknowledge an alert
- */
+
 
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-/**
- * GET /api/alerts
- * Returns all active alerts, newest first.
- * Optional query param: ?district=Colombo
- */
 router.get('/', requireAuth, async (req, res) => {
   try {
     const { district } = req.query;
@@ -41,10 +31,6 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-/**
- * GET /api/alerts/:id
- * Returns a single alert with full detail.
- */
 router.get('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
@@ -60,7 +46,6 @@ router.get('/:id', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Alert not found' });
     }
 
-    // Check if current user has acknowledged
     const ackResult = await req.app.locals.pool.query(
       'SELECT acknowledged_at FROM alert_acknowledgements WHERE alert_id = $1 AND user_id = $2',
       [id, req.user.user_id]
@@ -77,15 +62,10 @@ router.get('/:id', requireAuth, async (req, res) => {
   }
 });
 
-/**
- * PATCH /api/alerts/:id/acknowledge
- * Mark the current user as having acknowledged this alert.
- */
 router.patch('/:id/acknowledge', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Verify alert exists
     const alertCheck = await req.app.locals.pool.query(
       'SELECT alert_id FROM alerts WHERE alert_id = $1',
       [id]
@@ -94,7 +74,6 @@ router.patch('/:id/acknowledge', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Alert not found' });
     }
 
-    // Upsert acknowledgement
     await req.app.locals.pool.query(
       `INSERT INTO alert_acknowledgements (alert_id, user_id)
        VALUES ($1, $2)
