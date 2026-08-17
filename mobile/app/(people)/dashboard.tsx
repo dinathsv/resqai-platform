@@ -1,10 +1,4 @@
-/**
- * ResQAI — People Dashboard
- *
- * Main screen for registered users.
- * Shows welcome message, 2x2 action grid, and active alerts list.
- * Connects Socket.IO for real-time alert updates.
- */
+
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
@@ -21,8 +15,6 @@ import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { connectSocket, disconnectSocket } from '../../config/socket';
 
-// ── Types ───────────────────────────────────────────────────
-
 interface Alert {
   alert_id: string;
   disaster_type: string;
@@ -31,8 +23,6 @@ interface Alert {
   created_at: string;
 }
 
-// ── Grid Items ──────────────────────────────────────────────
-
 const GRID_ITEMS = [
   { key: 'help', emoji: '🆘', label: 'Request Help', route: '/(people)/help' },
   { key: 'hospital', emoji: '🏥', label: 'Find Hospital', route: '/(people)/locator' },
@@ -40,28 +30,24 @@ const GRID_ITEMS = [
   { key: 'alerts', emoji: '📢', label: 'Alerts', route: '/(people)/dashboard' },
 ];
 
-// ── Component ───────────────────────────────────────────────
-
 export default function DashboardScreen() {
   const router = useRouter();
   const [userName, setUserName] = useState<string>('');
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const flashAnim = useRef(new Animated.Value(0)).current;
 
-  // ── Fetch user info and alerts on mount ─────────────────
   useEffect(() => {
     let mounted = true;
 
     async function init() {
       try {
-        // Get user name
+
         const meRes = await apiFetch('/api/auth/me');
         if (meRes.ok) {
           const meData = await meRes.json();
           if (mounted) setUserName(meData.full_name || 'User');
         }
 
-        // Get active alerts
         const alertsRes = await apiFetch('/api/alerts');
         if (alertsRes.ok) {
           const alertsData = await alertsRes.json();
@@ -76,7 +62,6 @@ export default function DashboardScreen() {
     return () => { mounted = false; };
   }, []);
 
-  // ── Socket.IO connection ────────────────────────────────
   useEffect(() => {
     let mounted = true;
 
@@ -88,7 +73,6 @@ export default function DashboardScreen() {
           if (!mounted) return;
           setAlerts((prev) => [alert, ...prev]);
 
-          // Flash border red briefly
           Animated.sequence([
             Animated.timing(flashAnim, {
               toValue: 1,
@@ -103,7 +87,6 @@ export default function DashboardScreen() {
           ]).start();
         });
 
-        // critical_request is admin-only — ignore for people
       } catch (err) {
         console.error('Socket setup error:', err);
       }
@@ -116,25 +99,21 @@ export default function DashboardScreen() {
     };
   }, []);
 
-  // ── Exit handler ────────────────────────────────────────
   const handleExit = useCallback(async () => {
     await AsyncStorage.clear();
     router.replace('/');
   }, [router]);
 
-  // ── Format time ─────────────────────────────────────────
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // ── Flash border color ──────────────────────────────────
   const borderColor = flashAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ['#E0E0E0', '#FF0000'],
   });
 
-  // ── Render alert row ────────────────────────────────────
   const renderAlertItem = ({ item }: { item: Alert }) => (
     <TouchableOpacity
       style={styles.alertRow}
@@ -153,10 +132,9 @@ export default function DashboardScreen() {
     </TouchableOpacity>
   );
 
-  // ── Render ──────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+
       <View style={styles.header}>
         <Text style={styles.headerTitle}>ResQAI</Text>
         <TouchableOpacity onPress={handleExit}>
@@ -164,10 +142,8 @@ export default function DashboardScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Welcome */}
       <Text style={styles.welcome}>Hello, {userName || '...'}</Text>
 
-      {/* 2x2 Grid */}
       <View style={styles.grid}>
         <View style={styles.gridRow}>
           {GRID_ITEMS.slice(0, 2).map((item) => (
@@ -197,7 +173,6 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {/* Active Alerts Section */}
       <Animated.View style={[styles.alertsSection, { borderColor }]}>
         <Text style={styles.alertsHeading}>Active Alerts</Text>
 
@@ -215,8 +190,6 @@ export default function DashboardScreen() {
     </SafeAreaView>
   );
 }
-
-// ── Styles ──────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -261,7 +234,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 28,
-    // No shadow, no border radius
+
   },
   gridEmoji: {
     fontSize: 28,
