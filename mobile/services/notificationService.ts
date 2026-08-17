@@ -38,7 +38,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
 }
 
 export function setupNotificationListeners(router: any) {
-  if (Platform.OS === 'web' || !Notifications) return () => 
+  if (Platform.OS === 'web' || !Notifications) return () => {}
 
   const fgSub = Notifications.addNotificationReceivedListener((notif: any) => {
     const data = notif.request.content.data

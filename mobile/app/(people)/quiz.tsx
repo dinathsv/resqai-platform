@@ -55,7 +55,9 @@ export default function QuizScreen() {
     try {
       const res = await axios.get(`${BASE_URL}/api/quiz/questions?count=10`)
       setQuestions(res.data)
-    } catch (e)  finally {
+    } catch (e) {
+      console.error('Error fetching questions:', e)
+    } finally {
       setLoading(false)
     }
   }
@@ -106,7 +108,9 @@ export default function QuizScreen() {
           { headers: { Authorization: `Bearer ${token}` } }
         )
       }
-    } catch (e) 
+    } catch (e) {
+      console.error('Error submitting attempt:', e)
+    }
   }
 
   function tryAgain() {

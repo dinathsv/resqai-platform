@@ -109,7 +109,7 @@ export default function VolunteerScreen() {
       const headers = await getAuthHeaders()
       await axios.patch(
         `${BASE_URL}/api/volunteer-assignments/${assignmentId}/complete`,
-        ,
+        {},
         { headers }
       )
       fetchAssignments()
