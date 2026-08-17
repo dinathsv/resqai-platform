@@ -40,14 +40,10 @@ SYSTEM_PROMPT = (
     "- Return ONLY the JSON object."
 )
 
-# Emergency types that always need 1990
 ALWAYS_1990 = {
     "medical", "fire", "search_and_rescue",
     "hazardous_material", "tsunami", "earthquake",
 }
-
-
-# ── Endpoint ─────────────────────────────────────────────────
 
 @router.post("/locate-resources", response_model=LocateResourcesResponse)
 async def locate_resources(req: LocateResourcesRequest):
@@ -55,11 +51,11 @@ async def locate_resources(req: LocateResourcesRequest):
     Find the 3 nearest hospitals via PostGIS and get an LLM
     recommendation for which is best for this emergency type.
     """
-    # 1. Query PostGIS
+
     rows = await db_service.get_nearest_hospitals(req.lat, req.lng, limit=3)
 
     if not rows:
-        # No hospitals in DB
+
         return LocateResourcesResponse(
             hospitals=[],
             recommended=None,
@@ -67,7 +63,6 @@ async def locate_resources(req: LocateResourcesRequest):
             contact_1990=True,
         )
 
-    # 2. Build hospital list
     hospitals = [
         HospitalInfo(
             hospital_id=str(row["hospital_id"]),
@@ -83,7 +78,6 @@ async def locate_resources(req: LocateResourcesRequest):
         for row in rows
     ]
 
-    # 3. Ask LLM for recommendation
     try:
         llm_input = json.dumps({
             "emergency_type": req.emergency_type,
@@ -104,16 +98,14 @@ async def locate_resources(req: LocateResourcesRequest):
 
     except Exception as exc:
         logger.error("LLM failed for locate-resources: %s", exc)
-        # Fallback: recommend closest hospital
+
         rec_index = 0
         reason = "Nearest hospital (LLM unavailable for detailed recommendation)."
         contact_1990 = req.emergency_type.lower() in ALWAYS_1990
 
-    # Override contact_1990 for always-critical types
     if req.emergency_type.lower() in ALWAYS_1990:
         contact_1990 = True
 
-    # If nearest hospital > 20 km, always recommend 1990
     if hospitals[0].distance_metres > 20_000:
         contact_1990 = True
 
