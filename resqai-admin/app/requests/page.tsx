@@ -50,9 +50,7 @@ export default function RequestsPage() {
     try {
       await api.patch(`/api/requests/${id}/status`, { status: 'flagged' });
       mutate();
-    } catch {
-      // silently fail
-    }
+    } catch 
   }
 
   function urgencyClass(level: number, status: string) {
