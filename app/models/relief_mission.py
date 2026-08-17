@@ -11,7 +11,6 @@ from geoalchemy2 import Geometry
 
 from app.database import Base
 
-
 class ReliefMission(Base):
     __tablename__ = "relief_missions"
 
