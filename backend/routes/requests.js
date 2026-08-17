@@ -1,10 +1,4 @@
-/**
- * ResQAI — Requests Routes
- * GET /api/requests/locate — proxy to AI service /api/ai/locate-resources
- *
- * Converts query params (lat, lng, emergency_type) to a POST body
- * and forwards to the AI microservice.
- */
+
 
 const express = require('express');
 const { optionalAuth } = require('../middleware/auth');
@@ -13,10 +7,6 @@ const router = express.Router();
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
 
-/**
- * GET /api/requests/locate?lat=6.9271&lng=79.8612&emergency_type=medical
- * Proxies to AI service POST /api/ai/locate-resources
- */
 router.get('/locate', optionalAuth, async (req, res) => {
   try {
     const { lat, lng, emergency_type } = req.query;
@@ -25,7 +15,6 @@ router.get('/locate', optionalAuth, async (req, res) => {
       return res.status(400).json({ error: 'lat and lng query params are required' });
     }
 
-    // Validate lat/lng are strings and parse to valid numbers
     if (typeof lat !== 'string' || typeof lng !== 'string') {
       return res.status(400).json({ error: 'lat and lng must be single string values' });
     }
