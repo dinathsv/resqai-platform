@@ -9,7 +9,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 
-
 class AgencyChatMessage(Base):
     __tablename__ = "agency_chat_messages"
 
