@@ -32,7 +32,7 @@ const fetcher = (url: string) => api.get(url).then((res) => res.data);
 export default function RequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id } = use(params);
-  
+
   const [selectedMission, setSelectedMission] = useState('');
   const [missions, setMissions] = useState<Mission[]>([]);
 
@@ -42,12 +42,10 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
   );
 
   useEffect(() => {
-    // Fetch active missions for the assignment dropdown
+
     api.get('/api/missions?status=active').then((res) => {
       setMissions(res.data.missions || []);
-    }).catch(() => {
-      // ignore
-    });
+    }).catch(() => );
   }, []);
 
   async function updateStatus(newStatus: string) {
