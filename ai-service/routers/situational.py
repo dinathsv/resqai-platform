@@ -37,15 +37,11 @@ SYSTEM_PROMPT = (
     "- Return ONLY the JSON object."
 )
 
-# ── Fallback ─────────────────────────────────────────────────
-
-
 def _build_fallback(requests: list[dict]) -> GenerateSummaryResponse:
     """Generate a basic summary without the LLM."""
     total = len(requests)
     critical = sum(1 for r in requests if r.get("urgency_level", 0) >= 4)
 
-    # Gather unique zones
     zones = list({
         r.get("location", "Unknown")
         for r in requests
@@ -65,15 +61,12 @@ def _build_fallback(requests: list[dict]) -> GenerateSummaryResponse:
         zones=zones,
     )
 
-
-# ── Endpoint ─────────────────────────────────────────────────
-
 @router.post("/generate-summary", response_model=GenerateSummaryResponse)
 async def generate_summary(req: GenerateSummaryRequest):
     """
     Summarise a batch of help requests into an administrator briefing.
     """
-    # Serialize requests for the LLM prompt
+
     requests_data = [item.model_dump() for item in req.requests]
     user_message = json.dumps(requests_data, indent=2)
 
@@ -88,7 +81,6 @@ async def generate_summary(req: GenerateSummaryRequest):
         logger.error("LLM failed for generate-summary: %s", exc)
         return _build_fallback(requests_data)
 
-    # Ensure zones is a list
     zones = data.get("zones", [])
     if isinstance(zones, str):
         zones = [zones]
