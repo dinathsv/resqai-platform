@@ -50,7 +50,9 @@ export default function RequestsPage() {
     try {
       await api.patch(`/api/requests/${id}/status`, { status: 'flagged' });
       mutate();
-    } catch 
+    } catch (error) {
+      console.error("Failed to flag request:", error);
+    }
   }
 
   function urgencyClass(level: number, status: string) {
