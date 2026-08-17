@@ -1,18 +1,23 @@
-import * as Notifications from 'expo-notifications'
 import * as Device from 'expo-device'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import axios from 'axios'
+import { Platform } from 'react-native'
 import { BASE_URL } from '../constants/api'
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-})
+let Notifications: any = null
+if (Platform.OS !== 'web') {
+  Notifications = require('expo-notifications')
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  })
+}
 
 export async function registerForPushNotifications(): Promise<string | null> {
+  if (Platform.OS === 'web' || !Notifications) return null
   if (!Device.isDevice) return null
 
   const { status } = await Notifications.requestPermissionsAsync()
@@ -33,16 +38,15 @@ export async function registerForPushNotifications(): Promise<string | null> {
 }
 
 export function setupNotificationListeners(router: any) {
-  // Foreground handler — show in-app banner instead of system notification
-  const fgSub = Notifications.addNotificationReceivedListener((notif) => {
+  if (Platform.OS === 'web' || !Notifications) return () => 
+
+  const fgSub = Notifications.addNotificationReceivedListener((notif: any) => {
     const data = notif.request.content.data
-    // Show plain in-app banner (implemented in _layout.tsx)
-    // Emit event to state manager with alert data
+
     console.log('Alert received:', data)
   })
 
-  // Tap handler — navigate to alert screen
-  const tapSub = Notifications.addNotificationResponseReceivedListener((resp) => {
+  const tapSub = Notifications.addNotificationResponseReceivedListener((resp: any) => {
     const data = resp.notification.request.content.data
     if (data.alert_id) {
       router.push(`/(people)/alert/${data.alert_id}`)
