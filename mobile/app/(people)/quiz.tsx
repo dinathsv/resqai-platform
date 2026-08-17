@@ -55,9 +55,7 @@ export default function QuizScreen() {
     try {
       const res = await axios.get(`${BASE_URL}/api/quiz/questions?count=10`)
       setQuestions(res.data)
-    } catch (e) {
-      // Quiz is public — no auth required
-    } finally {
+    } catch (e)  finally {
       setLoading(false)
     }
   }
@@ -108,9 +106,7 @@ export default function QuizScreen() {
           { headers: { Authorization: `Bearer ${token}` } }
         )
       }
-    } catch (e) {
-      // Silently fail — quiz works for guests too
-    }
+    } catch (e) 
   }
 
   function tryAgain() {
@@ -212,7 +208,7 @@ export default function QuizScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.questionContainer}>
-        {/* Progress */}
+
         <Text style={styles.progressLabel}>
           Question {currentIndex + 1} of {total}
         </Text>
@@ -220,10 +216,8 @@ export default function QuizScreen() {
           <View style={[styles.progressInner, { width: `${progressPercent}%` }]} />
         </View>
 
-        {/* Question */}
         <Text style={styles.questionText}>{question.question_text}</Text>
 
-        {/* Options */}
         {question.options.map((option) => (
           <TouchableOpacity
             key={option.id}
@@ -238,7 +232,6 @@ export default function QuizScreen() {
           </TouchableOpacity>
         ))}
 
-        {/* Feedback */}
         {showFeedback && (
           <View style={styles.explanationContainer}>
             <Text style={styles.explanationText}>{question.explanation}</Text>
@@ -246,7 +239,6 @@ export default function QuizScreen() {
           </View>
         )}
 
-        {/* Next button */}
         {showFeedback && (
           <View style={styles.nextButtonContainer}>
             <MinimalButton title="Next →" onPress={nextQuestion} />
