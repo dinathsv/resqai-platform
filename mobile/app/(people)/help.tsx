@@ -12,7 +12,16 @@ export default function HelpScreen() {
         <Text style={styles.message}>
           This page is currently under construction. Please check back later.
         </Text>
-        <TouchableOpacity style={styles.button} onPress={() => router.back()}>
+        <TouchableOpacity 
+          style={styles.button} 
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/dashboard');
+            }
+          }}
+        >
           <Text style={styles.buttonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
