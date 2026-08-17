@@ -42,17 +42,15 @@ interface ChatMessage {
 const fetcher = (url: string) => api.get(url).then((res) => res.data);
 
 export default function DashboardPage() {
-  // Stats
+
   const { data: stats } = useSWR<StatData>('/api/admin/dashboard/stats', fetcher, {
     refreshInterval: 30000,
   });
 
-  // Active Requests
   const { data: requests } = useSWR<HelpRequest[]>('/api/requests?status=pending,ai_processing,verified,dispatched,in_progress&limit=20', fetcher, {
     refreshInterval: 30000,
   });
 
-  // AI Report
   const [report, setReport] = useState<SituationalReport | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportTime, setReportTime] = useState<string>('');
@@ -79,7 +77,6 @@ export default function DashboardPage() {
     }
   }, [requests]);
 
-  // Chat
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -111,9 +108,7 @@ export default function DashboardPage() {
   async function resolveRequest(id: string) {
     try {
       await api.patch(`/api/requests/${id}/status`, { status: 'resolved' });
-    } catch {
-      // silently fail
-    }
+    } catch 
   }
 
   function urgencyClass(level: number) {
@@ -130,7 +125,6 @@ export default function DashboardPage() {
     <div className="page">
       <h1>Dashboard</h1>
 
-      {/* Stat Boxes */}
       <div className={styles.statsRow}>
         <div className={styles.statBox}>
           <div className={styles.statNumber}>{stats?.active_requests ?? '—'}</div>
@@ -152,7 +146,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* AI Situational Report */}
       <div className="section">
         <div className={styles.sectionHeader}>
           <h2>AI Situation Report</h2>
@@ -192,7 +185,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Active Requests Table */}
       <div className="section">
         <h2>Active Requests</h2>
         <table>
@@ -243,7 +235,6 @@ export default function DashboardPage() {
         </table>
       </div>
 
-      {/* Inter-Agency Chat */}
       <div className={styles.chatSection}>
         <h2>Inter-Agency Chat</h2>
         <div className={styles.chatBox}>
