@@ -5,7 +5,6 @@ const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
 });
 
-// Attach Authorization header from cookie
 api.interceptors.request.use((config) => {
   const token = Cookies.get('admin_token');
   if (token) {
@@ -14,7 +13,6 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// On 401: redirect to /login
 api.interceptors.response.use(
   (response) => response,
   (error) => {
