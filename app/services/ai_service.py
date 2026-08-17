@@ -13,13 +13,11 @@ logger = logging.getLogger("resqai.ai_service")
 
 _client: AsyncAnthropic | None = None
 
-
 def _get_client() -> AsyncAnthropic:
     global _client
     if _client is None:
         _client = AsyncAnthropic(api_key=settings.AI_API_KEY)
     return _client
-
 
 async def call_llm(
     system_prompt: str,
@@ -43,7 +41,6 @@ async def call_llm(
     except Exception as exc:
         logger.error("LLM API call failed: %s", exc, exc_info=True)
         return None
-
 
 async def close():
     """Close the underlying HTTP client gracefully."""
