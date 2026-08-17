@@ -65,22 +65,22 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
       <div className={styles.definitionList}>
         <div className={styles.label}>Name:</div>
         <div className={styles.value}>{user.full_name}</div>
-        
+
         <div className={styles.label}>Email:</div>
         <div className={styles.value}>{user.email}</div>
-        
+
         <div className={styles.label}>Phone:</div>
         <div className={styles.value}>{user.phone_number || '—'}</div>
-        
+
         <div className={styles.label}>Joined:</div>
         <div className={styles.value}>{new Date(user.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-        
+
         <div className={styles.label}>Total Requests:</div>
         <div className={styles.value}>{user.total_requests}</div>
-        
+
         <div className={styles.label}>Donations Made:</div>
         <div className={styles.value}>LKR {user.donations_made.toLocaleString()}</div>
-        
+
         <div className={styles.label}>Quiz Attempts:</div>
         <div className={styles.value}>{user.quiz_attempts}</div>
       </div>
