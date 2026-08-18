@@ -7,24 +7,23 @@ Includes automatic fallback when the API is unreachable.
 import os
 import json
 import logging
-from anthropic import AsyncAnthropic
-from anthropic.types import TextBlock
+import google.generativeai as genai
 
 logger = logging.getLogger("resqai.llm")
 
-_client: AsyncAnthropic | None = None
+_client_configured = False
 
-def _get_client() -> AsyncAnthropic:
-    global _client
-    if _client is None:
+def _ensure_configured():
+    global _client_configured
+    if not _client_configured:
         api_key = os.getenv("API_KEY", "")
         if not api_key or api_key == "your-api-key-here":
             logger.warning("API_KEY not configured — LLM calls will fail")
-        _client = AsyncAnthropic(api_key=api_key)
-    return _client
+        genai.configure(api_key=api_key)
+        _client_configured = True
 
 def get_model() -> str:
-    return os.getenv("LLM_MODEL", "claude-sonnet-4-20250514")
+    return os.getenv("LLM_MODEL", "gemini-1.5-flash")
 
 async def chat(
     system_prompt: str,
@@ -34,18 +33,14 @@ async def chat(
 ) -> str:
     """Send a single-turn chat to the LLM and return the text response."""
     try:
-        client = _get_client()
-        response = await client.messages.create(
-            model=get_model(),
-            max_tokens=max_tokens,
-            temperature=temperature,
-            system=system_prompt,
-            messages=[{"role": "user", "content": user_message}],
+        _ensure_configured()
+        model = genai.GenerativeModel(
+            model_name=get_model(),
+            system_instruction=system_prompt,
+            generation_config={"max_output_tokens": max_tokens, "temperature": temperature}
         )
-        block = response.content[0]
-        if isinstance(block, TextBlock):
-            return block.text
-        return str(block)
+        response = await model.generate_content_async(user_message)
+        return response.text
     except Exception as exc:
         logger.error("LLM API call failed: %s", exc, exc_info=True)
         raise
@@ -64,9 +59,9 @@ async def chat_json(
 
     cleaned = raw.strip()
     if cleaned.startswith("```"):
-
-        first_newline = cleaned.index("\n")
-        cleaned = cleaned[first_newline + 1:]
+        first_newline = cleaned.find("\n")
+        if first_newline != -1:
+            cleaned = cleaned[first_newline + 1:]
     if cleaned.endswith("```"):
         cleaned = cleaned[:-3]
     cleaned = cleaned.strip()
@@ -79,7 +74,4 @@ async def chat_json(
 
 async def close():
     """Close the underlying HTTP client gracefully."""
-    global _client
-    if _client is not None:
-        await _client.close()
-        _client = None
+    pass
