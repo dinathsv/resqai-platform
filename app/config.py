@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     GUEST_TOKEN_EXPIRE_MINUTES: int = 30
 
     AI_API_KEY: str = ""
-    AI_MODEL: str = "claude-sonnet-4-20250514"
+    AI_MODEL: str = "gemini-1.5-flash"
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
