@@ -10,5 +10,6 @@
       "root": ".",
       "extraPaths": ["."]
     }
-  ]
+  ],
+  "reportPrivateImportUsage": false
 }
