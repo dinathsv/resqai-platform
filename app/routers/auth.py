@@ -42,8 +42,10 @@ class RegisterRequest(BaseModel):
     password: str = Field(..., min_length=6)
     language_pref: str = "en"
 
+import uuid
+
 class VerifyOtpRequest(BaseModel):
-    user_id: str
+    user_id: uuid.UUID
     otp: str
 
 class LoginRequest(BaseModel):

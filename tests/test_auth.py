@@ -43,7 +43,8 @@ async def test_verify_otp_valid(client: AsyncClient):
 
     from app.main import app
     from app.routers.auth import get_redis
-    redis_dep = app.dependency_overrides.get(get_redis)
+    redis_dep = app.dependency_overrides.get(get_redis) or next((v for k, v in app.dependency_overrides.items() if k.__name__ == "get_redis"), None)
+    assert redis_dep is not None, "Redis dependency override not found"
     redis_gen = redis_dep()
     redis_client = await anext(redis_gen)
 
@@ -87,7 +88,8 @@ async def test_login_valid(client: AsyncClient):
 
     from app.main import app
     from app.routers.auth import get_redis
-    redis_dep = app.dependency_overrides.get(get_redis)
+    redis_dep = app.dependency_overrides.get(get_redis) or next((v for k, v in app.dependency_overrides.items() if k.__name__ == "get_redis"), None)
+    assert redis_dep is not None, "Redis dependency override not found"
     redis_client = await anext(redis_dep())
     otp = await redis_client.get(f"otp:{user_id}")
 
