@@ -7,20 +7,21 @@ Includes automatic fallback when the API is unreachable.
 import os
 import json
 import logging
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 logger = logging.getLogger("resqai.llm")
 
-_client_configured = False
+_client: genai.Client | None = None
 
-def _ensure_configured():
-    global _client_configured
-    if not _client_configured:
+def _get_client() -> genai.Client:
+    global _client
+    if _client is None:
         api_key = os.getenv("API_KEY", "")
         if not api_key or api_key == "your-api-key-here":
             logger.warning("API_KEY not configured — LLM calls will fail")
-        genai.configure(api_key=api_key)
-        _client_configured = True
+        _client = genai.Client(api_key=api_key)
+    return _client
 
 def get_model() -> str:
     return os.getenv("LLM_MODEL", "gemini-1.5-flash")
@@ -33,13 +34,16 @@ async def chat(
 ) -> str:
     """Send a single-turn chat to the LLM and return the text response."""
     try:
-        _ensure_configured()
-        model = genai.GenerativeModel(
-            model_name=get_model(),
-            system_instruction=system_prompt,
-            generation_config={"max_output_tokens": max_tokens, "temperature": temperature}
+        client = _get_client()
+        response = await client.aio.models.generate_content(
+            model=get_model(),
+            contents=user_message,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                max_output_tokens=max_tokens,
+                temperature=temperature
+            )
         )
-        response = await model.generate_content_async(user_message)
         return response.text
     except Exception as exc:
         logger.error("LLM API call failed: %s", exc, exc_info=True)
@@ -74,4 +78,7 @@ async def chat_json(
 
 async def close():
     """Close the underlying HTTP client gracefully."""
-    pass
+    global _client
+    if _client is not None:
+        await _client.aclose()
+        _client = None
