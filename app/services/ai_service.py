@@ -5,19 +5,20 @@ Centralised async function for calling the Gemini API.
 
 import logging
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from app.config import settings
 
 logger = logging.getLogger("resqai.ai_service")
 
-_client_configured = False
+_client: genai.Client | None = None
 
-def _ensure_configured():
-    global _client_configured
-    if not _client_configured:
-        genai.configure(api_key=settings.AI_API_KEY)
-        _client_configured = True
+def _get_client() -> genai.Client:
+    global _client
+    if _client is None:
+        _client = genai.Client(api_key=settings.AI_API_KEY)
+    return _client
 
 async def call_llm(
     system_prompt: str,
@@ -29,13 +30,15 @@ async def call_llm(
     Returns None on any exception so callers can handle fallback.
     """
     try:
-        _ensure_configured()
-        model = genai.GenerativeModel(
-            model_name=settings.AI_MODEL,
-            system_instruction=system_prompt,
-            generation_config={"max_output_tokens": max_tokens}
+        client = _get_client()
+        response = await client.aio.models.generate_content(
+            model=settings.AI_MODEL,
+            contents=user_message,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                max_output_tokens=max_tokens
+            )
         )
-        response = await model.generate_content_async(user_message)
         return response.text
     except Exception as exc:
         logger.error("LLM API call failed: %s", exc, exc_info=True)
@@ -43,4 +46,7 @@ async def call_llm(
 
 async def close():
     """Close the underlying HTTP client gracefully."""
-    pass
+    global _client
+    if _client is not None:
+        await _client.aclose()
+        _client = None
