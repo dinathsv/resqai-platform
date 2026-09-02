@@ -1,5 +1,7 @@
+
 import React from 'react'
 import { View, Text, TextInput, StyleSheet, KeyboardTypeOptions } from 'react-native'
+import { Colors, Fonts, Glass } from '../constants/theme'
 
 interface MinimalInputProps {
   label: string
@@ -28,7 +30,7 @@ export default function MinimalInput({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#999"
+        placeholderTextColor={Colors.textMuted}
         keyboardType={keyboardType}
         secureTextEntry={secureTextEntry}
         maxLength={maxLength}
@@ -43,14 +45,16 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    color: '#666',
+    fontFamily: Fonts.medium,
+    color: Colors.textSecondary,
     marginBottom: 6,
   },
   input: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#000',
-    paddingVertical: 8,
+    ...Glass.input,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     fontSize: 16,
-    color: '#000',
+    fontFamily: Fonts.regular,
+    color: Colors.textPrimary,
   },
 })

@@ -13,6 +13,7 @@ import axios from 'axios'
 import { BASE_URL } from '../../constants/api'
 import MinimalButton from '../../components/MinimalButton'
 import { useRouter } from 'expo-router'
+import { Colors, Fonts, Glass } from '../../constants/theme'
 
 interface Option {
   id: string
@@ -151,6 +152,9 @@ export default function QuizScreen() {
     if (option.is_correct) {
       return styles.optionTextCorrect
     }
+    if (option.id === selectedOption && !option.is_correct) {
+      return styles.optionTextWrong
+    }
     return styles.optionTextDefault
   }
 
@@ -170,16 +174,23 @@ export default function QuizScreen() {
   }
 
   if (finished) {
+    const pct = (score / questions.length) * 100
     return (
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.finishedContainer}>
-          <Text style={styles.scoreText}>
-            {score} / {questions.length}
-          </Text>
-          <Text style={styles.performanceText}>{getPerformanceText()}</Text>
+          <View style={styles.scoreCard}>
+            <Text style={styles.scoreText}>
+              {score} / {questions.length}
+            </Text>
+            <Text style={[
+              styles.performanceText,
+              { color: pct >= 60 ? Colors.cta : Colors.accent },
+            ]}>{getPerformanceText()}</Text>
+          </View>
 
           {wrongAnswers.length > 0 && (
             <View style={styles.reviewSection}>
+              <Text style={styles.reviewHeading}>Review Mistakes</Text>
               <FlatList
                 data={wrongAnswers}
                 scrollEnabled={false}
@@ -198,7 +209,7 @@ export default function QuizScreen() {
           <View style={styles.finishedButtons}>
             <MinimalButton title="Try Again" variant="outline" onPress={tryAgain} />
             <View style={{ height: 12 }} />
-            <MinimalButton title="Back to Home" onPress={() => router.back()} />
+            <MinimalButton title="Back to Home" variant="cta" onPress={() => router.back()} />
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -220,7 +231,9 @@ export default function QuizScreen() {
           <View style={[styles.progressInner, { width: `${progressPercent}%` }]} />
         </View>
 
-        <Text style={styles.questionText}>{question.question_text}</Text>
+        <View style={styles.questionCard}>
+          <Text style={styles.questionText}>{question.question_text}</Text>
+        </View>
 
         {question.options.map((option) => (
           <TouchableOpacity
@@ -245,7 +258,7 @@ export default function QuizScreen() {
 
         {showFeedback && (
           <View style={styles.nextButtonContainer}>
-            <MinimalButton title="Next →" onPress={nextQuestion} />
+            <MinimalButton title="Next →" variant="cta" onPress={nextQuestion} />
           </View>
         )}
       </ScrollView>
@@ -256,10 +269,11 @@ export default function QuizScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background,
   },
   loadingText: {
-    color: '#888',
+    color: Colors.textMuted,
+    fontFamily: Fonts.regular,
     textAlign: 'center',
     marginTop: 40,
     fontSize: 14,
@@ -271,69 +285,92 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: 13,
-    color: '#888',
+    fontFamily: Fonts.medium,
+    color: Colors.textMuted,
     textAlign: 'right',
     marginBottom: 8,
   },
   progressOuter: {
-    height: 4,
-    backgroundColor: '#DDD',
+    height: 5,
+    backgroundColor: Colors.borderLight,
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 20,
+    borderRadius: 3,
+    overflow: 'hidden',
   },
   progressInner: {
-    height: 4,
-    backgroundColor: '#000',
+    height: 5,
+    backgroundColor: Colors.accent,
+    borderRadius: 3,
+  },
+  questionCard: {
+    ...Glass.card,
+    padding: 24,
+    marginBottom: 20,
   },
   questionText: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#000',
+    fontFamily: Fonts.bold,
+    color: Colors.textPrimary,
     textAlign: 'center',
-    marginVertical: 24,
   },
   optionBase: {
     width: '100%',
     padding: 14,
     marginBottom: 10,
-    borderRadius: 4,
+    borderRadius: 12,
   },
   optionDefault: {
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#000',
+    ...Glass.card,
   },
   optionCorrect: {
-    backgroundColor: '#000',
+    backgroundColor: Colors.cta,
+    borderRadius: 12,
+    shadowColor: Colors.cta,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
   },
   optionWrong: {
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#000',
+    backgroundColor: Colors.accent,
+    borderRadius: 12,
   },
   optionTextDefault: {
     fontSize: 15,
-    color: '#000',
+    fontFamily: Fonts.medium,
+    color: Colors.textPrimary,
   },
   optionTextCorrect: {
     fontSize: 15,
-    color: '#FFF',
+    fontFamily: Fonts.semiBold,
+    color: Colors.white,
+  },
+  optionTextWrong: {
+    fontSize: 15,
+    fontFamily: Fonts.semiBold,
+    color: Colors.white,
   },
   explanationContainer: {
-    borderLeftWidth: 2,
-    borderLeftColor: '#000',
-    paddingLeft: 8,
-    marginTop: 16,
+    ...Glass.card,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.accent,
+    paddingLeft: 12,
+    paddingVertical: 14,
+    paddingRight: 14,
+    marginTop: 12,
     marginBottom: 8,
   },
   explanationText: {
     fontSize: 14,
-    color: '#333',
+    fontFamily: Fonts.regular,
+    color: Colors.textSecondary,
     lineHeight: 20,
   },
   categoryText: {
     fontSize: 11,
-    color: '#888',
+    fontFamily: Fonts.medium,
+    color: Colors.textMuted,
     marginTop: 6,
   },
   nextButtonContainer: {
@@ -341,46 +378,60 @@ const styles = StyleSheet.create({
   },
   finishedContainer: {
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: 40,
     paddingBottom: 40,
     alignItems: 'center',
   },
+  scoreCard: {
+    ...Glass.card,
+    padding: 32,
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 24,
+  },
   scoreText: {
     fontSize: 48,
-    fontWeight: '700',
-    color: '#000',
+    fontFamily: Fonts.bold,
+    color: Colors.textPrimary,
     textAlign: 'center',
   },
   performanceText: {
     fontSize: 22,
-    fontWeight: '700',
-    color: '#000',
+    fontFamily: Fonts.bold,
     textAlign: 'center',
     marginTop: 8,
-    marginBottom: 32,
   },
   reviewSection: {
     width: '100%',
     marginBottom: 24,
   },
+  reviewHeading: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: Colors.textPrimary,
+    marginBottom: 12,
+  },
   reviewItem: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
+    ...Glass.card,
+    padding: 14,
+    marginBottom: 10,
   },
   reviewQuestion: {
     fontSize: 13,
-    color: '#888',
-    marginBottom: 4,
+    fontFamily: Fonts.regular,
+    color: Colors.textSecondary,
+    marginBottom: 6,
   },
   reviewYours: {
     fontSize: 14,
-    color: 'red',
+    fontFamily: Fonts.medium,
+    color: Colors.accent,
     marginBottom: 2,
   },
   reviewCorrect: {
     fontSize: 14,
-    color: '#000',
+    fontFamily: Fonts.medium,
+    color: Colors.cta,
   },
   finishedButtons: {
     width: '100%',
