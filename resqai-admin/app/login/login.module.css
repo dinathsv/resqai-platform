@@ -3,21 +3,24 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: #fff;
+  background: #0f1117;
   padding: 16px;
 }
 
 .form {
   width: 100%;
   max-width: 360px;
-  border: 1px solid #000;
+  border: 1px solid #2d3039;
   padding: 32px;
+  background: #1a1c24;
+  border-radius: 8px;
 }
 
 .title {
   font-size: 20px;
   font-weight: bold;
   margin-bottom: 24px;
+  color: #f0f1f3;
 }
 
 .field {
@@ -29,6 +32,7 @@
   font-size: 13px;
   font-weight: bold;
   margin-bottom: 4px;
+  color: #d1d5db;
 }
 
 .submitBtn {
@@ -37,7 +41,7 @@
 }
 
 .error {
-  color: #DC2626;
+  color: #f87171;
   font-size: 13px;
   margin-top: 8px;
 }

@@ -26,19 +26,21 @@
 .pageNum {
   padding: 4px 8px;
   font-weight: bold;
+  color: #9ca3af;
 }
 
 .pageNumActive {
   padding: 4px 8px;
   font-weight: bold;
-  background: #000;
+  background: #3b82f6;
   color: #fff;
+  border-radius: 4px;
 }
 
 .cancelBtn {
   background: none;
   border: none;
-  color: #DC2626;
+  color: #f87171;
   cursor: pointer;
   font-size: 13px;
   padding: 0;
@@ -47,6 +49,7 @@
 
 .cancelBtn:hover {
   text-decoration: none;
+  color: #ef4444;
 }
 
 .statsLink {

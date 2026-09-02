@@ -23,14 +23,16 @@
 .pageNum {
   padding: 4px 8px;
   cursor: pointer;
+  color: #9ca3af;
 }
 
 .pageNumActive {
   padding: 4px 8px;
   cursor: pointer;
   font-weight: bold;
-  background: #000;
+  background: #3b82f6;
   color: #fff;
+  border-radius: 4px;
 }
 
 .resendBtn {

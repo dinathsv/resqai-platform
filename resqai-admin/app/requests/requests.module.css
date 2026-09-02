@@ -28,14 +28,16 @@
 .pageNum {
   padding: 4px 8px;
   cursor: pointer;
+  color: #9ca3af;
 }
 
 .pageNumActive {
   padding: 4px 8px;
   cursor: pointer;
   font-weight: bold;
-  background: #000;
+  background: #3b82f6;
   color: #fff;
+  border-radius: 4px;
 }
 
 .flagBtn {
@@ -56,11 +58,11 @@
 
 .flaggedRow {
   text-decoration: line-through;
-  color: #888;
+  color: #6b7280;
 }
 
-.urgency5 { color: #DC2626; font-weight: bold; }
-.urgency4 { color: #EA580C; font-weight: bold; }
+.urgency5 { color: #f87171; font-weight: bold; }
+.urgency4 { color: #fb923c; font-weight: bold; }
 .urgencyNormal { color: inherit; }
 
 @media (max-width: 768px) {

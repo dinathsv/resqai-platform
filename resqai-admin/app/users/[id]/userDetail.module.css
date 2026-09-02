@@ -15,11 +15,11 @@
 
 .label {
   font-weight: bold;
-  color: #555;
+  color: #9ca3af;
 }
 
 .value {
-  color: #000;
+  color: #e1e3e8;
 }
 
 .section {
@@ -29,5 +29,5 @@
 .suspendContainer {
   margin-top: 48px;
   padding-top: 24px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid #2d3039;
 }
