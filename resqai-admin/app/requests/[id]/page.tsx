@@ -29,9 +29,9 @@ interface Mission {
 
 const fetcher = (url: string) => api.get(url).then((res) => res.data);
 
-export default function RequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function RequestDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const { id } = use(params);
+  const { id } = params;
 
   const [selectedMission, setSelectedMission] = useState('');
   const [missions, setMissions] = useState<Mission[]>([]);
@@ -45,7 +45,7 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
 
     api.get('/api/missions?status=active').then((res) => {
       setMissions(res.data.missions || []);
-    }).catch(() => );
+    }).catch((err) => console.error("Failed to fetch missions", err));
   }, []);
 
   async function updateStatus(newStatus: string) {
