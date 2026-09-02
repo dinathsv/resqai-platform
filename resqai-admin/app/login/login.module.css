@@ -3,53 +3,72 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: #0f1117;
-  padding: 16px;
+  background: radial-gradient(circle at 50% 30%, #172036 0%, #090d16 70%);
+  padding: 24px;
 }
 
 .form {
   width: 100%;
-  max-width: 360px;
-  border: 1px solid #2d3039;
-  padding: 32px;
-  background: #1a1c24;
-  border-radius: 8px;
+  max-width: 400px;
+  border: 1px solid var(--border-medium);
+  padding: 36px 32px;
+  background: rgba(17, 24, 39, 0.8);
+  backdrop-filter: blur(16px);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
 }
 
 .title {
-  font-size: 20px;
-  font-weight: bold;
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 6px;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
   margin-bottom: 24px;
-  color: #f0f1f3;
 }
 
 .field {
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .label {
   display: block;
-  font-size: 13px;
-  font-weight: bold;
-  margin-bottom: 4px;
-  color: #d1d5db;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
 }
 
 .submitBtn {
   width: 100%;
-  margin-top: 8px;
+  margin-top: 10px;
+  padding: 11px;
+  font-size: 14px;
 }
 
 .error {
-  color: #f87171;
-  font-size: 13px;
-  margin-top: 8px;
+  background: var(--status-critical-bg);
+  border: 1px solid var(--status-critical-border);
+  color: var(--status-critical);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  margin-top: 12px;
+  text-align: center;
 }
 
 @media (max-width: 480px) {
   .form {
-    padding: 24px 16px;
-    border-left: none;
-    border-right: none;
+    padding: 28px 20px;
+    border-radius: var(--radius-lg);
   }
 }
+
