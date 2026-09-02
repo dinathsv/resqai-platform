@@ -18,7 +18,7 @@ export default function HelpScreen() {
             if (router.canGoBack()) {
               router.back();
             } else {
-              router.replace('/dashboard');
+              router.replace('/(people)/dashboard');
             }
           }}
         >
