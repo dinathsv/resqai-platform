@@ -1,44 +1,58 @@
 /**
- * ResQAI Mobile Theme
+ * ResQAI Mobile Theme — "Lifeline Humanist" Design System
+ * Designed for crisis situations: calm authority, high legibility, zero alarm-fatigue.
  *
- * Color distribution:
- *   60% #F5F5F5  — backgrounds, base surfaces
- *   30% #EB0000  — accent (headers, banners, active states, borders, progress)
- *   10% #00C947  — important action buttons (primary CTAs)
- *
- * Font: Montserrat (all weights loaded via @expo-google-fonts/montserrat)
- * Style: Glassmorphism on cards & page sections
+ * Color Architecture (60 - 30 - 10 Rule):
+ *   60% Base Canvas  — Soft Warm Canvas (#F8FAFC) & Pure Card Surfaces (#FFFFFF)
+ *   30% Structure    — Deep Slate (#0F172A / #334155) for crisp typography & grounding borders
+ *   10% Action/Life  — Crimson Life Pulse (#E11D48) for SOS/Urgent + Forest Mint (#059669) for Verified/Help
  */
 
 export const Colors = {
-  // 60 % — base / background
-  background: '#F5F5F5',
+  // 60% — Canvas & Surfaces (Warm, anti-glare, comfortable in sunlight and night)
+  background: '#F8FAFC',
   surface: '#FFFFFF',
-  surfaceLight: '#FAFAFA',
+  surfaceLight: '#F1F5F9',
+  surfaceSubtle: '#F8FAFC',
 
-  // 30 % — accent / brand
-  accent: '#EB0000',
-  accentDark: '#C40000',
-  accentLight: 'rgba(235, 0, 0, 0.08)',
+  // 30% — Brand, Framing & High-Contrast Typography
+  primary: '#0F172A',       // Deep Navy Slate - authority, stability, trust
+  primaryLight: '#1E293B',  // Secondary deep slate
+  slateMuted: '#64748B',    // Subtitle & secondary metadata slate
 
-  // 10 % — important CTA
-  cta: '#00C947',
-  ctaDark: '#00A33A',
+  // 10% — Emergency & Action Anchors (Intentional, dignified, not blinding)
+  accent: '#E11D48',        // Crimson Rose / Life Pulse (SOS, Alerts, Critical)
+  accentDark: '#BE123C',    // Deep Crimson (Active press state)
+  accentLight: 'rgba(225, 29, 72, 0.08)',
+  accentGlow: 'rgba(225, 29, 72, 0.20)',
 
-  // Neutrals
-  textPrimary: '#1A1A1A',
-  textSecondary: '#666666',
-  textMuted: '#999999',
-  border: '#E0E0E0',
-  borderLight: '#EEEEEE',
+  // 10% — Life-Saving Affirmation / CTA
+  cta: '#059669',           // Forest Mint — affirmative, reassuring, emergency clear
+  ctaDark: '#047857',       // Dark emerald
+  ctaLight: 'rgba(5, 150, 105, 0.10)',
+
+  // Specialized Emergency Triage Accents
+  amberWarning: '#D97706',  // Amber warning (floods, weather alerts)
+  amberLight: 'rgba(217, 119, 6, 0.10)',
+  infoBlue: '#0284C7',      // Info / Hospitals / Guidance
+  infoLight: 'rgba(2, 132, 199, 0.10)',
+
+  // High-Legibility Neutrals (WCAG AAA compliant on white/light gray)
+  textPrimary: '#0F172A',
+  textSecondary: '#475569',
+  textMuted: '#94A3B8',
+  border: '#E2E8F0',
+  borderLight: '#F1F5F9',
+  borderDark: '#CBD5E1',
   white: '#FFFFFF',
   black: '#000000',
-  overlay: 'rgba(0,0,0,0.35)',
+  overlay: 'rgba(15, 23, 42, 0.55)',
 
-  // Semantic
-  error: '#EB0000',
-  success: '#00C947',
-  warning: '#FF9500',
+  // Semantic mappings
+  error: '#E11D48',
+  success: '#059669',
+  warning: '#D97706',
+  info: '#0284C7',
 } as const;
 
 export const Fonts = {
@@ -48,34 +62,46 @@ export const Fonts = {
   bold: 'Montserrat_700Bold',
 } as const;
 
-/** Reusable glassmorphism card style (React Native compatible) */
+/** Tactile elevation and human-crafted card physics */
 export const Glass = {
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.72)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.45)',
-    borderRadius: 16,
-    shadowColor: '#000',
+    borderColor: '#E2E8F0',
+    borderRadius: 18,
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    elevation: 3,
+  },
+  cardElevated: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 20,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.10,
+    shadowRadius: 20,
     elevation: 6,
   },
-  cardDark: {
-    backgroundColor: 'rgba(26, 26, 26, 0.65)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+  cardUrgent: {
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1.5,
+    borderColor: '#FECDD3',
+    borderRadius: 18,
+    shadowColor: '#E11D48',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
     shadowRadius: 16,
-    elevation: 6,
+    elevation: 4,
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
   },
 } as const;
+

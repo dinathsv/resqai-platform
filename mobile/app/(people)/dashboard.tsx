@@ -16,7 +16,7 @@ import { apiFetch } from '../../config/api';
 import { connectSocket, disconnectSocket } from '../../config/socket';
 import { Colors, Fonts, Glass } from '../../constants/theme';
 
-interface Alert {
+interface AlertItem {
   alert_id: string;
   disaster_type: string;
   severity: number;
@@ -25,16 +25,48 @@ interface Alert {
 }
 
 const GRID_ITEMS = [
-  { key: 'help', emoji: '🆘', label: 'Request Help', route: '/(people)/help' },
-  { key: 'hospital', emoji: '🏥', label: 'Find Hospital', route: '/(people)/locator' },
-  { key: 'chat', emoji: '💬', label: 'First Aid Chat', route: '/(people)/chatbot' },
-  { key: 'alerts', emoji: '📢', label: 'Alerts', route: '/(people)/dashboard' },
+  {
+    key: 'help',
+    emoji: '🆘',
+    label: 'Request Help',
+    subtitle: 'Immediate rescue & aid',
+    route: '/(people)/help',
+    badgeColor: Colors.accentLight,
+    badgeBorder: '#FECDD3',
+  },
+  {
+    key: 'hospital',
+    emoji: '🏥',
+    label: 'Find Hospital',
+    subtitle: 'Nearest trauma & care',
+    route: '/(people)/locator',
+    badgeColor: Colors.infoLight,
+    badgeBorder: '#BAE6FD',
+  },
+  {
+    key: 'chat',
+    emoji: '💬',
+    label: 'First Aid AI',
+    subtitle: 'Interactive triage bot',
+    route: '/(people)/chatbot',
+    badgeColor: Colors.ctaLight,
+    badgeBorder: '#A7F3D0',
+  },
+  {
+    key: 'alerts',
+    emoji: '📢',
+    label: 'Disaster Map',
+    subtitle: 'Live warning radars',
+    route: '/(people)/dashboard',
+    badgeColor: Colors.amberLight,
+    badgeBorder: '#FDE68A',
+  },
 ];
 
 export default function DashboardScreen() {
   const router = useRouter();
   const [userName, setUserName] = useState<string>('');
-  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const flashAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -42,7 +74,6 @@ export default function DashboardScreen() {
 
     async function init() {
       try {
-
         const meRes = await apiFetch('/api/auth/me');
         if (meRes.ok) {
           const meData = await meRes.json();
@@ -75,7 +106,7 @@ export default function DashboardScreen() {
           return;
         }
 
-        socket.on('alert_received', (alert: Alert) => {
+        socket.on('alert_received', (alert: AlertItem) => {
           if (!mounted) return;
           setAlerts((prev) => [alert, ...prev]);
 
@@ -115,44 +146,76 @@ export default function DashboardScreen() {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const borderColor = flashAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [Colors.border, Colors.accent],
-  });
+  const getSeverityBadge = (severity: number) => {
+    if (severity >= 4) {
+      return { label: 'CRITICAL', bg: '#FFF1F2', text: '#E11D48', border: '#FECDD3' };
+    }
+    if (severity === 3) {
+      return { label: 'ELEVATED', bg: '#FFFBEB', text: '#D97706', border: '#FDE68A' };
+    }
+    return { label: 'ADVISORY', bg: '#F1F5F9', text: '#475569', border: '#E2E8F0' };
+  };
 
-  const renderAlertItem = ({ item }: { item: Alert }) => (
-    <TouchableOpacity
-      style={styles.alertRow}
-      onPress={() => router.push(`/(people)/alert/${item.alert_id}`)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.alertContent}>
-        <Text style={styles.alertType}>
-          {item.disaster_type.toUpperCase()}
-        </Text>
-        <Text style={styles.alertDistrict}>
-          {item.district || 'Unknown'}
-        </Text>
-      </View>
-      <Text style={styles.alertTime}>
-        {formatTime(item.created_at)}
-      </Text>
-    </TouchableOpacity>
-  );
+  const renderAlertItem = ({ item }: { item: AlertItem }) => {
+    const badge = getSeverityBadge(item.severity);
+    return (
+      <TouchableOpacity
+        style={styles.alertCard}
+        onPress={() => router.push(`/(people)/alert/${item.alert_id}` as any)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.alertTopLine}>
+          <View style={[styles.severityPill, { backgroundColor: badge.bg, borderColor: badge.border }]}>
+            <Text style={[styles.severityPillText, { color: badge.text }]}>{badge.label}</Text>
+          </View>
+          <Text style={styles.alertTime}>{formatTime(item.created_at)}</Text>
+        </View>
+
+        <View style={styles.alertContent}>
+          <Text style={styles.alertType}>{item.disaster_type.toUpperCase()}</Text>
+          <Text style={styles.alertDistrict}>📍 {item.district || 'All Island'}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-
+      {/* Top Bar */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>ResQAI</Text>
-          <Text style={styles.welcome}>Hello, {userName || '...'}</Text>
+          <View style={styles.brandRow}>
+            <Text style={styles.headerTitle}>ResQAI</Text>
+            <View style={styles.livePulseDot} />
+            <Text style={styles.liveBadge}>LIVE RELIEF</Text>
+          </View>
+          <Text style={styles.welcome}>Hello, {userName || 'Citizen'}</Text>
         </View>
-        <TouchableOpacity onPress={handleExit} style={styles.exitButton}>
-          <Text style={styles.headerExit}>Exit</Text>
+
+        <TouchableOpacity onPress={handleExit} style={styles.exitButton} activeOpacity={0.7}>
+          <Text style={styles.headerExit}>Sign Out</Text>
         </TouchableOpacity>
       </View>
 
+      {/* Emergency Quick SOS Banner */}
+      <TouchableOpacity
+        style={styles.emergencyBanner}
+        onPress={() => router.push('/(people)/help')}
+        activeOpacity={0.85}
+      >
+        <View style={styles.sosIconCircle}>
+          <Text style={styles.sosEmoji}>🚑</Text>
+        </View>
+        <View style={styles.sosContent}>
+          <Text style={styles.sosHeading}>In Danger? Tap for SOS</Text>
+          <Text style={styles.sosSub}>Call 1990 Ambulance & send live GPS triage</Text>
+        </View>
+        <View style={styles.sosChevronWrap}>
+          <Text style={styles.sosChevron}>→</Text>
+        </View>
+      </TouchableOpacity>
+
+      {/* 2x2 Tactical Grid */}
       <View style={styles.grid}>
         <View style={styles.gridRow}>
           {GRID_ITEMS.slice(0, 2).map((item) => (
@@ -160,10 +223,13 @@ export default function DashboardScreen() {
               key={item.key}
               style={styles.gridCell}
               onPress={() => router.push(item.route as any)}
-              activeOpacity={0.7}
+              activeOpacity={0.75}
             >
-              <Text style={styles.gridEmoji}>{item.emoji}</Text>
+              <View style={[styles.gridIconCircle, { backgroundColor: item.badgeColor, borderColor: item.badgeBorder }]}>
+                <Text style={styles.gridEmoji}>{item.emoji}</Text>
+              </View>
               <Text style={styles.gridLabel}>{item.label}</Text>
+              <Text style={styles.gridSubtitle}>{item.subtitle}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -173,29 +239,43 @@ export default function DashboardScreen() {
               key={item.key}
               style={styles.gridCell}
               onPress={() => router.push(item.route as any)}
-              activeOpacity={0.7}
+              activeOpacity={0.75}
             >
-              <Text style={styles.gridEmoji}>{item.emoji}</Text>
+              <View style={[styles.gridIconCircle, { backgroundColor: item.badgeColor, borderColor: item.badgeBorder }]}>
+                <Text style={styles.gridEmoji}>{item.emoji}</Text>
+              </View>
               <Text style={styles.gridLabel}>{item.label}</Text>
+              <Text style={styles.gridSubtitle}>{item.subtitle}</Text>
             </TouchableOpacity>
           ))}
         </View>
       </View>
 
-      <Animated.View style={[styles.alertsSection, { borderColor }]}>
-        <Text style={styles.alertsHeading}>Active Alerts</Text>
+      {/* Active Alerts Section */}
+      <View style={styles.alertsSection}>
+        <View style={styles.alertsHeaderRow}>
+          <Text style={styles.alertsHeading}>Active Alerts</Text>
+          <View style={styles.alertCountBadge}>
+            <Text style={styles.alertCountText}>{alerts.length}</Text>
+          </View>
+        </View>
 
         {alerts.length === 0 ? (
-          <Text style={styles.noAlerts}>No active alerts in your area</Text>
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyIcon}>🛡️</Text>
+            <Text style={styles.emptyTitle}>No Active Hazards</Text>
+            <Text style={styles.noAlerts}>No active severe warnings reported in your district.</Text>
+          </View>
         ) : (
           <FlatList
             data={alerts}
             keyExtractor={(item) => item.alert_id}
             renderItem={renderAlertItem}
-            style={styles.alertsList}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.alertsList}
           />
         )}
-      </Animated.View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -210,35 +290,111 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingTop: 14,
+    paddingBottom: 10,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 26,
+    fontFamily: Fonts.bold,
+    color: Colors.textPrimary,
+    letterSpacing: -0.5,
+  },
+  livePulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.accent,
+  },
+  liveBadge: {
+    fontSize: 10,
     fontFamily: Fonts.bold,
     color: Colors.accent,
-  },
-  headerExit: {
-    fontSize: 14,
-    fontFamily: Fonts.semiBold,
-    color: Colors.accent,
-  },
-  exitButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.accent,
+    letterSpacing: 0.8,
   },
   welcome: {
     fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: Colors.textSecondary,
+    fontFamily: Fonts.medium,
+    color: Colors.slateMuted,
     marginTop: 2,
+  },
+  exitButton: {
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  headerExit: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: Colors.slateMuted,
+  },
+  emergencyBanner: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 14,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1.5,
+    borderColor: '#FECDD3',
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: Colors.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  sosIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#FFE4E6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  sosEmoji: {
+    fontSize: 22,
+  },
+  sosContent: {
+    flex: 1,
+  },
+  sosHeading: {
+    fontSize: 15,
+    fontFamily: Fonts.bold,
+    color: Colors.accent,
+  },
+  sosSub: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#9F1239',
+    marginTop: 1,
+  },
+  sosChevronWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FFE4E6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sosChevron: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: Colors.accent,
   },
   grid: {
     paddingHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 14,
     gap: 10,
   },
   gridRow: {
@@ -248,67 +404,129 @@ const styles = StyleSheet.create({
   gridCell: {
     flex: 1,
     ...Glass.card,
+    paddingVertical: 18,
+    paddingHorizontal: 14,
+    alignItems: 'flex-start',
+  },
+  gridIconCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 24,
+    marginBottom: 10,
   },
   gridEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
+    fontSize: 22,
   },
   gridLabel: {
-    fontSize: 13,
-    fontFamily: Fonts.semiBold,
+    fontSize: 14,
+    fontFamily: Fonts.bold,
     color: Colors.textPrimary,
-    textAlign: 'center',
+  },
+  gridSubtitle: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: Colors.slateMuted,
+    marginTop: 2,
   },
   alertsSection: {
     flex: 1,
     marginHorizontal: 16,
     marginBottom: 16,
     ...Glass.card,
-    padding: 16,
+    padding: 18,
+  },
+  alertsHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
   alertsHeading: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: Fonts.bold,
-    color: Colors.accent,
-    marginBottom: 8,
+    color: Colors.textPrimary,
+  },
+  alertCountBadge: {
+    backgroundColor: Colors.surfaceLight,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  alertCountText: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    color: Colors.slateMuted,
   },
   alertsList: {
-    flex: 1,
+    gap: 10,
   },
-  alertRow: {
+  alertCard: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    borderRadius: 12,
+    padding: 12,
+  },
+  alertTopLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
+    marginBottom: 6,
+  },
+  severityPill: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  severityPillText: {
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    letterSpacing: 0.5,
   },
   alertContent: {
     flex: 1,
   },
   alertType: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: Fonts.bold,
-    color: Colors.accent,
+    color: Colors.textPrimary,
   },
   alertDistrict: {
-    fontSize: 13,
-    fontFamily: Fonts.regular,
+    fontSize: 12,
+    fontFamily: Fonts.medium,
     color: Colors.textSecondary,
     marginTop: 2,
   },
   alertTime: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: Fonts.regular,
     color: Colors.textMuted,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 28,
+  },
+  emptyIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontFamily: Fonts.bold,
+    color: Colors.textPrimary,
   },
   noAlerts: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Fonts.regular,
-    color: Colors.textMuted,
-    paddingVertical: 16,
+    color: Colors.slateMuted,
+    textAlign: 'center',
+    marginTop: 4,
+    paddingHorizontal: 20,
   },
 });
+
