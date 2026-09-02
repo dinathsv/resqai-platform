@@ -1,45 +1,33 @@
 .statsRow {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  display: flex;
   gap: 16px;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
 }
 
 .statBox {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: 10px;
-  padding: 20px;
-  transition: box-shadow .25s, transform .15s, border-color .25s;
-}
-
-.statBox:hover {
-  box-shadow: var(--shadow-card);
-  transform: translateY(-2px);
-  border-color: var(--accent);
+  flex: 1;
+  min-width: 120px;
+  border: 1px solid #000;
+  padding: 16px;
 }
 
 .statNumber {
-  font-size: 30px;
-  font-weight: 700;
+  font-size: 28px;
+  font-weight: bold;
   margin-bottom: 4px;
-  color: var(--text-primary);
-  letter-spacing: -0.02em;
 }
 
 .statLabel {
   font-size: 12px;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-weight: 500;
+  color: #666;
 }
 
 .sectionHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
   gap: 8px;
 }
@@ -50,25 +38,17 @@
 
 .sectionMeta {
   font-size: 12px;
-  color: var(--text-muted);
+  color: #888;
 }
 
 .reportBox {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: 10px;
-  padding: 20px;
+  border: 1px solid #000;
+  padding: 16px;
   margin-bottom: 24px;
-  transition: box-shadow .25s;
-}
-
-.reportBox:hover {
-  box-shadow: var(--shadow-card);
 }
 
 .reportText p {
   margin-bottom: 8px;
-  color: var(--text-secondary);
 }
 
 .reportStats {
@@ -77,22 +57,20 @@
   margin-bottom: 12px;
   font-size: 13px;
   flex-wrap: wrap;
-  color: var(--text-secondary);
 }
 
 .reportStats strong {
   margin-right: 4px;
-  color: var(--text-primary);
 }
 
 .loadingText {
-  color: var(--text-muted);
+  color: #888;
   font-style: italic;
 }
 
-.urgency5 { color: var(--danger); }
-.urgency4 { color: var(--warning); }
-.urgencyNormal { color: var(--text-primary); }
+.urgency5 { color: #DC2626; }
+.urgency4 { color: #EA580C; }
+.urgencyNormal { color: #000; }
 
 .actionLink {
   margin-right: 8px;
@@ -100,68 +78,56 @@
 }
 
 .chatSection {
-  margin-top: 28px;
+  margin-top: 24px;
 }
 
 .chatBox {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: 10px;
-  height: 260px;
+  border: 1px solid #000;
+  height: 250px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 .chatMessages {
   flex: 1;
   overflow-y: auto;
-  padding: 14px;
+  padding: 12px;
 }
 
 .chatMessage {
   font-size: 13px;
   margin-bottom: 6px;
-  color: var(--text-primary);
 }
 
 .chatMessage strong {
   margin-right: 4px;
-  color: var(--accent);
 }
 
 .chatTime {
-  color: var(--text-muted);
+  color: #888;
   font-size: 11px;
   margin-left: 8px;
 }
 
 .chatInputRow {
   display: flex;
-  border-top: 1px solid var(--border-default);
+  border-top: 1px solid #000;
 }
 
 .chatInputRow input {
   border: none;
-  border-right: 1px solid var(--border-default);
-  border-radius: 0;
+  border-right: 1px solid #000;
   flex: 1;
-  background: var(--bg-deep);
-}
-
-.chatInputRow input:focus {
-  box-shadow: none;
 }
 
 .chatInputRow button {
   width: 80px;
   border: none;
-  border-radius: 0;
 }
 
 .refreshBtn {
   margin-left: 8px;
-  padding: 5px 14px;
+  padding: 4px 12px;
   font-size: 12px;
 }
 
@@ -172,27 +138,18 @@
 }
 
 .resolveBtn {
-  padding: 4px 12px;
+  padding: 3px 10px;
   font-size: 12px;
-  background: var(--success);
-  border-color: var(--success);
-  border-radius: 5px;
-}
-
-.resolveBtn:hover {
-  background: var(--success-hover);
-  border-color: var(--success-hover);
-  box-shadow: 0 0 0 3px rgba(16,185,129,.25);
 }
 
 @media (max-width: 768px) {
   .statsRow {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .statBox {
-    padding: 14px;
+    min-width: unset;
   }
 
   .statNumber {
@@ -206,11 +163,5 @@
 
   .chatBox {
     height: 200px;
-  }
-}
-
-@media (max-width: 480px) {
-  .statsRow {
-    grid-template-columns: 1fr;
   }
 }

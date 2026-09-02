@@ -1,29 +1,25 @@
 .definitionList {
   display: grid;
-  grid-template-columns: 160px 1fr;
-  gap: 14px;
+  grid-template-columns: 150px 1fr;
+  gap: 12px;
   margin-bottom: 32px;
   font-size: 14px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: 10px;
-  padding: 20px;
 }
 
 @media (max-width: 480px) {
   .definitionList {
     grid-template-columns: 1fr;
-    gap: 6px;
+    gap: 4px;
   }
 }
 
 .label {
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-weight: bold;
+  color: #555;
 }
 
 .value {
-  color: var(--text-primary);
+  color: #000;
 }
 
 .section {
@@ -33,5 +29,5 @@
 .suspendContainer {
   margin-top: 48px;
   padding-top: 24px;
-  border-top: 1px solid var(--border-default);
+  border-top: 1px solid #eee;
 }

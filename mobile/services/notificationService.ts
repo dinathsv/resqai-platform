@@ -42,6 +42,7 @@ export function setupNotificationListeners(router: any) {
 
   const fgSub = Notifications.addNotificationReceivedListener((notif: any) => {
     const data = notif.request.content.data
+
     console.log('Alert received:', data)
   })
 

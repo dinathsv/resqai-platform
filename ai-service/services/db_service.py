@@ -15,10 +15,7 @@ from psycopg2.extras import RealDictCursor
 
 logger = logging.getLogger("resqai.db")
 
-# ── Connection pool (simple) ────────────────────────────────
-
 _dsn: str | None = None
-
 
 def _get_dsn() -> str:
     global _dsn
@@ -28,7 +25,6 @@ def _get_dsn() -> str:
             "postgresql://resqai_user:resqai_pass@localhost:5433/resqai",
         )
     return _dsn
-
 
 @contextmanager
 def _get_conn():
@@ -40,9 +36,6 @@ def _get_conn():
     finally:
         conn.close()
 
-
-# ── Public API ───────────────────────────────────────────────
-
 def _sync_nearest_hospitals(lat: float, lng: float, limit: int = 3) -> list[dict]:
     """Blocking call — run in executor from async code."""
     with _get_conn() as conn:
@@ -53,7 +46,6 @@ def _sync_nearest_hospitals(lat: float, lng: float, limit: int = 3) -> list[dict
             )
             rows = cur.fetchall()
             return [dict(r) for r in rows]
-
 
 async def get_nearest_hospitals(lat: float, lng: float, limit: int = 3) -> list[dict]:
     """
@@ -69,7 +61,6 @@ async def get_nearest_hospitals(lat: float, lng: float, limit: int = 3) -> list[
     except Exception as exc:
         logger.error("Database query failed: %s", exc, exc_info=True)
         return []
-
 
 def check_connection() -> bool:
     """Quick health-check used by the startup event."""

@@ -8,57 +8,39 @@
 
 .filterRow select,
 .filterRow input {
-  width: 160px;
+  width: 150px;
 }
 
 .pagination {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
-  margin-top: 18px;
+  margin-top: 16px;
   font-size: 13px;
   flex-wrap: wrap;
 }
 
 .pagination button {
-  padding: 5px 14px;
+  padding: 4px 12px;
   font-size: 12px;
 }
 
 .pageNum {
-  padding: 5px 10px;
+  padding: 4px 8px;
   cursor: pointer;
-  color: var(--text-secondary);
-  border-radius: 5px;
-  transition: background .15s, color .15s;
-}
-
-.pageNum:hover {
-  background: var(--bg-elevated);
-  color: var(--text-primary);
 }
 
 .pageNumActive {
-  padding: 5px 10px;
+  padding: 4px 8px;
   cursor: pointer;
-  font-weight: 600;
-  background: var(--accent);
+  font-weight: bold;
+  background: #000;
   color: #fff;
-  border-radius: 5px;
 }
 
 .flagBtn {
-  padding: 3px 10px;
+  padding: 2px 8px;
   font-size: 11px;
-  background: var(--warning);
-  border-color: var(--warning);
-  color: #000;
-  border-radius: 4px;
-}
-
-.flagBtn:hover {
-  background: var(--warning-hover);
-  border-color: var(--warning-hover);
 }
 
 .viewLink {
@@ -74,11 +56,11 @@
 
 .flaggedRow {
   text-decoration: line-through;
-  color: var(--text-muted);
+  color: #888;
 }
 
-.urgency5 { color: var(--danger); font-weight: bold; }
-.urgency4 { color: var(--warning); font-weight: bold; }
+.urgency5 { color: #DC2626; font-weight: bold; }
+.urgency4 { color: #EA580C; font-weight: bold; }
 .urgencyNormal { color: inherit; }
 
 @media (max-width: 768px) {

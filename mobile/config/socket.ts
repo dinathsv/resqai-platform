@@ -1,7 +1,4 @@
-/**
- * ResQAI — Socket.IO Client Factory
- * Connects to the backend with JWT auth for real-time alerts.
- */
+
 
 import { io, Socket } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -9,10 +6,6 @@ import { API_BASE } from './api';
 
 let socket: Socket | null = null;
 
-/**
- * Connect to Socket.IO with the stored JWT token.
- * Returns the socket instance. Reuses existing connection if already connected.
- */
 export async function connectSocket(): Promise<Socket> {
   if (socket?.connected) {
     return socket;
@@ -47,9 +40,6 @@ export async function connectSocket(): Promise<Socket> {
   return socket;
 }
 
-/**
- * Disconnect and clean up the socket.
- */
 export function disconnectSocket(): void {
   if (socket) {
     socket.disconnect();
@@ -57,9 +47,6 @@ export function disconnectSocket(): void {
   }
 }
 
-/**
- * Get the current socket instance (may be null if not connected).
- */
 export function getSocket(): Socket | null {
   return socket;
 }

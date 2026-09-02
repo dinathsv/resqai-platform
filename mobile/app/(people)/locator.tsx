@@ -1,9 +1,4 @@
-/**
- * ResQAI — Emergency Resource Locator Screen
- *
- * Finds nearest hospitals based on user location and emergency type.
- * Uses expo-location for GPS and react-native-maps for map display.
- */
+
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -22,6 +17,7 @@ import {
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
+import { Colors, Fonts, Glass } from '../../constants/theme';
 
 interface Hospital {
   hospital_id: string;
@@ -105,6 +101,7 @@ export default function LocatorScreen() {
   };
 
   const handleManualSearch = () => {
+
     const defaultCoords = { lat: 6.9271, lng: 79.8612 };
     setUserLocation(defaultCoords);
     fetchHospitals(defaultCoords.lat, defaultCoords.lng, emergencyType);
@@ -114,7 +111,7 @@ export default function LocatorScreen() {
     emergencyType === 'medical' || emergencyType === 'accident';
 
   const renderHospitalItem = ({ item }: { item: Hospital }) => (
-    <View style={styles.hospitalRow}>
+    <View style={styles.hospitalCard}>
       <View style={styles.hospitalInfo}>
         <Text style={styles.hospitalName}>{item.name}</Text>
         <Text style={styles.hospitalDistance}>
@@ -128,8 +125,9 @@ export default function LocatorScreen() {
         <TouchableOpacity
           onPress={() => Linking.openURL(`tel:${item.phone}`)}
           activeOpacity={0.7}
+          style={styles.callButtonContainer}
         >
-          <Text style={styles.callButton}>Call</Text>
+          <Text style={styles.callButton}>📞 Call</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -142,7 +140,7 @@ export default function LocatorScreen() {
           {locationError ? (
             <Text style={styles.locationErrorText}>{locationError}</Text>
           ) : (
-            <ActivityIndicator size="large" color="#000000" />
+            <ActivityIndicator size="large" color={Colors.accent} />
           )}
         </View>
       );
@@ -152,6 +150,7 @@ export default function LocatorScreen() {
 
     return (
       <View style={styles.mapContainer}>
+
         <View style={styles.mapHeader}>
           <Text style={styles.mapHeaderText}>
             📍 Your location: {lat.toFixed(4)}, {lng.toFixed(4)}
@@ -160,7 +159,7 @@ export default function LocatorScreen() {
 
         {hospitals.length > 0 ? (
           <View style={styles.mapMarkers}>
-            {hospitals.slice(0, 5).map((h: Hospital) => (
+            {hospitals.slice(0, 5).map((h) => (
               <TouchableOpacity
                 key={h.hospital_id}
                 style={styles.mapMarker}
@@ -200,6 +199,7 @@ export default function LocatorScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButton}>← Back</Text>
@@ -263,7 +263,7 @@ export default function LocatorScreen() {
             value={manualArea}
             onChangeText={setManualArea}
             placeholder="Enter your area"
-            placeholderTextColor="#999999"
+            placeholderTextColor={Colors.textMuted}
           />
           <TouchableOpacity
             style={styles.searchButton}
@@ -281,7 +281,7 @@ export default function LocatorScreen() {
         {loading ? (
           <ActivityIndicator
             size="small"
-            color="#000000"
+            color={Colors.accent}
             style={styles.listLoading}
           />
         ) : hospitals.length === 0 ? (
@@ -291,7 +291,7 @@ export default function LocatorScreen() {
         ) : (
           <FlatList
             data={hospitals}
-            keyExtractor={(item: Hospital) => item.hospital_id}
+            keyExtractor={(item) => item.hospital_id}
             renderItem={renderHospitalItem}
             style={styles.hospitalList}
           />
@@ -304,7 +304,7 @@ export default function LocatorScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -314,13 +314,14 @@ const styles = StyleSheet.create({
   },
   backButton: {
     fontSize: 16,
-    color: '#000000',
+    fontFamily: Fonts.semiBold,
+    color: Colors.accent,
     marginRight: 12,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000000',
+    fontFamily: Fonts.bold,
+    color: Colors.textPrimary,
   },
   typeSelector: {
     maxHeight: 50,
@@ -331,51 +332,54 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   typeButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     paddingVertical: 8,
+    borderRadius: 20,
   },
   typeButtonSelected: {
-    backgroundColor: '#000000',
+    backgroundColor: Colors.accent,
   },
   typeButtonUnselected: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#000000',
+    ...Glass.card,
+    borderRadius: 20,
   },
   typeButtonText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: Fonts.semiBold,
   },
   typeButtonTextSelected: {
-    color: '#FFFFFF',
+    color: Colors.white,
   },
   typeButtonTextUnselected: {
-    color: '#000000',
+    color: Colors.textPrimary,
   },
   banner1990: {
-    backgroundColor: '#000000',
+    backgroundColor: Colors.accent,
     paddingVertical: 12,
     paddingHorizontal: 16,
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 12,
   },
   banner1990Text: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 15,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     textAlign: 'center',
   },
   mapContainer: {
-    backgroundColor: '#F0F0F0',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    ...Glass.card,
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 12,
   },
   mapHeader: {
     paddingBottom: 8,
   },
   mapHeaderText: {
     fontSize: 13,
-    color: '#555555',
+    fontFamily: Fonts.medium,
+    color: Colors.textSecondary,
   },
   mapMarkers: {
     flexDirection: 'row',
@@ -384,9 +388,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   mapMarker: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.surfaceLight,
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: Colors.borderLight,
+    borderRadius: 10,
     paddingVertical: 8,
     paddingHorizontal: 10,
     alignItems: 'center',
@@ -398,35 +403,38 @@ const styles = StyleSheet.create({
   },
   mapMarkerName: {
     fontSize: 11,
-    fontWeight: '600',
-    color: '#000000',
+    fontFamily: Fonts.semiBold,
+    color: Colors.textPrimary,
     textAlign: 'center',
   },
   mapMarkerDist: {
     fontSize: 10,
-    color: '#888888',
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
     marginTop: 2,
   },
   openMapButton: {
-    backgroundColor: '#000000',
+    backgroundColor: Colors.accent,
     paddingVertical: 10,
     alignItems: 'center',
+    borderRadius: 10,
   },
   openMapButtonText: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 14,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
   },
   mapPlaceholder: {
     width: '100%',
     height: SCREEN_HEIGHT * 0.35,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: Colors.background,
   },
   locationErrorText: {
     fontSize: 14,
-    color: '#888888',
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
     textAlign: 'center',
     paddingHorizontal: 32,
   },
@@ -438,30 +446,33 @@ const styles = StyleSheet.create({
   },
   manualInput: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#000000',
-    padding: 8,
+    ...Glass.input,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     fontSize: 15,
-    color: '#000000',
+    fontFamily: Fonts.regular,
+    color: Colors.textPrimary,
   },
   searchButton: {
-    backgroundColor: '#000000',
+    backgroundColor: Colors.accent,
     paddingHorizontal: 20,
     justifyContent: 'center',
+    borderRadius: 10,
   },
   searchButtonText: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 15,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
   },
   hospitalSection: {
     flex: 1,
     paddingHorizontal: 16,
+    marginTop: 8,
   },
   hospitalHeading: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000000',
+    fontFamily: Fonts.bold,
+    color: Colors.textPrimary,
     paddingVertical: 10,
   },
   listLoading: {
@@ -470,40 +481,48 @@ const styles = StyleSheet.create({
   hospitalList: {
     flex: 1,
   },
-  hospitalRow: {
+  hospitalCard: {
+    ...Glass.card,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    padding: 14,
+    marginBottom: 10,
   },
   hospitalInfo: {
     flex: 1,
   },
   hospitalName: {
     fontSize: 15,
-    fontWeight: 'bold',
-    color: '#000000',
+    fontFamily: Fonts.bold,
+    color: Colors.textPrimary,
   },
   hospitalDistance: {
     fontSize: 13,
-    color: '#888888',
+    fontFamily: Fonts.regular,
+    color: Colors.textSecondary,
     marginTop: 2,
   },
   hospitalSpec: {
     fontSize: 12,
-    color: '#888888',
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
     marginTop: 2,
   },
+  callButtonContainer: {
+    backgroundColor: Colors.cta,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+  },
   callButton: {
-    fontSize: 15,
-    color: '#000000',
-    fontWeight: 'bold',
-    paddingHorizontal: 12,
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    color: Colors.white,
   },
   noHospitals: {
     fontSize: 14,
-    color: '#888888',
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
     paddingVertical: 16,
   },
 });

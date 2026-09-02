@@ -1,19 +1,17 @@
-/**
- * ResQAI — People Layout
- * Stack navigator for the people (public user) screens.
- */
+
 
 import { Stack } from 'expo-router';
+import { Colors, Fonts } from '../../constants/theme';
 
 export default function PeopleLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: '#FFF' },
-        headerTintColor: '#000',
-        headerTitleStyle: { fontWeight: '700' },
+        headerStyle: { backgroundColor: Colors.background },
+        headerTintColor: Colors.accent,
+        headerTitleStyle: { fontWeight: '700', fontFamily: Fonts.bold },
         headerShadowVisible: false,
-        contentStyle: { backgroundColor: '#FFFFFF' },
+        contentStyle: { backgroundColor: Colors.background },
         animation: 'slide_from_right',
       }}
     >

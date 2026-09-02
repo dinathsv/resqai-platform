@@ -3,28 +3,26 @@
 }
 
 .field {
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
 .label {
   display: block;
   font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 6px;
-  color: var(--text-secondary);
+  font-weight: bold;
+  margin-bottom: 4px;
 }
 
 .helper {
   font-size: 12px;
-  color: var(--text-muted);
+  color: #888;
   margin-top: 4px;
 }
 
 .criticalWarning {
   font-size: 12px;
-  color: var(--danger);
+  color: #DC2626;
   margin-top: 4px;
-  font-weight: 500;
 }
 
 .severityRow {
@@ -36,51 +34,28 @@
   width: 48px;
   text-align: center;
   padding: 6px 0;
-  border: 1px solid var(--border-default);
-  background: var(--bg-surface);
-  color: var(--text-secondary);
+  border: 1px solid #000;
+  background: #fff;
+  color: #000;
   cursor: pointer;
   font-size: 14px;
   border-radius: 0;
-  transition: background .15s, color .15s;
-}
-
-.severityBtn:first-child {
-  border-radius: 6px 0 0 6px;
-}
-
-.severityBtn:last-child {
-  border-radius: 0 6px 6px 0;
 }
 
 .severityBtn + .severityBtn {
   border-left: none;
 }
 
-.severityBtn:hover {
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-}
-
 .severityBtnActive {
   width: 48px;
   text-align: center;
   padding: 6px 0;
-  border: 1px solid var(--accent);
-  background: var(--accent);
+  border: 1px solid #000;
+  background: #000;
   color: #fff;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 600;
   border-radius: 0;
-}
-
-.severityBtnActive:first-child {
-  border-radius: 6px 0 0 6px;
-}
-
-.severityBtnActive:last-child {
-  border-radius: 0 6px 6px 0;
 }
 
 .severityBtnActive + .severityBtn,
@@ -89,40 +64,28 @@
 }
 
 .preview {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: 10px;
-  padding: 18px;
+  border: 1px solid #000;
+  padding: 16px;
   margin-bottom: 24px;
-  transition: box-shadow .25s;
-}
-
-.preview:hover {
-  box-shadow: var(--shadow-card);
 }
 
 .previewTitle {
-  font-size: 12px;
-  color: var(--text-muted);
+  font-size: 13px;
+  color: #888;
   margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-weight: 600;
 }
 
 .previewContent {
   font-size: 14px;
-  color: var(--text-primary);
 }
 
 .previewType {
   font-weight: bold;
-  color: var(--accent);
 }
 
 .previewWorkPlan {
   margin-top: 8px;
-  color: var(--text-secondary);
+  color: #444;
   font-size: 13px;
 }
 
@@ -135,11 +98,9 @@
 .responseText {
   margin-top: 16px;
   font-size: 14px;
-  padding: 14px;
-  border: 1px solid var(--border-default);
-  background: var(--bg-surface);
-  border-radius: 8px;
-  color: var(--text-primary);
+  padding: 12px;
+  border: 1px solid #000;
+  background: #f9f9f9;
 }
 
 @media (max-width: 480px) {

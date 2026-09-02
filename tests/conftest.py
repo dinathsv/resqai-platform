@@ -38,12 +38,6 @@ TestingSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expir
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
 async def override_get_db():
     async with TestingSessionLocal() as session:
         yield session

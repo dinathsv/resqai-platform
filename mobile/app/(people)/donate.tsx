@@ -16,6 +16,7 @@ import axios from 'axios'
 import { BASE_URL } from '../../constants/api'
 import MinimalButton from '../../components/MinimalButton'
 import MinimalInput from '../../components/MinimalInput'
+import { Colors, Fonts, Glass } from '../../constants/theme'
 
 interface Mission {
   mission_id: string
@@ -105,17 +106,23 @@ export default function DonateScreen() {
       : 0
 
     return (
-      <View style={styles.missionRow}>
+      <View style={styles.missionCard}>
         <View style={styles.missionInfo}>
           <Text style={styles.missionTitle}>{item.title}</Text>
           <Text style={styles.missionDistrict}>{item.district}</Text>
           <View style={styles.progressOuter}>
             <View style={[styles.progressInner, { width: `${percentage}%` }]} />
           </View>
+          <Text style={styles.progressText}>
+            {Math.round(percentage)}% funded
+          </Text>
         </View>
-        <TouchableOpacity onPress={() => selectMission(item)}>
-          <Text style={styles.selectText}>Select</Text>
-        </TouchableOpacity>
+        <MinimalButton
+          title="Donate"
+          variant="cta"
+          small
+          onPress={() => selectMission(item)}
+        />
       </View>
     )
   }
@@ -127,12 +134,14 @@ export default function DonateScreen() {
       return (
         <View style={styles.modalBody}>
           <View style={styles.successContainer}>
-            <Text style={styles.successCheck}>✓</Text>
+            <View style={styles.successIconCircle}>
+              <Text style={styles.successCheck}>✓</Text>
+            </View>
             <Text style={styles.successTitle}>Donation confirmed</Text>
             <Text style={styles.successAmount}>{amount} LKR</Text>
             <Text style={styles.successMission}>{selectedMission.title}</Text>
-            <View style={{ marginTop: 32 }}>
-              <MinimalButton title="Done" onPress={closeModal} />
+            <View style={{ marginTop: 32, width: '100%' }}>
+              <MinimalButton title="Done" variant="cta" onPress={closeModal} />
             </View>
           </View>
         </View>
@@ -186,6 +195,7 @@ export default function DonateScreen() {
 
             <MinimalButton
               title={`Confirm ${amount} LKR`}
+              variant="cta"
               onPress={confirmPayment}
             />
           </ScrollView>
@@ -238,6 +248,7 @@ export default function DonateScreen() {
           data={missions}
           keyExtractor={(item: Mission) => item.mission_id}
           renderItem={renderMission}
+          contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <Text style={styles.emptyText}>No active missions</Text>
           }
@@ -261,23 +272,26 @@ export default function DonateScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background,
   },
   header: {
     fontSize: 22,
-    fontWeight: '700',
-    color: '#000',
+    fontFamily: Fonts.bold,
+    color: Colors.textPrimary,
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 16,
   },
-  missionRow: {
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  missionCard: {
+    ...Glass.card,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
+    padding: 16,
+    marginBottom: 12,
   },
   missionInfo: {
     flex: 1,
@@ -285,52 +299,58 @@ const styles = StyleSheet.create({
   },
   missionTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#000',
+    fontFamily: Fonts.bold,
+    color: Colors.textPrimary,
   },
   missionDistrict: {
     fontSize: 13,
-    color: '#888',
+    fontFamily: Fonts.regular,
+    color: Colors.textSecondary,
     marginTop: 2,
   },
   progressOuter: {
     height: 6,
-    backgroundColor: '#DDD',
+    backgroundColor: Colors.borderLight,
     width: '100%',
-    marginTop: 8,
+    marginTop: 10,
     borderRadius: 3,
+    overflow: 'hidden',
   },
   progressInner: {
     height: 6,
-    backgroundColor: '#000',
+    backgroundColor: Colors.cta,
     borderRadius: 3,
   },
-  selectText: {
-    fontSize: 14,
-    color: '#000',
-    fontWeight: '500',
+  progressText: {
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    color: Colors.cta,
+    marginTop: 4,
   },
   loadingText: {
-    color: '#888',
+    color: Colors.textMuted,
+    fontFamily: Fonts.regular,
     textAlign: 'center',
     marginTop: 40,
     fontSize: 14,
   },
   emptyText: {
-    color: '#888',
+    color: Colors.textMuted,
+    fontFamily: Fonts.regular,
     textAlign: 'center',
     marginTop: 40,
     fontSize: 14,
   },
   errorText: {
-    color: 'red',
+    color: Colors.error,
+    fontFamily: Fonts.medium,
     fontSize: 13,
     paddingHorizontal: 20,
     paddingBottom: 8,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background,
   },
   modalBody: {
     flex: 1,
@@ -339,13 +359,14 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#000',
+    fontFamily: Fonts.bold,
+    color: Colors.textPrimary,
     marginBottom: 12,
   },
   modalDescription: {
     fontSize: 15,
-    color: '#333',
+    fontFamily: Fonts.regular,
+    color: Colors.textSecondary,
     lineHeight: 22,
     marginBottom: 24,
   },
@@ -358,7 +379,8 @@ const styles = StyleSheet.create({
   },
   securityNote: {
     fontSize: 12,
-    color: '#888',
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -369,7 +391,8 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     fontSize: 14,
-    color: '#000',
+    fontFamily: Fonts.medium,
+    color: Colors.accent,
     textDecorationLine: 'underline',
   },
   successContainer: {
@@ -377,26 +400,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  successIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.cta,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
   successCheck: {
-    fontSize: 48,
-    fontWeight: '700',
-    color: '#000',
-    marginBottom: 16,
+    fontSize: 36,
+    fontFamily: Fonts.bold,
+    color: Colors.white,
   },
   successTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#000',
+    fontFamily: Fonts.bold,
+    color: Colors.textPrimary,
     marginBottom: 8,
   },
   successAmount: {
     fontSize: 28,
-    fontWeight: '700',
-    color: '#000',
+    fontFamily: Fonts.bold,
+    color: Colors.cta,
     marginBottom: 4,
   },
   successMission: {
     fontSize: 15,
-    color: '#666',
+    fontFamily: Fonts.regular,
+    color: Colors.textSecondary,
   },
 })

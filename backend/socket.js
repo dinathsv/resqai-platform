@@ -1,7 +1,4 @@
-/**
- * ResQAI — Socket.IO Setup
- * Handles real-time alert broadcasting and auth via JWT.
- */
+
 
 const jwt = require('jsonwebtoken');
 
@@ -10,12 +7,8 @@ if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable must be set');
 }
 
-/**
- * Initialize Socket.IO with authentication middleware.
- * @param {import('socket.io').Server} io
- */
 function initSocket(io) {
-  // ── Auth middleware ──────────────────────────────────────
+
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token;
     if (!token) {
@@ -35,11 +28,9 @@ function initSocket(io) {
     }
   });
 
-  // ── Connection handler ──────────────────────────────────
   io.on('connection', (socket) => {
     console.log(`Socket connected: ${socket.user.email} (${socket.user.role})`);
 
-    // Join role-based rooms
     socket.join(`role:${socket.user.role}`);
     socket.join(`user:${socket.user.user_id}`);
 
@@ -49,20 +40,10 @@ function initSocket(io) {
   });
 }
 
-/**
- * Broadcast a new alert to all connected people.
- * @param {import('socket.io').Server} io
- * @param {object} alert — the alert row from the database
- */
 function broadcastAlert(io, alert) {
   io.to('role:people').emit('alert_received', alert);
 }
 
-/**
- * Notify admins of a critical help request.
- * @param {import('socket.io').Server} io
- * @param {object} request — the help request data
- */
 function notifyCriticalRequest(io, request) {
   io.to('role:admin').emit('critical_request', request);
 }

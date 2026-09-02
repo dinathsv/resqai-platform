@@ -17,10 +17,8 @@ from fastapi.responses import JSONResponse
 from routers import chatbot, multilingual, situational, locator
 from services import llm_service, db_service
 
-# ── Load environment ─────────────────────────────────────────
 load_dotenv()
 
-# ── Logging ──────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s │ %(name)-22s │ %(levelname)-5s │ %(message)s",
@@ -28,14 +26,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger("resqai")
 
-# ── Lifespan (startup + shutdown) ────────────────────────────
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ── Startup ──
+
     logger.info("🚀 ResQAI AI Microservice starting up")
 
-    # Check DB connectivity
     if db_service.check_connection():
         logger.info("✅ PostgreSQL + PostGIS connection OK")
     else:
@@ -43,14 +38,11 @@ async def lifespan(app: FastAPI):
 
     logger.info("✅ Service ready on port %s", os.getenv("PORT", "8001"))
 
-    yield  # ← app is now running and serving requests
+    yield  
 
-    # ── Shutdown ──
     logger.info("🛑 Shutting down — closing LLM client")
     await llm_service.close()
     logger.info("👋 ResQAI AI Microservice stopped")
-
-# ── App ──────────────────────────────────────────────────────
 
 app = FastAPI(
     title="ResQAI AI Microservice",
@@ -63,21 +55,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# ── CORS ─────────────────────────────────────────────────────
-# The Node.js backend on port 3000/5000 and any frontend dev server
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:5000",
-        "http://localhost:5173",  # Vite default
+        "http://localhost:5173",  
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# ── Global error handler ────────────────────────────────────
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -90,13 +78,10 @@ async def global_exception_handler(request: Request, exc: Exception):
         },
     )
 
-# ── Routers ──────────────────────────────────────────────────
 app.include_router(chatbot.router, prefix="/api/ai")
 app.include_router(multilingual.router, prefix="/api/ai")
 app.include_router(situational.router, prefix="/api/ai")
 app.include_router(locator.router, prefix="/api/ai")
-
-# ── Health check ─────────────────────────────────────────────
 
 @app.get("/health", tags=["System"])
 async def health():
@@ -107,8 +92,6 @@ async def health():
         "version": "1.0.0",
         "database": "connected" if db_ok else "disconnected",
     }
-
-# ── Run directly ─────────────────────────────────────────────
 
 if __name__ == "__main__":
     import uvicorn

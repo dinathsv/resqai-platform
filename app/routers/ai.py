@@ -19,6 +19,29 @@ from sqlalchemy import text
 logger = logging.getLogger("resqai.ai_router")
 router = APIRouter(tags=["AI"])
 
+
+def detect_language(text: str) -> str:
+    """
+    Detect language of text. Supports Sinhala by checking Unicode ranges.
+    Falls back to langdetect for other languages.
+    """
+    # Check for Sinhala characters (Unicode range 0D80-0DFF)
+    has_sinhala = any('඀' <= char <= '෿' for char in text)
+    if has_sinhala:
+        return "si"
+
+    # Check for Tamil characters (Unicode range 0B80-0BFF)
+    has_tamil = any('஀' <= char <= '௿' for char in text)
+    if has_tamil:
+        return "ta"
+
+    # Use langdetect for other languages
+    try:
+        langdetect.DetectorFactory.seed = 0
+        return langdetect.detect(text)
+    except langdetect.LangDetectException:
+        return "en"
+
 class FirstAidRequest(BaseModel):
     message: str
     language: str = "auto"
@@ -55,10 +78,7 @@ class LocateResourcesRequest(BaseModel):
 async def first_aid_chat(req: FirstAidRequest):
     lang = req.language
     if lang == "auto":
-        try:
-            lang = langdetect.detect(req.message)
-        except langdetect.LangDetectException:
-            lang = "en"
+        lang = detect_language(req.message)
 
     system_prompt = (
         "You are a certified first-aid assistant for ResQAI Sri Lanka.\n"
@@ -98,9 +118,8 @@ async def first_aid_chat(req: FirstAidRequest):
 
 @router.post("/translate-report")
 async def translate_report(req: TranslateReportRequest):
-    try:
-        lang = langdetect.detect(req.message)
-    except langdetect.LangDetectException:
+    lang = detect_language(req.message)
+    if not lang:
         lang = "unknown"
 
     system_prompt = (

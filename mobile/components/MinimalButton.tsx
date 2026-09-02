@@ -1,3 +1,5 @@
+
+
 import React from 'react'
 import {
   TouchableOpacity,
@@ -6,11 +8,12 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native'
+import { Colors, Fonts } from '../constants/theme'
 
 interface MinimalButtonProps {
   title: string
   onPress: () => void
-  variant?: 'primary' | 'outline'
+  variant?: 'primary' | 'outline' | 'cta'
   small?: boolean
   style?: ViewStyle
   textStyle?: TextStyle
@@ -26,7 +29,9 @@ export default function MinimalButton({
   textStyle,
   disabled = false,
 }: MinimalButtonProps) {
+  const isCta = variant === 'cta'
   const isPrimary = variant === 'primary'
+  const isOutline = variant === 'outline'
 
   return (
     <TouchableOpacity
@@ -35,7 +40,9 @@ export default function MinimalButton({
       activeOpacity={0.7}
       style={[
         styles.base,
-        isPrimary ? styles.primary : styles.outline,
+        isPrimary && styles.primary,
+        isOutline && styles.outline,
+        isCta && styles.cta,
         small && styles.small,
         disabled && styles.disabled,
         style,
@@ -44,7 +51,9 @@ export default function MinimalButton({
       <Text
         style={[
           styles.text,
-          isPrimary ? styles.primaryText : styles.outlineText,
+          isPrimary && styles.primaryText,
+          isOutline && styles.outlineText,
+          isCta && styles.ctaText,
           small && styles.smallText,
           textStyle,
         ]}
@@ -59,34 +68,51 @@ const styles = StyleSheet.create({
   base: {
     paddingVertical: 14,
     paddingHorizontal: 24,
-    borderRadius: 4,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primary: {
-    backgroundColor: '#000',
+    backgroundColor: Colors.accent,
+    shadowColor: Colors.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   outline: {
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#000',
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: Colors.accent,
+  },
+  cta: {
+    backgroundColor: Colors.cta,
+    shadowColor: Colors.cta,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   small: {
     paddingVertical: 8,
     paddingHorizontal: 16,
+    borderRadius: 8,
   },
   disabled: {
     opacity: 0.4,
   },
   text: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
   },
   primaryText: {
-    color: '#FFF',
+    color: Colors.white,
   },
   outlineText: {
-    color: '#000',
+    color: Colors.accent,
+  },
+  ctaText: {
+    color: Colors.white,
   },
   smallText: {
     fontSize: 13,

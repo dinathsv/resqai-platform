@@ -1,242 +1,64 @@
-/* ═══════════════════════════════════════════════
-   ResQAI Admin — Dark Mode Design System
-   ═══════════════════════════════════════════════ */
-
-:root {
-  /* ── Background & Surface ──────────────────── */
-  --bg-deep:       #0f172a;   /* Slate 900  – page body            */
-  --bg-surface:    #1e293b;   /* Slate 800  – cards, panels         */
-  --bg-elevated:   #273548;   /* Slate 750  – hover / elevated      */
-  --border-default:#334155;   /* Slate 700  – borders               */
-  --border-subtle: #1e293b;   /* Slate 800  – faint dividers        */
-  --sidebar-bg:    #090d16;   /* Darker slate – nav sidebar         */
-
-  /* ── Typography ────────────────────────────── */
-  --text-primary:  #f8fafc;   /* Slate 50   – headings, body        */
-  --text-secondary:#94a3b8;   /* Slate 400  – descriptions, meta    */
-  --text-muted:    #64748b;   /* Slate 500  – placeholders          */
-
-  /* ── Accent & Action ───────────────────────── */
-  --accent:        #3b82f6;   /* Blue 500   – brand / primary CTA   */
-  --accent-hover:  #2563eb;   /* Blue 600   – hover                 */
-  --accent-glow:   rgba(59,130,246,.25);
-
-  --success:       #10b981;   /* Emerald    – completed / safe      */
-  --success-hover: #059669;
-  --warning:       #f59e0b;   /* Amber      – pending / caution     */
-  --warning-hover: #d97706;
-  --danger:        #ef4444;   /* Red        – emergency / delete    */
-  --danger-hover:  #dc2626;
-
-  /* ── Shadows ───────────────────────────────── */
-  --shadow-card:   0 4px 6px -1px rgba(0,0,0,.30),
-                   0 2px 4px -2px rgba(0,0,0,.20);
-  --shadow-glow:   0 0 0 3px var(--accent-glow);
-}
-
-/* ── Reset ──────────────────────────────────── */
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background: var(--bg-deep);
-  color: var(--text-primary);
+  font-family: system-ui, sans-serif;
+  background: #fff;
+  color: #000;
   font-size: 14px;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
 }
-
-/* ── Headings ───────────────────────────────── */
-h1 {
-  font-size: 22px;
-  font-weight: 700;
-  margin-bottom: 16px;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-}
-
-h2 {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: var(--text-primary);
-}
-
-/* ── Buttons ────────────────────────────────── */
+h1 { font-size: 20px; font-weight: bold; margin-bottom: 16px; }
+h2 { font-size: 16px; font-weight: bold; margin-bottom: 12px; }
 button {
   cursor: pointer;
-  border: 1px solid var(--accent);
-  background: var(--accent);
+  border: 1px solid #000;
+  background: #000;
   color: #fff;
-  padding: 7px 18px;
+  padding: 6px 16px;
   font-size: 14px;
-  font-weight: 500;
-  border-radius: 6px;
-  transition: background .2s, border-color .2s, box-shadow .2s, transform .1s;
+  border-radius: 0;
 }
-
-button:hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  box-shadow: var(--shadow-glow);
-}
-
-button:active {
-  transform: scale(0.97);
-}
-
 button.outline {
-  background: transparent;
-  color: var(--accent);
-  border-color: var(--accent);
+  background: #fff;
+  color: #000;
 }
-
-button.outline:hover {
-  background: rgba(59,130,246,.1);
-}
-
 button.danger {
-  background: var(--danger);
-  border-color: var(--danger);
+  background: #DC2626;
+  border-color: #DC2626;
 }
-
-button.danger:hover {
-  background: var(--danger-hover);
-  border-color: var(--danger-hover);
-  box-shadow: 0 0 0 3px rgba(239,68,68,.25);
-}
-
-/* ── Inputs ─────────────────────────────────── */
 input, select, textarea {
-  border: 1px solid var(--border-default);
-  background: var(--bg-deep);
-  color: var(--text-primary);
-  padding: 8px 12px;
+  border: 1px solid #000;
+  padding: 7px 10px;
   font-size: 14px;
   width: 100%;
-  border-radius: 6px;
+  border-radius: 0;
   outline: none;
-  transition: border-color .2s, box-shadow .2s;
 }
+input:focus { border-color: #000; box-shadow: none; }
+table { width: 100%; border-collapse: collapse; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #000; color: #fff; font-weight: bold; }
+tr:nth-child(even) { background: #f9f9f9; }
+.page { padding: 24px; }
+.section { margin-bottom: 24px; }
+.error { color: #DC2626; font-size: 13px; margin-top: 4px; }
+a { color: #000; text-decoration: underline; }
+a:hover { text-decoration: none; }
 
-input::placeholder, textarea::placeholder {
-  color: var(--text-muted);
-}
-
-input:focus, select:focus, textarea:focus {
-  border-color: var(--accent);
-  box-shadow: var(--shadow-glow);
-}
-
-select option {
-  background: var(--bg-surface);
-  color: var(--text-primary);
-}
-
-/* ── Tables ─────────────────────────────────── */
-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-th, td {
-  border: none;
-  border-bottom: 1px solid var(--border-default);
-  padding: 10px 14px;
-  text-align: left;
-}
-
-th {
-  background: var(--sidebar-bg);
-  color: var(--text-secondary);
-  font-weight: 600;
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-tr {
-  transition: background .15s;
-}
-
-tr:nth-child(even) {
-  background: rgba(30,41,59,.5);
-}
-
-tr:hover {
-  background: var(--bg-elevated);
-}
-
-tbody tr:last-child td {
-  border-bottom: none;
-}
-
-/* ── Layout helpers ─────────────────────────── */
-.page {
-  padding: 28px;
-}
-
-.section {
-  margin-bottom: 24px;
-}
-
-.error {
-  color: var(--danger);
-  font-size: 13px;
-  margin-top: 4px;
-}
-
-/* ── Links ──────────────────────────────────── */
-a {
-  color: var(--accent);
-  text-decoration: none;
-  transition: color .15s;
-}
-
-a:hover {
-  color: var(--accent-hover);
-  text-decoration: underline;
-}
-
-/* ── Table responsive wrap ──────────────────── */
 .tableWrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  border-radius: 8px;
 }
 
-/* ── Scrollbar (webkit) ─────────────────────── */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg-deep);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border-default);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
-
-/* ── Mobile ─────────────────────────────────── */
 @media (max-width: 768px) {
   .page { padding: 16px 12px; }
 
-  table { font-size: 13px; }
+  table {
+    font-size: 13px;
+  }
 
   th, td {
-    padding: 8px 10px;
+    padding: 6px 8px;
     white-space: nowrap;
   }
 }
+
