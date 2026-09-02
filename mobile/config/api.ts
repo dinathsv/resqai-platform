@@ -7,7 +7,7 @@ const LOCALHOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
 
 export const API_BASE = `http://${LOCALHOST}:5000`;
 
-export const AI_BASE = `http://${LOCALHOST}:8000`;
+export const AI_BASE = `http://${LOCALHOST}:8001`;
 
 export async function getToken(): Promise<string | null> {
   const token = await AsyncStorage.getItem('token');
