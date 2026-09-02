@@ -24,7 +24,7 @@ def _get_client() -> genai.Client:
     return _client
 
 def get_model() -> str:
-    return os.getenv("LLM_MODEL", "gemini-1.5-flash")
+    return os.getenv("LLM_MODEL", "gemini-2.0-flash")
 
 async def chat(
     system_prompt: str,
@@ -44,7 +44,7 @@ async def chat(
                 temperature=temperature
             )
         )
-        return response.text
+        return response.text or ""
     except Exception as exc:
         logger.error("LLM API call failed: %s", exc, exc_info=True)
         raise
@@ -80,5 +80,6 @@ async def close():
     """Close the underlying HTTP client gracefully."""
     global _client
     if _client is not None:
-        await _client.aclose()
+        # The new google-genai SDK does not have an aclose() method on Client.
+        # It handles connections internally or relies on garbage collection.
         _client = None
