@@ -28,7 +28,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("resqai")
 
-
 # ── Lifespan (startup + shutdown) ────────────────────────────
 
 @asynccontextmanager
@@ -50,7 +49,6 @@ async def lifespan(app: FastAPI):
     logger.info("🛑 Shutting down — closing LLM client")
     await llm_service.close()
     logger.info("👋 ResQAI AI Microservice stopped")
-
 
 # ── App ──────────────────────────────────────────────────────
 
@@ -79,7 +77,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # ── Global error handler ────────────────────────────────────
 
 @app.exception_handler(Exception)
@@ -93,13 +90,11 @@ async def global_exception_handler(request: Request, exc: Exception):
         },
     )
 
-
 # ── Routers ──────────────────────────────────────────────────
 app.include_router(chatbot.router, prefix="/api/ai")
 app.include_router(multilingual.router, prefix="/api/ai")
 app.include_router(situational.router, prefix="/api/ai")
 app.include_router(locator.router, prefix="/api/ai")
-
 
 # ── Health check ─────────────────────────────────────────────
 
@@ -112,7 +107,6 @@ async def health():
         "version": "1.0.0",
         "database": "connected" if db_ok else "disconnected",
     }
-
 
 # ── Run directly ─────────────────────────────────────────────
 

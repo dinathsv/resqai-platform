@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   postgres:
     image: postgis/postgis:15-3.3
@@ -11,12 +12,80 @@ services:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U resqai_user -d resqai"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
     container_name: resqai_redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  python-api:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    container_name: resqai_python_api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://resqai_user:resqai_pass@postgres:5432/resqai
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=supersecretkey
+      - AI_API_KEY=${AI_API_KEY:-dummy_key}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  node-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: resqai_node_backend
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=postgres://resqai_user:resqai_pass@postgres:5432/resqai
+      - PORT=5000
+      - JWT_SECRET=supersecretkey
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  admin-dashboard:
+    build:
+      context: ./resqai-admin
+      dockerfile: Dockerfile
+    container_name: resqai_admin
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:5000
+    depends_on:
+      - node-backend
+
+  mobile-app-web:
+    build:
+      context: ./mobile
+      dockerfile: Dockerfile
+    container_name: resqai_mobile
+    ports:
+      - "8081:8081"
+    environment:
+      - EXPO_WEB_PORT=8081
+    depends_on:
+      - python-api
 
 volumes:
   pgdata:

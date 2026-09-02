@@ -39,7 +39,6 @@ SYSTEM_PROMPT = (
 
 # ── Fallback ─────────────────────────────────────────────────
 
-
 def _build_fallback(requests: list[dict]) -> GenerateSummaryResponse:
     """Generate a basic summary without the LLM."""
     total = len(requests)

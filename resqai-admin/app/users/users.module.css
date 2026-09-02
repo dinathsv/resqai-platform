@@ -1,0 +1,86 @@
+.searchRow {
+  margin-bottom: 16px;
+}
+
+.searchRow input {
+  max-width: 400px;
+}
+
+.pagination {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 18px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.pagination button {
+  padding: 5px 14px;
+  font-size: 12px;
+}
+
+.pageNum {
+  padding: 5px 10px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-radius: 5px;
+  transition: background .15s, color .15s;
+}
+
+.pageNum:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.pageNumActive {
+  padding: 5px 10px;
+  cursor: pointer;
+  font-weight: 600;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 5px;
+}
+
+.resendBtn {
+  padding: 3px 10px;
+  font-size: 11px;
+  background: var(--accent);
+  border-color: var(--accent);
+  border-radius: 4px;
+}
+
+.resendBtn:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.suspendBtn {
+  padding: 3px 10px;
+  font-size: 11px;
+  background: var(--danger);
+  border-color: var(--danger);
+  border-radius: 4px;
+}
+
+.suspendBtn:hover {
+  background: var(--danger-hover);
+  border-color: var(--danger-hover);
+}
+
+.viewLink {
+  font-size: 13px;
+  margin-right: 8px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .searchRow input {
+    max-width: 100%;
+  }
+}

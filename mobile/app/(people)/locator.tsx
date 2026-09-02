@@ -20,11 +20,8 @@ import {
   Dimensions,
 } from 'react-native';
 import * as Location from 'expo-location';
-import MapView, { Marker } from 'react-native-maps';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
-
-// ── Types ───────────────────────────────────────────────────
 
 interface Hospital {
   hospital_id: string;
@@ -36,13 +33,9 @@ interface Hospital {
   distance_metres: number;
 }
 
-// ── Emergency Types ─────────────────────────────────────────
-
 const EMERGENCY_TYPES = ['Medical', 'Flood', 'Accident', 'Fire', 'Trapped'];
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
-
-// ── Component ───────────────────────────────────────────────
 
 export default function LocatorScreen() {
   const router = useRouter();
@@ -57,12 +50,10 @@ export default function LocatorScreen() {
   const [locationError, setLocationError] = useState('');
   const [manualArea, setManualArea] = useState('');
 
-  // Keep ref in sync with latest emergencyType
   useEffect(() => {
     emergencyTypeRef.current = emergencyType;
   }, [emergencyType]);
 
-  // ── Request location on mount ───────────────────────────
   useEffect(() => {
     async function getLocation() {
       try {
@@ -72,7 +63,7 @@ export default function LocatorScreen() {
           return;
         }
 
-        const location = await Location.getCurrentPositionAsync({});
+        const location = await Location.getCurrentPositionAsync();
         const coords = {
           lat: location.coords.latitude,
           lng: location.coords.longitude,
@@ -88,7 +79,6 @@ export default function LocatorScreen() {
     getLocation();
   }, []);
 
-  // ── Fetch hospitals ─────────────────────────────────────
   const fetchHospitals = async (lat: number, lng: number, type: string) => {
     setLoading(true);
     try {
@@ -106,7 +96,6 @@ export default function LocatorScreen() {
     }
   };
 
-  // ── Handle type change ──────────────────────────────────
   const handleTypeChange = (type: string) => {
     const typeKey = type.toLowerCase();
     setEmergencyType(typeKey);
@@ -115,20 +104,15 @@ export default function LocatorScreen() {
     }
   };
 
-  // ── Handle manual search ────────────────────────────────
   const handleManualSearch = () => {
-    // For manual area search, use a default location (Colombo)
-    // In production, this would geocode the area name
     const defaultCoords = { lat: 6.9271, lng: 79.8612 };
     setUserLocation(defaultCoords);
     fetchHospitals(defaultCoords.lat, defaultCoords.lng, emergencyType);
   };
 
-  // ── Show 1990 banner ────────────────────────────────────
   const show1990Banner =
     emergencyType === 'medical' || emergencyType === 'accident';
 
-  // ── Render hospital row ─────────────────────────────────
   const renderHospitalItem = ({ item }: { item: Hospital }) => (
     <View style={styles.hospitalRow}>
       <View style={styles.hospitalInfo}>
@@ -151,10 +135,71 @@ export default function LocatorScreen() {
     </View>
   );
 
-  // ── Render ──────────────────────────────────────────────
+  const renderMap = () => {
+    if (!userLocation) {
+      return (
+        <View style={styles.mapPlaceholder}>
+          {locationError ? (
+            <Text style={styles.locationErrorText}>{locationError}</Text>
+          ) : (
+            <ActivityIndicator size="large" color="#000000" />
+          )}
+        </View>
+      );
+    }
+
+    const { lat, lng } = userLocation;
+
+    return (
+      <View style={styles.mapContainer}>
+        <View style={styles.mapHeader}>
+          <Text style={styles.mapHeaderText}>
+            📍 Your location: {lat.toFixed(4)}, {lng.toFixed(4)}
+          </Text>
+        </View>
+
+        {hospitals.length > 0 ? (
+          <View style={styles.mapMarkers}>
+            {hospitals.slice(0, 5).map((h) => (
+              <TouchableOpacity
+                key={h.hospital_id}
+                style={styles.mapMarker}
+                onPress={() => {
+                  Linking.openURL(
+                    `https://www.openstreetmap.org/?mlat=${h.latitude}&mlon=${h.longitude}#map=16/${h.latitude}/${h.longitude}`
+                  );
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.mapMarkerIcon}>🏥</Text>
+                <Text style={styles.mapMarkerName} numberOfLines={1}>
+                  {h.name}
+                </Text>
+                <Text style={styles.mapMarkerDist}>
+                  {(h.distance_metres / 1000).toFixed(1)} km
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : null}
+
+        <TouchableOpacity
+          style={styles.openMapButton}
+          onPress={() => {
+            Linking.openURL(
+              `https://www.openstreetmap.org/#map=14/${lat}/${lng}`
+            );
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.openMapButtonText}>Open Full Map 🗺️</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButton}>← Back</Text>
@@ -162,7 +207,6 @@ export default function LocatorScreen() {
         <Text style={styles.headerTitle}>Find Hospital</Text>
       </View>
 
-      {/* Emergency type selector */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -198,7 +242,6 @@ export default function LocatorScreen() {
         })}
       </ScrollView>
 
-      {/* 1990 Banner */}
       {show1990Banner && (
         <TouchableOpacity
           style={styles.banner1990}
@@ -211,43 +254,9 @@ export default function LocatorScreen() {
         </TouchableOpacity>
       )}
 
-      {/* Map */}
-      {userLocation ? (
-        <MapView
-          style={styles.map}
-          showsUserLocation={true}
-          initialRegion={{
-            latitude: userLocation.lat,
-            longitude: userLocation.lng,
-            latitudeDelta: 0.05,
-            longitudeDelta: 0.05,
-          }}
-        >
-          {hospitals.map((h) => (
-            <Marker
-              key={h.hospital_id}
-              coordinate={{
-                latitude: h.latitude,
-                longitude: h.longitude,
-              }}
-              title={h.name}
-              description={`${(h.distance_metres / 1000).toFixed(1)} km`}
-              pinColor="red"
-            />
-          ))}
-        </MapView>
-      ) : (
-        <View style={styles.mapPlaceholder}>
-          {locationError ? (
-            <Text style={styles.locationErrorText}>{locationError}</Text>
-          ) : (
-            <ActivityIndicator size="large" color="#000000" />
-          )}
-        </View>
-      )}
+      {renderMap()}
 
-      {/* Location denied fallback */}
-      {locationError && !userLocation && (
+      {locationError && !userLocation ? (
         <View style={styles.manualSearch}>
           <TextInput
             style={styles.manualInput}
@@ -264,9 +273,8 @@ export default function LocatorScreen() {
             <Text style={styles.searchButtonText}>Search</Text>
           </TouchableOpacity>
         </View>
-      )}
+      ) : null}
 
-      {/* Hospital list */}
       <View style={styles.hospitalSection}>
         <Text style={styles.hospitalHeading}>Nearest Hospitals</Text>
 
@@ -292,8 +300,6 @@ export default function LocatorScreen() {
     </SafeAreaView>
   );
 }
-
-// ── Styles ──────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -327,7 +333,6 @@ const styles = StyleSheet.create({
   typeButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    // No border radius
   },
   typeButtonSelected: {
     backgroundColor: '#000000',
@@ -351,7 +356,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    // No border radius — full width
   },
   banner1990Text: {
     color: '#FFFFFF',
@@ -359,9 +363,59 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
-  map: {
-    width: '100%',
-    height: SCREEN_HEIGHT * 0.5,
+  mapContainer: {
+    backgroundColor: '#F0F0F0',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  mapHeader: {
+    paddingBottom: 8,
+  },
+  mapHeaderText: {
+    fontSize: 13,
+    color: '#555555',
+  },
+  mapMarkers: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  mapMarker: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    minWidth: 90,
+  },
+  mapMarkerIcon: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  mapMarkerName: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#000000',
+    textAlign: 'center',
+  },
+  mapMarkerDist: {
+    fontSize: 10,
+    color: '#888888',
+    marginTop: 2,
+  },
+  openMapButton: {
+    backgroundColor: '#000000',
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  openMapButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   mapPlaceholder: {
     width: '100%',

@@ -1,0 +1,91 @@
+.filterRow {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filterRow select {
+  width: 180px;
+}
+
+.pagination {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 18px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.pagination button {
+  padding: 5px 14px;
+  font-size: 12px;
+}
+
+.pageNum {
+  padding: 5px 10px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+
+.pageNum:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.pageNumActive {
+  padding: 5px 10px;
+  font-weight: 600;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 5px;
+}
+
+.cancelBtn {
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+  text-decoration: underline;
+  transition: color .15s;
+}
+
+.cancelBtn:hover {
+  color: var(--danger-hover);
+  text-decoration: none;
+}
+
+.statsLink {
+  font-size: 13px;
+  margin-right: 8px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.newAlertBtn {
+  margin-bottom: 16px;
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.newAlertBtn:hover {
+  background: var(--danger-hover);
+  border-color: var(--danger-hover);
+  box-shadow: 0 0 0 3px rgba(239,68,68,.25);
+}
+
+@media (max-width: 768px) {
+  .filterRow select {
+    width: 100%;
+  }
+}

@@ -1,0 +1,149 @@
+.form {
+  max-width: 700px;
+}
+
+.field {
+  margin-bottom: 22px;
+}
+
+.label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+}
+
+.helper {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.criticalWarning {
+  font-size: 12px;
+  color: var(--danger);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.severityRow {
+  display: flex;
+  gap: 0;
+}
+
+.severityBtn {
+  width: 48px;
+  text-align: center;
+  padding: 6px 0;
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 0;
+  transition: background .15s, color .15s;
+}
+
+.severityBtn:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.severityBtn:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.severityBtn + .severityBtn {
+  border-left: none;
+}
+
+.severityBtn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.severityBtnActive {
+  width: 48px;
+  text-align: center;
+  padding: 6px 0;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 0;
+}
+
+.severityBtnActive:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.severityBtnActive:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.severityBtnActive + .severityBtn,
+.severityBtn + .severityBtnActive {
+  border-left: none;
+}
+
+.preview {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  padding: 18px;
+  margin-bottom: 24px;
+  transition: box-shadow .25s;
+}
+
+.preview:hover {
+  box-shadow: var(--shadow-card);
+}
+
+.previewTitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.previewContent {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.previewType {
+  font-weight: bold;
+  color: var(--accent);
+}
+
+.previewWorkPlan {
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.buttonRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.responseText {
+  margin-top: 16px;
+  font-size: 14px;
+  padding: 14px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  border-radius: 8px;
+  color: var(--text-primary);
+}
+
+@media (max-width: 480px) {
+  .form {
+    max-width: 100%;
+  }
+}

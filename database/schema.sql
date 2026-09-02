@@ -272,3 +272,220 @@ $$ LANGUAGE plpgsql STABLE;
 --   SELECT * FROM get_nearest_hospitals(6.9271, 79.8612, 5);
 --   → Returns 5 nearest active hospitals to Colombo city centre
 -- ============================================================================
+
+
+-- ============================================================================
+-- ADDITIONAL ENUM TYPES
+-- ============================================================================
+
+-- Lifecycle status of a relief mission
+CREATE TYPE mission_status AS ENUM (
+    'planning',
+    'active',
+    'paused',
+    'completed',
+    'cancelled'
+);
+
+-- Lifecycle status of a volunteer assignment
+CREATE TYPE assignment_status AS ENUM (
+    'pending',
+    'accepted',
+    'active',
+    'completed',
+    'withdrawn'
+);
+
+-- Lifecycle status of a donation
+CREATE TYPE donation_status AS ENUM (
+    'pending',
+    'completed',
+    'failed',
+    'refunded'
+);
+
+-- Alert status
+CREATE TYPE alert_status AS ENUM (
+    'active',
+    'expired',
+    'cancelled'
+);
+
+
+-- ============================================================================
+-- 7. RELIEF MISSIONS
+-- ============================================================================
+CREATE TABLE relief_missions (
+    mission_id      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    admin_id        UUID            NOT NULL
+                                        REFERENCES administrators (admin_id)
+                                        ON DELETE CASCADE,
+    title           VARCHAR(255)    NOT NULL,
+    description     TEXT,
+    target_zone     GEOMETRY,
+    status          mission_status  NOT NULL DEFAULT 'planning',
+    funds_collected DECIMAL(12,2)   NOT NULL DEFAULT 0,
+    created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_mission_admin       ON relief_missions (admin_id);
+CREATE INDEX idx_mission_status      ON relief_missions (status);
+CREATE INDEX idx_mission_zone        ON relief_missions USING GIST (target_zone);
+
+CREATE TRIGGER trg_relief_missions_updated_at
+    BEFORE UPDATE ON relief_missions
+    FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
+
+
+-- ============================================================================
+-- 8. DONATIONS
+-- ============================================================================
+CREATE TABLE donations (
+    donation_id     UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    donor_id        UUID            NOT NULL
+                                        REFERENCES users (user_id)
+                                        ON DELETE CASCADE,
+    mission_id      UUID            REFERENCES relief_missions (mission_id)
+                                        ON DELETE SET NULL,
+    amount          DECIMAL(12,2)   NOT NULL CHECK (amount > 0),
+    status          donation_status NOT NULL DEFAULT 'pending',
+    transaction_ref VARCHAR(255),
+    created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_donation_donor      ON donations (donor_id);
+CREATE INDEX idx_donation_mission    ON donations (mission_id);
+CREATE INDEX idx_donation_status     ON donations (status);
+
+CREATE TRIGGER trg_donations_updated_at
+    BEFORE UPDATE ON donations
+    FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
+
+
+-- ============================================================================
+-- 9. VOLUNTEER ASSIGNMENTS
+-- ============================================================================
+CREATE TABLE volunteer_assignments (
+    assignment_id   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id         UUID            NOT NULL
+                                        REFERENCES users (user_id)
+                                        ON DELETE CASCADE,
+    mission_id      UUID            NOT NULL
+                                        REFERENCES relief_missions (mission_id)
+                                        ON DELETE CASCADE,
+    status          assignment_status NOT NULL DEFAULT 'pending',
+    assigned_at     TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    completed_at    TIMESTAMPTZ,
+    hours_logged    INT             NOT NULL DEFAULT 0
+                                        CHECK (hours_logged >= 0),
+    updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_va_user             ON volunteer_assignments (user_id);
+CREATE INDEX idx_va_mission          ON volunteer_assignments (mission_id);
+CREATE INDEX idx_va_status           ON volunteer_assignments (status);
+
+CREATE TRIGGER trg_volunteer_assignments_updated_at
+    BEFORE UPDATE ON volunteer_assignments
+    FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
+
+
+-- ============================================================================
+-- 10. EMERGENCY ALERTS
+-- ============================================================================
+CREATE TABLE emergency_alerts (
+    alert_id        UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    admin_id        UUID            NOT NULL
+                                        REFERENCES administrators (admin_id)
+                                        ON DELETE CASCADE,
+    disaster_type   emergency_type  NOT NULL,
+    severity        INT             NOT NULL DEFAULT 3
+                                        CHECK (severity BETWEEN 1 AND 5),
+    affected_zone   GEOMETRY(POLYGON, 4326),
+    work_plan       TEXT,
+    status          alert_status    NOT NULL DEFAULT 'active',
+    delivered_count INT             NOT NULL DEFAULT 0,
+    created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    expires_at      TIMESTAMPTZ,
+    updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_ea_admin            ON emergency_alerts (admin_id);
+CREATE INDEX idx_ea_status           ON emergency_alerts (status);
+CREATE INDEX idx_ea_severity         ON emergency_alerts (severity DESC);
+CREATE INDEX idx_ea_zone             ON emergency_alerts USING GIST (affected_zone);
+
+CREATE TRIGGER trg_emergency_alerts_updated_at
+    BEFORE UPDATE ON emergency_alerts
+    FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
+
+
+-- ============================================================================
+-- 11. AGENCY CHAT MESSAGES
+-- ============================================================================
+CREATE TABLE agency_chat_messages (
+    message_id      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    sender_id       UUID            NOT NULL
+                                        REFERENCES administrators (admin_id)
+                                        ON DELETE CASCADE,
+    channel_id      INT,
+    message_text    TEXT            NOT NULL,
+    alert_id        UUID            REFERENCES emergency_alerts (alert_id)
+                                        ON DELETE SET NULL,
+    sent_at         TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_acm_sender          ON agency_chat_messages (sender_id);
+CREATE INDEX idx_acm_channel         ON agency_chat_messages (channel_id);
+CREATE INDEX idx_acm_alert           ON agency_chat_messages (alert_id);
+CREATE INDEX idx_acm_sent            ON agency_chat_messages (sent_at DESC);
+
+
+-- ============================================================================
+-- 12. RATINGS
+-- ============================================================================
+CREATE TABLE ratings (
+    rating_id       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    rater_id        UUID            NOT NULL
+                                        REFERENCES users (user_id)
+                                        ON DELETE CASCADE,
+    rated_user_id   UUID            NOT NULL
+                                        REFERENCES users (user_id)
+                                        ON DELETE CASCADE,
+    request_id      UUID            REFERENCES help_requests (request_id)
+                                        ON DELETE SET NULL,
+    score           INT             NOT NULL CHECK (score BETWEEN 1 AND 5),
+    comment         TEXT,
+    created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+
+    -- A user can only rate another user once per request
+    CONSTRAINT uq_rating_per_request UNIQUE (rater_id, rated_user_id, request_id)
+);
+
+CREATE INDEX idx_rating_rater        ON ratings (rater_id);
+CREATE INDEX idx_rating_rated        ON ratings (rated_user_id);
+CREATE INDEX idx_rating_request      ON ratings (request_id);
+
+
+-- ============================================================================
+-- 13. AUDIT LOGS
+-- ============================================================================
+CREATE TABLE audit_logs (
+    log_id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id         UUID            REFERENCES users (user_id)
+                                        ON DELETE SET NULL,
+    admin_id        UUID            REFERENCES administrators (admin_id)
+                                        ON DELETE SET NULL,
+    action          VARCHAR(100)    NOT NULL,
+    entity_type     VARCHAR(100),
+    entity_id       UUID,
+    created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_audit_user          ON audit_logs (user_id);
+CREATE INDEX idx_audit_admin         ON audit_logs (admin_id);
+CREATE INDEX idx_audit_action        ON audit_logs (action);
+CREATE INDEX idx_audit_entity        ON audit_logs (entity_type, entity_id);
+CREATE INDEX idx_audit_created       ON audit_logs (created_at DESC);

@@ -46,7 +46,6 @@ ALWAYS_1990 = {
     "hazardous_material", "tsunami", "earthquake",
 }
 
-
 # ── Endpoint ─────────────────────────────────────────────────
 
 @router.post("/locate-resources", response_model=LocateResourcesResponse)

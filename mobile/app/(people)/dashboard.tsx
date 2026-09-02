@@ -21,8 +21,6 @@ import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { connectSocket, disconnectSocket } from '../../config/socket';
 
-// ── Types ───────────────────────────────────────────────────
-
 interface Alert {
   alert_id: string;
   disaster_type: string;
@@ -31,16 +29,12 @@ interface Alert {
   created_at: string;
 }
 
-// ── Grid Items ──────────────────────────────────────────────
-
 const GRID_ITEMS = [
   { key: 'help', emoji: '🆘', label: 'Request Help', route: '/(people)/help' },
   { key: 'hospital', emoji: '🏥', label: 'Find Hospital', route: '/(people)/locator' },
   { key: 'chat', emoji: '💬', label: 'First Aid Chat', route: '/(people)/chatbot' },
   { key: 'alerts', emoji: '📢', label: 'Alerts', route: '/(people)/dashboard' },
 ];
-
-// ── Component ───────────────────────────────────────────────
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -54,14 +48,12 @@ export default function DashboardScreen() {
 
     async function init() {
       try {
-        // Get user name
         const meRes = await apiFetch('/api/auth/me');
         if (meRes.ok) {
           const meData = await meRes.json();
           if (mounted) setUserName(meData.full_name || 'User');
         }
 
-        // Get active alerts
         const alertsRes = await apiFetch('/api/alerts');
         if (alertsRes.ok) {
           const alertsData = await alertsRes.json();
@@ -84,11 +76,15 @@ export default function DashboardScreen() {
       try {
         const socket = await connectSocket();
 
+        if (!socket) {
+          console.warn('Socket not connected, skipping alert listener setup.');
+          return;
+        }
+
         socket.on('alert_received', (alert: Alert) => {
           if (!mounted) return;
           setAlerts((prev) => [alert, ...prev]);
 
-          // Flash border red briefly
           Animated.sequence([
             Animated.timing(flashAnim, {
               toValue: 1,
@@ -103,7 +99,6 @@ export default function DashboardScreen() {
           ]).start();
         });
 
-        // critical_request is admin-only — ignore for people
       } catch (err) {
         console.error('Socket setup error:', err);
       }
@@ -153,10 +148,8 @@ export default function DashboardScreen() {
     </TouchableOpacity>
   );
 
-  // ── Render ──────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>ResQAI</Text>
         <TouchableOpacity onPress={handleExit}>
@@ -164,10 +157,8 @@ export default function DashboardScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Welcome */}
       <Text style={styles.welcome}>Hello, {userName || '...'}</Text>
 
-      {/* 2x2 Grid */}
       <View style={styles.grid}>
         <View style={styles.gridRow}>
           {GRID_ITEMS.slice(0, 2).map((item) => (
@@ -197,7 +188,6 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {/* Active Alerts Section */}
       <Animated.View style={[styles.alertsSection, { borderColor }]}>
         <Text style={styles.alertsHeading}>Active Alerts</Text>
 
@@ -215,8 +205,6 @@ export default function DashboardScreen() {
     </SafeAreaView>
   );
 }
-
-// ── Styles ──────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -261,7 +249,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 28,
-    // No shadow, no border radius
   },
   gridEmoji: {
     fontSize: 28,

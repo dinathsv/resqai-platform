@@ -20,7 +20,8 @@ export async function connectSocket(): Promise<Socket> {
 
   const token = await AsyncStorage.getItem('token');
   if (!token) {
-    throw new Error('No auth token available for Socket.IO connection');
+    console.log('No auth token available for Socket.IO connection');
+    return null as any;
   }
 
   socket = io(API_BASE, {

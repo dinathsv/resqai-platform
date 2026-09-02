@@ -7,7 +7,7 @@ and flags critical emergencies that need Suwa Seriya (1990).
 """
 
 import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from langdetect import detect, LangDetectException
 

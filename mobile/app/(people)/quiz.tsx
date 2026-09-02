@@ -56,7 +56,7 @@ export default function QuizScreen() {
       const res = await axios.get(`${BASE_URL}/api/quiz/questions?count=10`)
       setQuestions(res.data)
     } catch (e) {
-      // Quiz is public — no auth required
+      console.error('Error fetching questions:', e)
     } finally {
       setLoading(false)
     }
@@ -109,7 +109,7 @@ export default function QuizScreen() {
         )
       }
     } catch (e) {
-      // Silently fail — quiz works for guests too
+      console.error('Error submitting attempt:', e)
     }
   }
 

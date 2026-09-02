@@ -193,7 +193,6 @@ export default function DonateScreen() {
       )
     }
 
-    // Details step
     return (
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

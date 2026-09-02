@@ -24,8 +24,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { aiFetch } from '../../config/api';
 
-// ── Types ───────────────────────────────────────────────────
-
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -33,16 +31,12 @@ interface Message {
   timestamp: Date;
 }
 
-// ── Initial message ─────────────────────────────────────────
-
 const INITIAL_MESSAGE: Message = {
   id: 'initial',
   role: 'assistant',
   text: 'Describe your emergency and I will provide first-aid guidance. For life-threatening emergencies call 1990 immediately.',
   timestamp: new Date(),
 };
-
-// ── Component ───────────────────────────────────────────────
 
 export default function ChatbotScreen() {
   const router = useRouter();
@@ -53,12 +47,10 @@ export default function ChatbotScreen() {
   const [, setDetectedLang] = useState('en');
   const flatListRef = useRef<FlatList>(null);
 
-  // Check for token on mount (just for context, not required)
   useEffect(() => {
     async function checkAuth() {
       const token = await AsyncStorage.getItem('token');
       const guestToken = await AsyncStorage.getItem('guest_token');
-      // Either token type is fine — chatbot works without auth
       if (!token && !guestToken) {
         console.log('Chatbot: No auth token — running as anonymous');
       }
@@ -66,19 +58,17 @@ export default function ChatbotScreen() {
     checkAuth();
   }, []);
 
-  // ── Send message ────────────────────────────────────────
   const onSend = async () => {
     const trimmed = input.trim();
     if (!trimmed || loading) return;
 
-    // Add user message
     const userMsg: Message = {
       id: `user-${Date.now()}`,
       role: 'user',
       text: trimmed,
       timestamp: new Date(),
     };
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev: Message[]) => [...prev, userMsg]);
     setInput('');
     setLoading(true);
 
@@ -100,7 +90,7 @@ export default function ChatbotScreen() {
           text: data.reply,
           timestamp: new Date(),
         };
-        setMessages((prev) => [...prev, assistantMsg]);
+        setMessages((prev: Message[]) => [...prev, assistantMsg]);
 
         if (data.language_detected) {
           setDetectedLang(data.language_detected);
@@ -110,14 +100,13 @@ export default function ChatbotScreen() {
           setShow1990(true);
         }
       } else {
-        // Error response
         const assistantMsg: Message = {
           id: `assistant-${Date.now()}`,
           role: 'assistant',
           text: 'Sorry, I am temporarily unable to respond. If this is a life-threatening emergency, please call 1990 immediately.',
           timestamp: new Date(),
         };
-        setMessages((prev) => [...prev, assistantMsg]);
+        setMessages((prev: Message[]) => [...prev, assistantMsg]);
         setShow1990(true);
       }
     } catch (err) {
@@ -128,19 +117,17 @@ export default function ChatbotScreen() {
         text: 'Connection error. Please check your internet connection. For emergencies, call 1990.',
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, assistantMsg]);
+      setMessages((prev: Message[]) => [...prev, assistantMsg]);
       setShow1990(true);
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Format timestamp ────────────────────────────────────
   const formatTimestamp = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // ── Render message ──────────────────────────────────────
   const renderMessage = ({ item }: { item: Message }) => {
     const isUser = item.role === 'user';
     return (
@@ -170,10 +157,8 @@ export default function ChatbotScreen() {
     );
   };
 
-  // ── Render ──────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButton}>←</Text>
@@ -187,11 +172,10 @@ export default function ChatbotScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
-        {/* Messages */}
         <FlatList
-          ref={flatListRef}
+          ref={flatListRef as any}
           data={messages}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item: Message) => item.id}
           renderItem={renderMessage}
           style={styles.messagesList}
           contentContainerStyle={styles.messagesContent}
@@ -200,7 +184,6 @@ export default function ChatbotScreen() {
           }
         />
 
-        {/* Loading indicator */}
         {loading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color="#000000" />
@@ -208,7 +191,6 @@ export default function ChatbotScreen() {
           </View>
         )}
 
-        {/* 1990 Banner */}
         {show1990 && (
           <TouchableOpacity
             style={styles.banner1990}
@@ -221,7 +203,6 @@ export default function ChatbotScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Input row */}
         <View style={styles.inputRow}>
           <TextInput
             style={styles.textInput}
@@ -252,8 +233,6 @@ export default function ChatbotScreen() {
     </SafeAreaView>
   );
 }
-
-// ── Styles ──────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -305,7 +284,6 @@ const styles = StyleSheet.create({
   },
   userBubble: {
     backgroundColor: '#F5F5F5',
-    // Plain View — no bubble shape
   },
   assistantBubble: {
     backgroundColor: '#FFFFFF',
@@ -345,7 +323,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     paddingVertical: 14,
     paddingHorizontal: 16,
-    // No border radius — full width
   },
   banner1990Text: {
     color: '#FFFFFF',
@@ -368,7 +345,6 @@ const styles = StyleSheet.create({
     padding: 8,
     fontSize: 15,
     color: '#000000',
-    // No border radius
   },
   sendButton: {
     color: '#000000',

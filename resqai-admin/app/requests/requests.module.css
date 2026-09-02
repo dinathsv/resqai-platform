@@ -1,0 +1,89 @@
+.filterRow {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filterRow select,
+.filterRow input {
+  width: 160px;
+}
+
+.pagination {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 18px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.pagination button {
+  padding: 5px 14px;
+  font-size: 12px;
+}
+
+.pageNum {
+  padding: 5px 10px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-radius: 5px;
+  transition: background .15s, color .15s;
+}
+
+.pageNum:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.pageNumActive {
+  padding: 5px 10px;
+  cursor: pointer;
+  font-weight: 600;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 5px;
+}
+
+.flagBtn {
+  padding: 3px 10px;
+  font-size: 11px;
+  background: var(--warning);
+  border-color: var(--warning);
+  color: #000;
+  border-radius: 4px;
+}
+
+.flagBtn:hover {
+  background: var(--warning-hover);
+  border-color: var(--warning-hover);
+}
+
+.viewLink {
+  font-size: 13px;
+  margin-right: 8px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.flaggedRow {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.urgency5 { color: var(--danger); font-weight: bold; }
+.urgency4 { color: var(--warning); font-weight: bold; }
+.urgencyNormal { color: inherit; }
+
+@media (max-width: 768px) {
+  .filterRow select,
+  .filterRow input {
+    width: 100%;
+  }
+}

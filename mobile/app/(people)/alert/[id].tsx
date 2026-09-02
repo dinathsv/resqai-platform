@@ -18,8 +18,6 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { apiFetch } from '../../../config/api';
 
-// ── Types ───────────────────────────────────────────────────
-
 interface AlertDetail {
   alert_id: string;
   disaster_type: string;
@@ -33,8 +31,6 @@ interface AlertDetail {
   acknowledged_at: string | null;
 }
 
-// ── Component ───────────────────────────────────────────────
-
 export default function AlertDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -43,7 +39,6 @@ export default function AlertDetailScreen() {
   const [acknowledging, setAcknowledging] = useState(false);
   const [acknowledged, setAcknowledged] = useState(false);
 
-  // ── Fetch alert detail on mount ─────────────────────────
   useEffect(() => {
     async function fetchAlert() {
       try {
@@ -67,7 +62,6 @@ export default function AlertDetailScreen() {
     }
   }, [id]);
 
-  // ── Acknowledge handler ─────────────────────────────────
   const handleAcknowledge = async () => {
     if (!id || acknowledging || acknowledged) return;
     setAcknowledging(true);
@@ -85,13 +79,11 @@ export default function AlertDetailScreen() {
     }
   };
 
-  // ── Format time ─────────────────────────────────────────
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleString();
   };
 
-  // ── Loading state ───────────────────────────────────────
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -119,10 +111,8 @@ export default function AlertDetailScreen() {
 
   const isCritical = alert.severity >= 4;
 
-  // ── Render ──────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButton}>← Back</Text>
@@ -130,21 +120,18 @@ export default function AlertDetailScreen() {
       </View>
 
       <ScrollView style={styles.content}>
-        {/* Critical emergency bar */}
         {isCritical && (
           <View style={styles.criticalBar}>
             <Text style={styles.criticalBarText}>⚠ Critical Emergency</Text>
           </View>
         )}
 
-        {/* Title */}
         <Text style={styles.title}>
           {alert.disaster_type.charAt(0).toUpperCase() +
             alert.disaster_type.slice(1)}{' '}
           Alert
         </Text>
 
-        {/* Severity */}
         <Text
           style={[
             styles.severity,
@@ -154,7 +141,6 @@ export default function AlertDetailScreen() {
           Severity: {alert.severity}/5
         </Text>
 
-        {/* Work Plan */}
         <Text style={styles.sectionHeading}>What To Do:</Text>
         {Array.isArray(alert.work_plan) && alert.work_plan.length > 0 ? (
           alert.work_plan.map((step: string, index: number) => (
@@ -166,18 +152,15 @@ export default function AlertDetailScreen() {
           <Text style={styles.noContent}>No instructions available</Text>
         )}
 
-        {/* Affected Area */}
         <Text style={styles.sectionHeading}>Affected Area:</Text>
         <Text style={styles.zoneDescription}>
           {alert.zone_description || alert.district || 'Not specified'}
         </Text>
 
-        {/* Issued time */}
         <Text style={styles.issuedTime}>
           Issued: {formatTime(alert.created_at)}
         </Text>
 
-        {/* Acknowledge button */}
         <TouchableOpacity
           style={[
             styles.acknowledgeButton,
@@ -199,8 +182,6 @@ export default function AlertDetailScreen() {
     </SafeAreaView>
   );
 }
-
-// ── Styles ──────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -234,7 +215,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     width: '100%',
     marginBottom: 16,
-    // No border radius — full width
   },
   criticalBarText: {
     color: '#FFFFFF',
@@ -290,7 +270,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     marginBottom: 32,
-    // No border radius
   },
   acknowledgedButton: {
     backgroundColor: '#444444',
