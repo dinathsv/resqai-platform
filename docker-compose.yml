@@ -39,7 +39,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in your environment/.env}
       - AI_API_KEY=${AI_API_KEY:-dummy_key}
-      - AI_MODEL=gemini-2.0-flash
+      - AI_MODEL=gemini-3.6-flash
     depends_on:
       postgres:
         condition: service_healthy
