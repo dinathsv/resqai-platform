@@ -57,6 +57,7 @@ services:
       - DATABASE_URL=postgres://resqai_user:resqai_pass@postgres:5432/resqai
       - PORT=5000
       - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in your environment/.env}
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in your environment/.env}
       - REDIS_URL=redis://redis:6379
     depends_on:
       postgres:

@@ -1,11 +1,6 @@
 
 
-const jwt = require('jsonwebtoken');
-
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable must be set');
-}
+const { verifyToken } = require('./middleware/auth');
 
 function initSocket(io) {
 
@@ -16,9 +11,9 @@ function initSocket(io) {
     }
 
     try {
-      const decoded = jwt.verify(token, JWT_SECRET);
+      const decoded = verifyToken(token);
       socket.user = {
-        user_id: decoded.user_id,
+        user_id: decoded.user_id || decoded.sub,
         email: decoded.email,
         role: decoded.role || 'people',
       };
