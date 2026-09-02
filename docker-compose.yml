@@ -37,7 +37,7 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://resqai_user:resqai_pass@postgres:5432/resqai
       - REDIS_URL=redis://redis:6379
-      - SECRET_KEY=supersecretkey
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in your environment/.env}
       - AI_API_KEY=${AI_API_KEY:-dummy_key}
       - AI_MODEL=gemini-2.0-flash
     depends_on:
@@ -56,7 +56,7 @@ services:
     environment:
       - DATABASE_URL=postgres://resqai_user:resqai_pass@postgres:5432/resqai
       - PORT=5000
-      - JWT_SECRET=supersecretkey
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in your environment/.env}
       - REDIS_URL=redis://redis:6379
     depends_on:
       postgres:
