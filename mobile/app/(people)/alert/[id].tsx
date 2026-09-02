@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { apiFetch } from '../../../config/api';
+import { Colors, Fonts, Glass } from '../../../constants/theme';
 
 interface AlertDetail {
   alert_id: string;
@@ -83,7 +84,7 @@ export default function AlertDetailScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#000000" />
+          <ActivityIndicator size="large" color={Colors.accent} />
         </View>
       </SafeAreaView>
     );
@@ -123,36 +124,47 @@ export default function AlertDetailScreen() {
           </View>
         )}
 
-        <Text style={styles.title}>
-          {alert.disaster_type.charAt(0).toUpperCase() +
-            alert.disaster_type.slice(1)}{' '}
-          Alert
-        </Text>
+        <View style={styles.titleCard}>
+          <Text style={styles.title}>
+            {alert.disaster_type.charAt(0).toUpperCase() +
+              alert.disaster_type.slice(1)}{' '}
+            Alert
+          </Text>
 
-        <Text
-          style={[
-            styles.severity,
-            isCritical && styles.severityCritical,
-          ]}
-        >
-          Severity: {alert.severity}/5
-        </Text>
-
-        <Text style={styles.sectionHeading}>What To Do:</Text>
-        {Array.isArray(alert.work_plan) && alert.work_plan.length > 0 ? (
-          alert.work_plan.map((step: string, index: number) => (
-            <Text key={index} style={styles.workPlanStep}>
-              {index + 1}. {step}
+          <View style={styles.severityBadge}>
+            <Text
+              style={[
+                styles.severityText,
+                isCritical && styles.severityCritical,
+              ]}
+            >
+              Severity: {alert.severity}/5
             </Text>
-          ))
-        ) : (
-          <Text style={styles.noContent}>No instructions available</Text>
-        )}
+          </View>
+        </View>
 
-        <Text style={styles.sectionHeading}>Affected Area:</Text>
-        <Text style={styles.zoneDescription}>
-          {alert.zone_description || alert.district || 'Not specified'}
-        </Text>
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionHeading}>What To Do:</Text>
+          {Array.isArray(alert.work_plan) && alert.work_plan.length > 0 ? (
+            alert.work_plan.map((step: string, index: number) => (
+              <View key={index} style={styles.stepRow}>
+                <View style={styles.stepNumber}>
+                  <Text style={styles.stepNumberText}>{index + 1}</Text>
+                </View>
+                <Text style={styles.workPlanStep}>{step}</Text>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.noContent}>No instructions available</Text>
+          )}
+        </View>
+
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionHeading}>Affected Area:</Text>
+          <Text style={styles.zoneDescription}>
+            {alert.zone_description || alert.district || 'Not specified'}
+          </Text>
+        </View>
 
         <Text style={styles.issuedTime}>
           Issued: {formatTime(alert.created_at)}
@@ -168,7 +180,7 @@ export default function AlertDetailScreen() {
           activeOpacity={0.7}
         >
           {acknowledging ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={Colors.white} />
           ) : (
             <Text style={styles.acknowledgeText}>
               {acknowledged ? 'Acknowledged ✓' : 'Acknowledge'}
@@ -183,7 +195,7 @@ export default function AlertDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.background,
   },
   header: {
     paddingHorizontal: 16,
@@ -191,7 +203,8 @@ const styles = StyleSheet.create({
   },
   backButton: {
     fontSize: 16,
-    color: '#000000',
+    fontFamily: Fonts.semiBold,
+    color: Colors.accent,
   },
   content: {
     flex: 1,
@@ -204,78 +217,124 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: '#888888',
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
   },
   criticalBar: {
-    backgroundColor: '#FF0000',
+    backgroundColor: Colors.accent,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    width: '100%',
+    borderRadius: 12,
     marginBottom: 16,
-
   },
   criticalBarText: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     textAlign: 'center',
+  },
+  titleCard: {
+    ...Glass.card,
+    padding: 20,
+    marginBottom: 16,
   },
   title: {
     fontSize: 26,
-    fontWeight: 'bold',
-    color: '#000000',
+    fontFamily: Fonts.bold,
+    color: Colors.textPrimary,
     marginBottom: 8,
   },
-  severity: {
-    fontSize: 16,
-    color: '#000000',
-    marginBottom: 20,
+  severityBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: Colors.accentLight,
+  },
+  severityText: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: Colors.textPrimary,
   },
   severityCritical: {
-    color: '#FF0000',
+    color: Colors.accent,
+  },
+  sectionCard: {
+    ...Glass.card,
+    padding: 16,
+    marginBottom: 12,
   },
   sectionHeading: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginTop: 16,
+    fontFamily: Fonts.bold,
+    color: Colors.accent,
+    marginBottom: 12,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     marginBottom: 8,
   },
+  stepNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    marginTop: 2,
+  },
+  stepNumberText: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    color: Colors.white,
+  },
   workPlanStep: {
+    flex: 1,
     fontSize: 15,
-    color: '#000000',
+    fontFamily: Fonts.regular,
+    color: Colors.textPrimary,
     lineHeight: 24,
-    paddingLeft: 4,
-    marginBottom: 4,
   },
   noContent: {
     fontSize: 14,
-    color: '#888888',
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
   },
   zoneDescription: {
     fontSize: 15,
-    color: '#000000',
+    fontFamily: Fonts.regular,
+    color: Colors.textPrimary,
     lineHeight: 22,
   },
   issuedTime: {
     fontSize: 13,
-    color: '#888888',
-    marginTop: 24,
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
+    marginTop: 8,
     marginBottom: 16,
   },
   acknowledgeButton: {
-    backgroundColor: '#000000',
-    paddingVertical: 14,
+    backgroundColor: Colors.cta,
+    paddingVertical: 16,
     alignItems: 'center',
     marginBottom: 32,
-
+    borderRadius: 14,
+    shadowColor: Colors.cta,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   acknowledgedButton: {
-    backgroundColor: '#444444',
+    backgroundColor: Colors.textMuted,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   acknowledgeText: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
   },
 });

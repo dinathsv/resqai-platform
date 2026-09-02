@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import axios from 'axios'
 import { BASE_URL } from '../../constants/api'
 import MinimalButton from '../../components/MinimalButton'
+import { Colors, Fonts, Glass } from '../../constants/theme'
 
 interface Mission {
   mission_id: string
@@ -121,19 +122,19 @@ export default function VolunteerScreen() {
   function getStatusColor(status: string): string {
     switch (status) {
       case 'active':
-        return '#000'
+        return Colors.accent
       case 'completed':
-        return '#888'
+        return Colors.cta
       case 'cancelled':
-        return 'red'
+        return Colors.textMuted
       default:
-        return '#000'
+        return Colors.textPrimary
     }
   }
 
   function renderMission({ item }: { item: Mission }) {
     return (
-      <View style={styles.itemRow}>
+      <View style={styles.itemCard}>
         <View style={styles.itemInfo}>
           <Text style={styles.itemTitle}>{item.title}</Text>
           <Text style={styles.itemDistrict}>{item.district}</Text>
@@ -146,7 +147,7 @@ export default function VolunteerScreen() {
         </View>
         <MinimalButton
           title="Join"
-          variant="outline"
+          variant="cta"
           small
           onPress={() => confirmJoin(item)}
         />
@@ -156,18 +157,18 @@ export default function VolunteerScreen() {
 
   function renderAssignment({ item }: { item: Assignment }) {
     return (
-      <View style={styles.itemRow}>
+      <View style={styles.itemCard}>
         <View style={styles.itemInfo}>
           <Text style={styles.itemTitle}>{item.mission_title}</Text>
           <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-            {item.status}
+            {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
           </Text>
           <Text style={styles.hoursText}>Hours logged: {item.hours_logged}</Text>
         </View>
         {item.status === 'active' && (
           <MinimalButton
-            title="Mark Complete"
-            variant="outline"
+            title="Complete"
+            variant="cta"
             small
             onPress={() => markComplete(item.assignment_id)}
           />
@@ -217,6 +218,7 @@ export default function VolunteerScreen() {
           data={missions}
           keyExtractor={(item) => item.mission_id}
           renderItem={renderMission}
+          contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <Text style={styles.emptyText}>No missions available</Text>
           }
@@ -226,6 +228,7 @@ export default function VolunteerScreen() {
           data={assignments}
           keyExtractor={(item) => item.assignment_id}
           renderItem={renderAssignment}
+          contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <Text style={styles.emptyText}>No missions available</Text>
           }
@@ -238,14 +241,14 @@ export default function VolunteerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background,
   },
   tabRow: {
     flexDirection: 'row',
     paddingHorizontal: 20,
     paddingTop: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
+    borderBottomColor: Colors.borderLight,
   },
   tab: {
     marginRight: 24,
@@ -253,25 +256,29 @@ const styles = StyleSheet.create({
   },
   tabActive: {
     borderBottomWidth: 2,
-    borderBottomColor: '#000',
+    borderBottomColor: Colors.accent,
   },
   tabText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
   },
   tabTextActive: {
-    color: '#000',
+    color: Colors.accent,
   },
   tabTextInactive: {
-    color: '#888',
+    color: Colors.textMuted,
   },
-  itemRow: {
+  listContent: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 20,
+  },
+  itemCard: {
+    ...Glass.card,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
+    padding: 16,
+    marginBottom: 12,
   },
   itemInfo: {
     flex: 1,
@@ -279,48 +286,56 @@ const styles = StyleSheet.create({
   },
   itemTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#000',
+    fontFamily: Fonts.bold,
+    color: Colors.textPrimary,
   },
   itemDistrict: {
     fontSize: 13,
-    color: '#888',
+    fontFamily: Fonts.regular,
+    color: Colors.textSecondary,
     marginTop: 2,
   },
   itemDescription: {
     fontSize: 13,
-    color: '#888',
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
     marginTop: 4,
     lineHeight: 18,
   },
   volunteerCount: {
     fontSize: 12,
-    color: '#666',
+    fontFamily: Fonts.medium,
+    color: Colors.textSecondary,
     marginTop: 6,
   },
   statusText: {
     fontSize: 14,
+    fontFamily: Fonts.semiBold,
     marginTop: 4,
   },
   hoursText: {
     fontSize: 13,
-    color: '#666',
+    fontFamily: Fonts.regular,
+    color: Colors.textSecondary,
     marginTop: 4,
   },
   loadingText: {
-    color: '#888',
+    color: Colors.textMuted,
+    fontFamily: Fonts.regular,
     textAlign: 'center',
     marginTop: 40,
     fontSize: 14,
   },
   emptyText: {
-    color: '#888',
+    color: Colors.textMuted,
+    fontFamily: Fonts.regular,
     textAlign: 'center',
     marginTop: 40,
     fontSize: 14,
   },
   errorText: {
-    color: 'red',
+    color: Colors.error,
+    fontFamily: Fonts.medium,
     fontSize: 13,
     paddingHorizontal: 20,
     paddingVertical: 8,

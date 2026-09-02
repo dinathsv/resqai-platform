@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { connectSocket, disconnectSocket } from '../../config/socket';
+import { Colors, Fonts, Glass } from '../../constants/theme';
 
 interface Alert {
   alert_id: string;
@@ -116,7 +117,7 @@ export default function DashboardScreen() {
 
   const borderColor = flashAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['#E0E0E0', '#FF0000'],
+    outputRange: [Colors.border, Colors.accent],
   });
 
   const renderAlertItem = ({ item }: { item: Alert }) => (
@@ -125,13 +126,15 @@ export default function DashboardScreen() {
       onPress={() => router.push(`/(people)/alert/${item.alert_id}`)}
       activeOpacity={0.7}
     >
-      <Text style={styles.alertText}>
+      <View style={styles.alertContent}>
         <Text style={styles.alertType}>
           {item.disaster_type.toUpperCase()}
         </Text>
-        {'  '}
-        {item.district || 'Unknown'}
-        {'  '}
+        <Text style={styles.alertDistrict}>
+          {item.district || 'Unknown'}
+        </Text>
+      </View>
+      <Text style={styles.alertTime}>
         {formatTime(item.created_at)}
       </Text>
     </TouchableOpacity>
@@ -141,13 +144,14 @@ export default function DashboardScreen() {
     <SafeAreaView style={styles.container}>
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>ResQAI</Text>
-        <TouchableOpacity onPress={handleExit}>
+        <View>
+          <Text style={styles.headerTitle}>ResQAI</Text>
+          <Text style={styles.welcome}>Hello, {userName || '...'}</Text>
+        </View>
+        <TouchableOpacity onPress={handleExit} style={styles.exitButton}>
           <Text style={styles.headerExit}>Exit</Text>
         </TouchableOpacity>
       </View>
-
-      <Text style={styles.welcome}>Hello, {userName || '...'}</Text>
 
       <View style={styles.grid}>
         <View style={styles.gridRow}>
@@ -199,89 +203,112 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000000',
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    color: Colors.accent,
   },
   headerExit: {
-    fontSize: 16,
-    color: '#000000',
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: Colors.accent,
+  },
+  exitButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.accent,
   },
   welcome: {
     fontSize: 14,
-    color: '#888888',
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    fontFamily: Fonts.regular,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
   grid: {
     paddingHorizontal: 16,
-    marginBottom: 24,
+    marginBottom: 16,
+    gap: 10,
   },
   gridRow: {
     flexDirection: 'row',
-    gap: 0,
+    gap: 10,
   },
   gridCell: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#000000',
-    backgroundColor: '#FFFFFF',
+    ...Glass.card,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 28,
-
+    paddingVertical: 24,
   },
   gridEmoji: {
-    fontSize: 28,
+    fontSize: 32,
     marginBottom: 8,
   },
   gridLabel: {
-    fontSize: 14,
-    color: '#000000',
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: Colors.textPrimary,
     textAlign: 'center',
   },
   alertsSection: {
     flex: 1,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
     marginHorizontal: 16,
     marginBottom: 16,
+    ...Glass.card,
+    padding: 16,
   },
   alertsHeading: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000000',
-    paddingVertical: 12,
+    fontFamily: Fonts.bold,
+    color: Colors.accent,
+    marginBottom: 8,
   },
   alertsList: {
     flex: 1,
   },
   alertRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: Colors.borderLight,
   },
-  alertText: {
-    fontSize: 14,
-    color: '#000000',
+  alertContent: {
+    flex: 1,
   },
   alertType: {
-    fontWeight: 'bold',
+    fontSize: 13,
+    fontFamily: Fonts.bold,
+    color: Colors.accent,
+  },
+  alertDistrict: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  alertTime: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
   },
   noAlerts: {
     fontSize: 14,
-    color: '#888888',
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
     paddingVertical: 16,
   },
 });

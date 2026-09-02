@@ -17,6 +17,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { aiFetch } from '../../config/api';
+import { Colors, Fonts, Glass } from '../../constants/theme';
 
 interface Message {
   id: string;
@@ -139,7 +140,7 @@ export default function ChatbotScreen() {
             isUser ? styles.userBubble : styles.assistantBubble,
           ]}
         >
-          <Text style={styles.messageText}>{item.text}</Text>
+          <Text style={[styles.messageText, isUser && styles.userMessageText]}>{item.text}</Text>
         </View>
         <Text
           style={[
@@ -184,7 +185,7 @@ export default function ChatbotScreen() {
 
         {loading && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#000000" />
+            <ActivityIndicator size="small" color={Colors.accent} />
             <Text style={styles.loadingText}>Thinking...</Text>
           </View>
         )}
@@ -196,7 +197,7 @@ export default function ChatbotScreen() {
             activeOpacity={0.8}
           >
             <Text style={styles.banner1990Text}>
-              Call 1990 Suwa Seriya Now
+              🚨 Call 1990 Suwa Seriya Now
             </Text>
           </TouchableOpacity>
         )}
@@ -207,7 +208,7 @@ export default function ChatbotScreen() {
             value={input}
             onChangeText={setInput}
             placeholder="Describe your emergency..."
-            placeholderTextColor="#999999"
+            placeholderTextColor={Colors.textMuted}
             multiline={false}
             returnKeyType="send"
             onSubmitEditing={onSend}
@@ -216,15 +217,12 @@ export default function ChatbotScreen() {
             onPress={onSend}
             disabled={loading || !input.trim()}
             activeOpacity={0.7}
+            style={[
+              styles.sendButton,
+              (!input.trim() || loading) && styles.sendButtonDisabled,
+            ]}
           >
-            <Text
-              style={[
-                styles.sendButton,
-                (!input.trim() || loading) && styles.sendButtonDisabled,
-              ]}
-            >
-              Send
-            </Text>
+            <Text style={styles.sendButtonText}>Send</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -235,24 +233,25 @@ export default function ChatbotScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 14,
+    backgroundColor: Colors.background,
   },
   backButton: {
     fontSize: 22,
-    color: '#000000',
+    color: Colors.accent,
     paddingRight: 12,
   },
   headerTitle: {
     flex: 1,
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000000',
+    fontFamily: Fonts.bold,
+    color: Colors.textPrimary,
   },
   headerSpacer: {
     width: 34,
@@ -278,25 +277,30 @@ const styles = StyleSheet.create({
   },
   messageBubble: {
     maxWidth: '80%',
-    padding: 10,
+    padding: 12,
+    borderRadius: 16,
   },
   userBubble: {
-    backgroundColor: '#F5F5F5',
-
+    backgroundColor: Colors.accent,
+    borderBottomRightRadius: 4,
   },
   assistantBubble: {
-    backgroundColor: '#FFFFFF',
-    borderLeftWidth: 3,
-    borderLeftColor: '#000000',
+    ...Glass.card,
+    borderBottomLeftRadius: 4,
   },
   messageText: {
     fontSize: 15,
-    color: '#000000',
+    fontFamily: Fonts.regular,
+    color: Colors.textPrimary,
     lineHeight: 22,
+  },
+  userMessageText: {
+    color: Colors.white,
   },
   timestamp: {
     fontSize: 11,
-    color: '#999999',
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
     marginTop: 2,
   },
   userTimestamp: {
@@ -315,45 +319,55 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 13,
-    color: '#888888',
+    fontFamily: Fonts.regular,
+    color: Colors.textMuted,
     marginLeft: 8,
   },
   banner1990: {
-    backgroundColor: '#000000',
+    backgroundColor: Colors.accent,
     paddingVertical: 14,
     paddingHorizontal: 16,
-
+    marginHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 8,
   },
   banner1990Text: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     textAlign: 'center',
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 10,
+    backgroundColor: Colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: Colors.borderLight,
   },
   textInput: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#000000',
-    padding: 8,
+    ...Glass.input,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     fontSize: 15,
-    color: '#000000',
-
+    fontFamily: Fonts.regular,
+    color: Colors.textPrimary,
+    marginRight: 8,
   },
   sendButton: {
-    color: '#000000',
-    fontSize: 16,
-    fontWeight: 'bold',
-    paddingHorizontal: 16,
+    backgroundColor: Colors.cta,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 10,
   },
   sendButtonDisabled: {
-    color: '#CCCCCC',
+    opacity: 0.4,
+  },
+  sendButtonText: {
+    color: Colors.white,
+    fontSize: 15,
+    fontFamily: Fonts.bold,
   },
 });
