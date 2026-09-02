@@ -7,7 +7,7 @@ LLM to extract structured emergency metadata as JSON.
 """
 
 import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from langdetect import detect, LangDetectException
 

@@ -195,7 +195,7 @@ export default function QuizScreen() {
                 data={wrongAnswers}
                 scrollEnabled={false}
                 keyExtractor={(_, i) => String(i)}
-                renderItem={({ item }) => (
+                renderItem={({ item }: { item: WrongAnswer }) => (
                   <View style={styles.reviewItem}>
                     <Text style={styles.reviewQuestion}>Q: {item.question}</Text>
                     <Text style={styles.reviewYours}>Your answer: {item.yourAnswer}</Text>
