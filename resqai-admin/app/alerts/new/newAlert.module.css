@@ -11,17 +11,18 @@
   font-size: 13px;
   font-weight: bold;
   margin-bottom: 4px;
+  color: #d1d5db;
 }
 
 .helper {
   font-size: 12px;
-  color: #888;
+  color: #6b7280;
   margin-top: 4px;
 }
 
 .criticalWarning {
   font-size: 12px;
-  color: #DC2626;
+  color: #f87171;
   margin-top: 4px;
 }
 
@@ -34,12 +35,17 @@
   width: 48px;
   text-align: center;
   padding: 6px 0;
-  border: 1px solid #000;
-  background: #fff;
-  color: #000;
+  border: 1px solid #2d3039;
+  background: #1a1c24;
+  color: #9ca3af;
   cursor: pointer;
   font-size: 14px;
   border-radius: 0;
+  transition: background 0.2s, color 0.2s;
+}
+
+.severityBtn:hover {
+  background: #252730;
 }
 
 .severityBtn + .severityBtn {
@@ -50,8 +56,8 @@
   width: 48px;
   text-align: center;
   padding: 6px 0;
-  border: 1px solid #000;
-  background: #000;
+  border: 1px solid #3b82f6;
+  background: #3b82f6;
   color: #fff;
   cursor: pointer;
   font-size: 14px;
@@ -64,28 +70,32 @@
 }
 
 .preview {
-  border: 1px solid #000;
+  border: 1px solid #2d3039;
   padding: 16px;
   margin-bottom: 24px;
+  background: #1a1c24;
+  border-radius: 6px;
 }
 
 .previewTitle {
   font-size: 13px;
-  color: #888;
+  color: #6b7280;
   margin-bottom: 8px;
 }
 
 .previewContent {
   font-size: 14px;
+  color: #e1e3e8;
 }
 
 .previewType {
   font-weight: bold;
+  color: #93c5fd;
 }
 
 .previewWorkPlan {
   margin-top: 8px;
-  color: #444;
+  color: #9ca3af;
   font-size: 13px;
 }
 
@@ -99,8 +109,10 @@
   margin-top: 16px;
   font-size: 14px;
   padding: 12px;
-  border: 1px solid #000;
-  background: #f9f9f9;
+  border: 1px solid #2d3039;
+  background: #1a1c24;
+  border-radius: 6px;
+  color: #e1e3e8;
 }
 
 @media (max-width: 480px) {

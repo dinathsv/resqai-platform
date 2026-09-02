@@ -8,19 +8,22 @@
 .statBox {
   flex: 1;
   min-width: 120px;
-  border: 1px solid #000;
+  border: 1px solid #2d3039;
   padding: 16px;
+  background: #1a1c24;
+  border-radius: 6px;
 }
 
 .statNumber {
   font-size: 28px;
   font-weight: bold;
   margin-bottom: 4px;
+  color: #f0f1f3;
 }
 
 .statLabel {
   font-size: 12px;
-  color: #666;
+  color: #6b7280;
 }
 
 .sectionHeader {
@@ -38,13 +41,15 @@
 
 .sectionMeta {
   font-size: 12px;
-  color: #888;
+  color: #6b7280;
 }
 
 .reportBox {
-  border: 1px solid #000;
+  border: 1px solid #2d3039;
   padding: 16px;
   margin-bottom: 24px;
+  background: #1a1c24;
+  border-radius: 6px;
 }
 
 .reportText p {
@@ -61,16 +66,17 @@
 
 .reportStats strong {
   margin-right: 4px;
+  color: #93c5fd;
 }
 
 .loadingText {
-  color: #888;
+  color: #6b7280;
   font-style: italic;
 }
 
-.urgency5 { color: #DC2626; }
-.urgency4 { color: #EA580C; }
-.urgencyNormal { color: #000; }
+.urgency5 { color: #f87171; }
+.urgency4 { color: #fb923c; }
+.urgencyNormal { color: #e1e3e8; }
 
 .actionLink {
   margin-right: 8px;
@@ -82,10 +88,12 @@
 }
 
 .chatBox {
-  border: 1px solid #000;
+  border: 1px solid #2d3039;
   height: 250px;
   display: flex;
   flex-direction: column;
+  background: #1a1c24;
+  border-radius: 6px;
 }
 
 .chatMessages {
@@ -101,28 +109,31 @@
 
 .chatMessage strong {
   margin-right: 4px;
+  color: #93c5fd;
 }
 
 .chatTime {
-  color: #888;
+  color: #6b7280;
   font-size: 11px;
   margin-left: 8px;
 }
 
 .chatInputRow {
   display: flex;
-  border-top: 1px solid #000;
+  border-top: 1px solid #2d3039;
 }
 
 .chatInputRow input {
   border: none;
-  border-right: 1px solid #000;
+  border-right: 1px solid #2d3039;
   flex: 1;
+  border-radius: 0 0 0 6px;
 }
 
 .chatInputRow button {
   width: 80px;
   border: none;
+  border-radius: 0 0 6px 0;
 }
 
 .refreshBtn {
