@@ -236,7 +236,7 @@ export default function DonateScreen() {
       ) : (
         <FlatList
           data={missions}
-          keyExtractor={(item) => item.mission_id}
+          keyExtractor={(item: Mission) => item.mission_id}
           renderItem={renderMission}
           ListEmptyComponent={
             <Text style={styles.emptyText}>No active missions</Text>

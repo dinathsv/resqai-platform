@@ -160,7 +160,7 @@ export default function LocatorScreen() {
 
         {hospitals.length > 0 ? (
           <View style={styles.mapMarkers}>
-            {hospitals.slice(0, 5).map((h) => (
+            {hospitals.slice(0, 5).map((h: Hospital) => (
               <TouchableOpacity
                 key={h.hospital_id}
                 style={styles.mapMarker}
@@ -291,7 +291,7 @@ export default function LocatorScreen() {
         ) : (
           <FlatList
             data={hospitals}
-            keyExtractor={(item) => item.hospital_id}
+            keyExtractor={(item: Hospital) => item.hospital_id}
             renderItem={renderHospitalItem}
             style={styles.hospitalList}
           />

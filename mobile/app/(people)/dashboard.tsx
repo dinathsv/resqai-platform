@@ -196,7 +196,7 @@ export default function DashboardScreen() {
         ) : (
           <FlatList
             data={alerts}
-            keyExtractor={(item) => item.alert_id}
+            keyExtractor={(item: Alert) => item.alert_id}
             renderItem={renderAlertItem}
             style={styles.alertsList}
           />
