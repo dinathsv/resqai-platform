@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import ENUM, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from geoalchemy2 import Geometry
 
@@ -23,10 +23,17 @@ class HelpRequest(Base):
         UUID(as_uuid=True), ForeignKey("guest_sessions.session_id", ondelete="CASCADE")
     )
     original_message: Mapped[str] = mapped_column(Text, nullable=False)
-    emergency_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    emergency_type: Mapped[str] = mapped_column(
+        ENUM("flood", "landslide", "tsunami", "earthquake", "fire", "medical", "search_and_rescue", "infrastructure_damage", "hazardous_material", "other", name="emergency_type", create_type=False),
+        nullable=False
+    )
     urgency_level: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
     gps_location = mapped_column(Geometry("POINT", srid=4326), nullable=True)
-    status: Mapped[str] = mapped_column(String(30), nullable=False, default="submitted")
+    status: Mapped[str] = mapped_column(
+        ENUM("pending", "ai_processing", "verified", "dispatched", "in_progress", "resolved", "cancelled", name="request_status", create_type=False),
+        nullable=False,
+        default="pending"
+    )
     ai_summary: Mapped[str | None] = mapped_column(Text)
     is_guest_request: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(

@@ -93,6 +93,46 @@ async def register(
 
     return {"user_id": str(new_user.user_id), "message": "OTP sent"}
 
+class ResendOtpRequest(BaseModel):
+    user_id: uuid.UUID
+
+@router.post("/resend-otp")
+async def resend_otp(
+    req: ResendOtpRequest,
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+):
+    """Resend a new OTP for registration verification. Rate-limited to 3 resends."""
+
+    # Rate-limit resend attempts
+    resend_key = f"otp_resend_count:{req.user_id}"
+    resend_count = await redis_client.get(resend_key)
+    if resend_count and int(resend_count) >= 3:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many OTP resend attempts. Please wait and try again.",
+        )
+
+    # Check user exists and is not already verified
+    result = await db.execute(select(User).where(User.user_id == req.user_id))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if user.is_verified:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Account already verified")
+
+    # Generate and store new OTP
+    otp = f"{random.randint(100000, 999999)}"
+    await redis_client.set(f"otp:{req.user_id}", otp, ex=300)
+
+    # Track resend count (expires after 15 minutes)
+    await redis_client.incr(resend_key)
+    await redis_client.expire(resend_key, 900)
+
+    print(f"--- [MOCK SMS] Resent OTP for {user.email}: {otp} ---")
+
+    return {"message": "OTP resent successfully"}
+
 @router.post("/verify-otp")
 async def verify_otp(
     req: VerifyOtpRequest,
@@ -178,7 +218,9 @@ async def admin_login(
     access_token = create_access_token(
         data={
             "sub": str(admin.admin_id),
+            "user_id": str(admin.admin_id),
             "role": "admin",
+            "email": admin.email,
             "agency": admin.agency,
             "district": admin.district,
         },
