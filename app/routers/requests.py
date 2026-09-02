@@ -30,7 +30,7 @@ async def notify_critical_request(request_id: str, emergency_type: str):
 
     print(f"⚠ CRITICAL: {emergency_type} — Request #{request_id}")
 
-@router.post("")
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def create_request(
     req: SubmitRequest,
     current_user: dict[str, Any] = Depends(get_current_user),
