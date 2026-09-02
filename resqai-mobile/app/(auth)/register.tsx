@@ -48,9 +48,9 @@ export default function RegisterScreen() {
       const res = await api.post('/api/auth/register', {
         full_name: fullName,
         email,
-        phone,
+        phone_number: phone,
         password,
-        language,
+        language_pref: language,
       });
 
       const userId = res.data.user_id;

@@ -33,14 +33,10 @@ export default function LoginScreen() {
 
     try {
       const res = await api.post('/api/auth/login', { email, password });
-      const { token, role } = res.data;
-
-      await AsyncStorage.setItem('token', token);
-      await AsyncStorage.setItem('role', role);
-
-      if (role === 'people') {
-        router.replace('/(people)/dashboard');
-      }
+      const { access_token } = res.data;
+      await AsyncStorage.setItem('token', access_token);
+      await AsyncStorage.setItem('role', 'people');
+      router.replace('/(people)/dashboard');
     } catch (err: any) {
       const msg =
         err?.response?.data?.detail ||

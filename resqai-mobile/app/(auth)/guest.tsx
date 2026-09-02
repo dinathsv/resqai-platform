@@ -49,8 +49,8 @@ export default function GuestScreen() {
         lng,
       });
 
-      const { temp_token } = res.data;
-      await AsyncStorage.setItem('guest_token', temp_token);
+      const { access_token } = res.data;
+      await AsyncStorage.setItem('guest_token', access_token);
 
       router.replace('/(guest)/request');
     } catch (err: any) {

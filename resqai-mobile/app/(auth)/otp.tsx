@@ -36,9 +36,9 @@ export default function OTPScreen() {
         otp,
       });
 
-      const { token, role } = res.data;
-      await AsyncStorage.setItem('token', token);
-      await AsyncStorage.setItem('role', role || 'people');
+      const { access_token } = res.data;
+      await AsyncStorage.setItem('token', access_token);
+      await AsyncStorage.setItem('role', 'people');
 
       router.replace('/(people)/dashboard');
     } catch (err: any) {

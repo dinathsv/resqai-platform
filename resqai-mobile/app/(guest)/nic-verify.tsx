@@ -40,7 +40,7 @@ export default function NicVerifyScreen() {
         lng,
       });
 
-      await AsyncStorage.setItem('guest_token', res.data.temp_token);
+      await AsyncStorage.setItem('guest_token', res.data.access_token);
       router.replace('/(guest)/request');
     } catch (err: any) {
       const msg =
