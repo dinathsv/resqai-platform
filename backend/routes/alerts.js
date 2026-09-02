@@ -7,18 +7,23 @@ const router = express.Router();
 
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const { district } = req.query;
+    const { status } = req.query;
     let query = `
-      SELECT alert_id, disaster_type, severity, district,
-             zone_description, work_plan, is_active, created_at, updated_at
-      FROM alerts
-      WHERE is_active = TRUE
+      SELECT alert_id, disaster_type, severity,
+             work_plan, status, created_at, expires_at, updated_at
+      FROM emergency_alerts
+      WHERE status = 'active'
     `;
     const params = [];
 
-    if (district) {
-      params.push(district);
-      query += ` AND district = $${params.length}`;
+    if (status) {
+      params.push(status);
+      query = `
+        SELECT alert_id, disaster_type, severity,
+               work_plan, status, created_at, expires_at, updated_at
+        FROM emergency_alerts
+        WHERE status = $${params.length}
+      `;
     }
 
     query += ' ORDER BY created_at DESC';
@@ -35,9 +40,9 @@ router.get('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { rows } = await req.app.locals.pool.query(
-      `SELECT alert_id, disaster_type, severity, district,
-              zone_description, work_plan, is_active, created_at, updated_at
-       FROM alerts
+      `SELECT alert_id, disaster_type, severity,
+              work_plan, status, created_at, expires_at, updated_at
+       FROM emergency_alerts
        WHERE alert_id = $1`,
       [id]
     );
@@ -46,28 +51,24 @@ router.get('/:id', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Alert not found' });
     }
 
-    const ackResult = await req.app.locals.pool.query(
-      'SELECT acknowledged_at FROM alert_acknowledgements WHERE alert_id = $1 AND user_id = $2',
-      [id, req.user.user_id]
-    );
-
-    const alert = rows[0];
-    alert.acknowledged = ackResult.rows.length > 0;
-    alert.acknowledged_at = ackResult.rows[0]?.acknowledged_at || null;
-
-    return res.json({ alert });
+    return res.json({ alert: rows[0] });
   } catch (err) {
     console.error('GET /api/alerts/:id error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-router.patch('/:id/acknowledge', requireAuth, async (req, res) => {
+router.patch('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ error: 'status is required' });
+    }
 
     const alertCheck = await req.app.locals.pool.query(
-      'SELECT alert_id FROM alerts WHERE alert_id = $1',
+      'SELECT alert_id FROM emergency_alerts WHERE alert_id = $1',
       [id]
     );
     if (alertCheck.rows.length === 0) {
@@ -75,15 +76,13 @@ router.patch('/:id/acknowledge', requireAuth, async (req, res) => {
     }
 
     await req.app.locals.pool.query(
-      `INSERT INTO alert_acknowledgements (alert_id, user_id)
-       VALUES ($1, $2)
-       ON CONFLICT (alert_id, user_id) DO NOTHING`,
-      [id, req.user.user_id]
+      'UPDATE emergency_alerts SET status = $1, updated_at = NOW() WHERE alert_id = $2',
+      [status, id]
     );
 
-    return res.json({ success: true, message: 'Alert acknowledged' });
+    return res.json({ success: true, message: 'Alert updated' });
   } catch (err) {
-    console.error('PATCH /api/alerts/:id/acknowledge error:', err.message);
+    console.error('PATCH /api/alerts/:id error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
