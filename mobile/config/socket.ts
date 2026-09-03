@@ -1,36 +1,41 @@
 
 
 import { io, Socket } from 'socket.io-client';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_BASE } from './api';
+import { SOCKET_URL, getToken } from './api';
 
 let socket: Socket | null = null;
 
-export async function connectSocket(): Promise<Socket> {
+export async function connectSocket(): Promise<Socket | null> {
   if (socket?.connected) {
     return socket;
   }
 
-  const token = await AsyncStorage.getItem('token');
+  const token = await getToken();
   if (!token) {
     console.log('No auth token available for Socket.IO connection');
-    return null as any;
+    return null;
   }
 
-  socket = io(API_BASE, {
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
+
+  socket = io(SOCKET_URL, {
     auth: { token },
-    transports: ['websocket'],
+    transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 2000,
+    timeout: 10000,
   });
 
   socket.on('connect', () => {
-    console.log('Socket.IO connected');
+    console.log('Socket.IO connected to', SOCKET_URL);
   });
 
   socket.on('connect_error', (err) => {
-    console.error('Socket.IO connection error:', err.message);
+    console.warn('Socket.IO connection notice:', err.message);
   });
 
   socket.on('disconnect', (reason) => {

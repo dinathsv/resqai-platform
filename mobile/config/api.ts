@@ -6,11 +6,17 @@ import { Platform } from 'react-native';
 const LOCALHOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
 
 // Python FastAPI — primary API (auth, requests, donations, alerts)
-export const API_BASE = `http://${LOCALHOST}:8000`;
+export const API_BASE =
+  process.env.EXPO_PUBLIC_API_URL || `http://${LOCALHOST}:8000`;
 
 // AI Microservice (first-aid-chat, translate-report, locate-resources, generate-summary)
 // These endpoints are also available through the Python API at /api/ai/*
-export const AI_BASE = `http://${LOCALHOST}:8000`;
+export const AI_BASE =
+  process.env.EXPO_PUBLIC_AI_URL || `http://${LOCALHOST}:8000`;
+
+// Node.js Backend — real-time events & Socket.IO
+export const SOCKET_URL =
+  process.env.EXPO_PUBLIC_SOCKET_URL || `http://${LOCALHOST}:5000`;
 
 export async function getToken(): Promise<string | null> {
   const token = await AsyncStorage.getItem('token');
