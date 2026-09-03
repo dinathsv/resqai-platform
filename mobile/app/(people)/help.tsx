@@ -32,6 +32,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  Dimensions,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
@@ -156,12 +157,20 @@ export default function HelpScreen() {
     }
   };
 
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(people)/dashboard');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity onPress={handleBack}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Help Center</Text>
@@ -253,64 +262,71 @@ export default function HelpScreen() {
         visible={showRequestForm}
         animationType="slide"
         presentationStyle="pageSheet"
+        transparent={isWeb}
         onRequestClose={() => setShowRequestForm(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
-          <KeyboardAvoidingView
-            style={styles.modalFlex}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          >
-            <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setShowRequestForm(false)}>
-                <Text style={styles.modalCancel}>Cancel</Text>
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>Help Request</Text>
-              <View style={{ width: 60 }} />
-            </View>
+        <View style={styles.modalOverlay}>
+          <SafeAreaView style={styles.modalContainer}>
+            <KeyboardAvoidingView
+              style={styles.modalFlex}
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            >
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => setShowRequestForm(false)}>
+                  <Text style={styles.modalCancel}>Cancel</Text>
+                </TouchableOpacity>
+                <Text style={styles.modalTitle}>Help Request</Text>
+                <View style={{ width: 60 }} />
+              </View>
 
-            <ScrollView style={styles.modalBody}>
-              <Text style={styles.formLabel}>Describe your emergency</Text>
-              <TextInput
-                style={styles.messageInput}
-                value={message}
-                onChangeText={setMessage}
-                placeholder="Tell us what happened, where you are, and what help you need..."
-                placeholderTextColor={Colors.textMuted}
-                multiline
-                numberOfLines={6}
-                textAlignVertical="top"
-                editable={!submitting}
-              />
+              <ScrollView style={styles.modalBody}>
+                <Text style={styles.formLabel}>Describe your emergency</Text>
+                <TextInput
+                  style={styles.messageInput}
+                  value={message}
+                  onChangeText={setMessage}
+                  placeholder="Tell us what happened, where you are, and what help you need..."
+                  placeholderTextColor={Colors.textMuted}
+                  multiline
+                  numberOfLines={6}
+                  textAlignVertical="top"
+                  editable={!submitting}
+                />
 
-              <Text style={styles.formHint}>
-                📍 Your location will be automatically included.{'\n'}
-                🤖 Our AI will analyze and categorize your request.
-              </Text>
+                <Text style={styles.formHint}>
+                  📍 Your location will be automatically included.{'\n'}
+                  🤖 Our AI will analyze and categorize your request.
+                </Text>
 
-              <TouchableOpacity
-                style={[styles.submitButton, submitting && styles.buttonDisabled]}
-                onPress={handleSubmitRequest}
-                disabled={submitting}
-                activeOpacity={0.7}
-              >
-                {submitting ? (
-                  <ActivityIndicator size="small" color={Colors.white} />
-                ) : (
-                  <Text style={styles.submitButtonText}>Submit Request</Text>
-                )}
-              </TouchableOpacity>
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
+                <TouchableOpacity
+                  style={[styles.submitButton, submitting && styles.buttonDisabled]}
+                  onPress={handleSubmitRequest}
+                  disabled={submitting}
+                  activeOpacity={0.7}
+                >
+                  {submitting ? (
+                    <ActivityIndicator size="small" color={Colors.white} />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Submit Request</Text>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
+            </KeyboardAvoidingView>
+          </SafeAreaView>
+        </View>
       </Modal>
     </SafeAreaView>
   );
 }
 
+const { width: screenWidth } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
+const isMobileWeb = isWeb && screenWidth <= 480;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: 'transparent',
   },
   scrollContent: {
     paddingBottom: 32,
@@ -320,17 +336,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 14,
+    backgroundColor: 'transparent',
   },
   backButton: {
     fontSize: 16,
-    fontFamily: Fonts.semiBold,
-    color: Colors.accent,
+    fontFamily: Fonts.bold,
+    color: '#FFFFFF',
   },
   headerTitle: {
     flex: 1,
     fontSize: 20,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
     textAlign: 'center',
   },
   headerSpacer: {
@@ -338,8 +355,9 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: Colors.textSecondary,
+    fontFamily: Fonts.semiBold,
+    color: '#FFFFFF',
+    opacity: 0.9,
     paddingHorizontal: 20,
     marginBottom: 20,
   },
@@ -352,40 +370,46 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   emergencyCard: {
-    backgroundColor: '#FFF1F2',
-    borderWidth: 1.5,
-    borderColor: '#FECDD3',
-    shadowColor: Colors.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 4,
+    ...Glass.cardUrgent,
   },
   badgeCritical: {
-    backgroundColor: '#FFE4E6',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     alignSelf: 'flex-start',
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: 8,
     marginBottom: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.30)',
   },
   badgeCriticalText: {
     fontSize: 9,
     fontFamily: Fonts.bold,
-    color: Colors.accent,
-    letterSpacing: 0.5,
+    color: '#FFFFFF',
+    letterSpacing: 0.8,
   },
   optionIcon: {
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: Colors.surfaceLight,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.30)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.35)',
+        } as any)
+      : {}),
   },
   emergencyIcon: {
-    backgroundColor: '#FFE4E6',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.38)',
   },
   emoji: {
     fontSize: 22,
@@ -396,66 +420,108 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 15,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
     marginBottom: 2,
   },
   emergencyTitle: {
-    color: Colors.accent,
+    color: '#FFFFFF',
   },
   optionDesc: {
     fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: Colors.slateMuted,
+    fontFamily: Fonts.semiBold,
+    color: '#FFFFFF',
+    opacity: 0.92,
     lineHeight: 17,
   },
   emergencyDesc: {
-    color: '#9F1239',
+    color: '#FFFFFF',
+    opacity: 0.95,
   },
   chevron: {
     fontSize: 20,
-    color: Colors.textMuted,
+    color: '#FFFFFF',
+    opacity: 0.85,
     marginLeft: 8,
   },
   emergencyChevronWrap: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#FFE4E6',
+    backgroundColor: 'rgba(255, 255, 255, 0.10)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
   },
   emergencyChevron: {
     fontSize: 16,
-    color: Colors.accent,
+    color: '#FFFFFF',
   },
   infoBox: {
     marginHorizontal: 16,
     marginTop: 14,
     padding: 16,
-    borderRadius: 14,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.30)',
+        } as any)
+      : {}),
   },
   infoTitle: {
     fontSize: 13,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
     marginBottom: 4,
     textAlign: 'center',
   },
   infoText: {
     fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: Colors.slateMuted,
+    fontFamily: Fonts.semiBold,
+    color: '#FFFFFF',
+    opacity: 0.9,
     textAlign: 'center',
     lineHeight: 18,
   },
   // Modal styles
+  modalOverlay: {
+    flex: 1,
+    ...(isWeb
+      ? {
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          height: '100%',
+        }
+      : {}),
+  },
   modalContainer: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#EBEBEB',
+    ...(isWeb
+      ? ({
+          width: isMobileWeb ? '100%' : 420,
+          maxWidth: isMobileWeb ? '100%' : 420,
+          height: isMobileWeb ? '100%' : '92%',
+          maxHeight: isMobileWeb ? '100%' : 840,
+          borderRadius: isMobileWeb ? 0 : 28,
+          overflow: 'hidden',
+          shadowColor: '#0F172A',
+          shadowOffset: { width: 0, height: 25 },
+          shadowOpacity: 0.35,
+          shadowRadius: 50,
+          elevation: 24,
+          borderWidth: isMobileWeb ? 0 : 1,
+          borderColor: '#D1D5DB',
+        } as any)
+      : {}),
   },
   modalFlex: {
     flex: 1,
@@ -467,18 +533,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
+    borderBottomColor: '#D1D5DB',
+    backgroundColor: '#FFFFFF',
   },
   modalCancel: {
     fontSize: 15,
     fontFamily: Fonts.medium,
-    color: Colors.accent,
+    color: '#4A1224',
     width: 60,
   },
   modalTitle: {
     fontSize: 18,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
+    color: '#0F172A',
   },
   modalBody: {
     flex: 1,
@@ -509,16 +576,25 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   submitButton: {
-    backgroundColor: Colors.cta,
+    backgroundColor: 'rgba(5, 150, 105, 0.88)',
     paddingVertical: 16,
     borderRadius: 14,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
     shadowColor: Colors.cta,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
     elevation: 4,
     marginBottom: 32,
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          boxShadow: '0 4px 20px rgba(5, 150, 105, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.3)',
+        } as any)
+      : {}),
   },
   buttonDisabled: {
     opacity: 0.6,
