@@ -10,6 +10,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Dimensions,
 } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import axios from 'axios'
@@ -259,15 +260,22 @@ export default function DonateScreen() {
         visible={modalVisible}
         animationType="slide"
         presentationStyle="fullScreen"
+        transparent={isWeb}
         onRequestClose={closeModal}
       >
-        <SafeAreaView style={styles.modalContainer}>
-          {renderModalContent()}
-        </SafeAreaView>
+        <View style={styles.modalOverlay}>
+          <SafeAreaView style={styles.modalContainer}>
+            {renderModalContent()}
+          </SafeAreaView>
+        </View>
       </Modal>
     </SafeAreaView>
   )
 }
+
+const { width: screenWidth } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
+const isMobileWeb = isWeb && screenWidth <= 480;
 
 const styles = StyleSheet.create({
   container: {
@@ -348,9 +356,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 8,
   },
+  modalOverlay: {
+    flex: 1,
+    ...(isWeb
+      ? {
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          height: '100%',
+        }
+      : {}),
+  },
   modalContainer: {
     flex: 1,
     backgroundColor: Colors.background,
+    ...(isWeb
+      ? ({
+          width: isMobileWeb ? '100%' : 420,
+          maxWidth: isMobileWeb ? '100%' : 420,
+          height: isMobileWeb ? '100%' : '92%',
+          maxHeight: isMobileWeb ? '100%' : 840,
+          borderRadius: isMobileWeb ? 0 : 28,
+          overflow: 'hidden',
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: 25 },
+          shadowOpacity: 0.5,
+          shadowRadius: 50,
+          elevation: 24,
+          borderWidth: isMobileWeb ? 0 : 1,
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+        } as any)
+      : {}),
   },
   modalBody: {
     flex: 1,
