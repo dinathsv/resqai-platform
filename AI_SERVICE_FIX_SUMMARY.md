@@ -172,7 +172,7 @@ You should now get actual first-aid guidance instead of just the emergency messa
 ## Reference Files
 
 - Full setup guide: `/home/SDinath/Projects/resqai/VERTEX_AI_SETUP.md`
-- ML Models repo: `/home/SDinath/Projects/resqai/ResQAI-ML-models-AI-APIs/`
+- ML Models repo: `/home/SDinath/Projects/resqai/ml-models/`
 
 ## Questions?
 

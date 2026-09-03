@@ -1,15 +1,29 @@
 {
   "venvPath": ".",
   "venv": ".venv",
+  "extraPaths": [
+    "ai-service",
+    "ml-models",
+    "app"
+  ],
   "executionEnvironments": [
     {
       "root": "ai-service",
       "extraPaths": ["ai-service"]
     },
     {
+      "root": "ml-models",
+      "extraPaths": ["ml-models"]
+    },
+    {
+      "root": "app",
+      "extraPaths": ["app"]
+    },
+    {
       "root": ".",
-      "extraPaths": ["."]
+      "extraPaths": [".", "ai-service", "ml-models", "app"]
     }
   ],
   "reportPrivateImportUsage": false
 }
+

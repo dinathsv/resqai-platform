@@ -1,0 +1,53 @@
+{
+  "feature_names": [
+    "DISTRICT_ENCODED",
+    "JAN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAY",
+    "JUN",
+    "JUL",
+    "AUG",
+    "SEP",
+    "OCT",
+    "NOV",
+    "DEC",
+    "ANNUAL",
+    "PEAK_24H_RAIN"
+  ],
+  "districts": [
+    "Ampara",
+    "Anuradhapura",
+    "Badulla",
+    "Batticaloa",
+    "Colombo",
+    "Galle",
+    "Gampaha",
+    "Hambantota",
+    "Jaffna",
+    "Kalutara",
+    "Kandy",
+    "Kegalle",
+    "Kilinochchi",
+    "Kurunegala",
+    "Mannar",
+    "Matale",
+    "Matara",
+    "Monaragala",
+    "Mullaitivu",
+    "Nuwara Eliya",
+    "Polonnaruwa",
+    "Puttalam",
+    "Ratnapura",
+    "Trincomalee",
+    "Vavuniya"
+  ],
+  "target_flood_classes": [
+    "Major Flood",
+    "Minor Flood",
+    "No Flood"
+  ],
+  "flood_accuracy": 0.9333333333333333,
+  "hazard_accuracy": 0.9733333333333334
+}

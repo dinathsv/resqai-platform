@@ -1,0 +1,12 @@
+{
+  "venvPath": "..",
+  "venv": ".venv",
+  "extraPaths": ["."],
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": ["."]
+    }
+  ],
+  "reportPrivateImportUsage": false
+}

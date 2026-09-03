@@ -169,7 +169,7 @@ resqai/
 ├── resqai-admin/                     # Next.js Admin Command Center
 │   ├── app/                          # Next.js App Router (dashboard, alerts, requests, login)
 │   └── public/                       # Static assets
-├── ResQAI-ML-models-AI-APIs/         # Jupyter notebooks & trained ML models
+├── ml-models/                        # Jupyter notebooks & trained ML models
 │   ├── Flood Prediction Model/       # Flood susceptibility models
 │   └── Landslide Prediction Model/   # Terrain slope & rainfall hazard classifiers
 ├── database/                         # Database initialization & migrations

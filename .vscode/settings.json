@@ -1,6 +1,10 @@
 {
-  "python.defaultInterpreterPath": "${workspaceFolder}/app/.venv/bin/python",
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
   "python.analysis.extraPaths": [
-    "${workspaceFolder}/app"
+    "${workspaceFolder}",
+    "${workspaceFolder}/app",
+    "${workspaceFolder}/ai-service",
+    "${workspaceFolder}/ml-models"
   ]
 }
+
