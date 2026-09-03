@@ -9,6 +9,7 @@ import {
   StyleSheet,
   SafeAreaView,
   Animated,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -32,7 +33,7 @@ const GRID_ITEMS = [
     subtitle: 'Immediate rescue & aid',
     route: '/(people)/help',
     badgeColor: Colors.accentLight,
-    badgeBorder: '#FECDD3',
+    badgeBorder: 'rgba(255, 255, 255, 0.15)',
   },
   {
     key: 'hospital',
@@ -106,7 +107,7 @@ export default function DashboardScreen() {
           return;
         }
 
-        socket.on('alert_received', (alert: AlertItem) => {
+        const onAlertReceived = (alert: AlertItem) => {
           if (!mounted) return;
           setAlerts((prev) => [alert, ...prev]);
 
@@ -122,7 +123,10 @@ export default function DashboardScreen() {
               useNativeDriver: false,
             }),
           ]).start();
-        });
+        };
+
+        socket.on('alert_received', onAlertReceived);
+        socket.on('emergency_alert', onAlertReceived);
 
       } catch (err) {
         console.error('Socket setup error:', err);
@@ -148,12 +152,12 @@ export default function DashboardScreen() {
 
   const getSeverityBadge = (severity: number) => {
     if (severity >= 4) {
-      return { label: 'CRITICAL', bg: '#FFF1F2', text: '#E11D48', border: '#FECDD3' };
+      return { label: 'CRITICAL', bg: 'rgba(184, 46, 85, 0.35)', text: '#FFFFFF', border: 'rgba(255, 255, 255, 0.20)' };
     }
     if (severity === 3) {
-      return { label: 'ELEVATED', bg: '#FFFBEB', text: '#D97706', border: '#FDE68A' };
+      return { label: 'ELEVATED', bg: 'rgba(229, 152, 53, 0.25)', text: '#E59835', border: 'rgba(229, 152, 53, 0.40)' };
     }
-    return { label: 'ADVISORY', bg: '#F1F5F9', text: '#475569', border: '#E2E8F0' };
+    return { label: 'ADVISORY', bg: 'rgba(255, 255, 255, 0.10)', text: '#F3D6DE', border: 'rgba(255, 255, 255, 0.12)' };
   };
 
   const renderAlertItem = ({ item }: { item: AlertItem }) => {
@@ -283,7 +287,7 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: 'transparent',
   },
   header: {
     flexDirection: 'row',
@@ -292,6 +296,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 14,
     paddingBottom: 10,
+    backgroundColor: 'transparent',
   },
   brandRow: {
     flexDirection: 'row',
@@ -301,66 +306,75 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 26,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
     letterSpacing: -0.5,
   },
   livePulseDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.accent,
+    backgroundColor: '#F47294',
   },
   liveBadge: {
     fontSize: 10,
     fontFamily: Fonts.bold,
-    color: Colors.accent,
+    color: '#F47294',
     letterSpacing: 0.8,
   },
   welcome: {
     fontSize: 14,
-    fontFamily: Fonts.medium,
-    color: Colors.slateMuted,
+    fontFamily: Fonts.semiBold,
+    color: '#FFFFFF',
     marginTop: 2,
+    opacity: 0.95,
   },
   exitButton: {
     paddingVertical: 7,
     paddingHorizontal: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.30)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.35)',
+        } as any)
+      : {}),
   },
   headerExit: {
     fontSize: 12,
-    fontFamily: Fonts.semiBold,
-    color: Colors.slateMuted,
+    fontFamily: Fonts.bold,
+    color: '#FFFFFF',
   },
   emergencyBanner: {
     marginHorizontal: 16,
     marginTop: 8,
     marginBottom: 14,
-    backgroundColor: '#FFF1F2',
-    borderWidth: 1.5,
-    borderColor: '#FECDD3',
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    ...Glass.cardUrgent,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: Colors.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 3,
   },
   sosIconCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: '#FFE4E6',
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.10)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.3)',
+        } as any)
+      : {}),
   },
   sosEmoji: {
     fontSize: 22,
@@ -371,26 +385,29 @@ const styles = StyleSheet.create({
   sosHeading: {
     fontSize: 15,
     fontFamily: Fonts.bold,
-    color: Colors.accent,
+    color: '#FFFFFF',
   },
   sosSub: {
     fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: '#9F1239',
+    fontFamily: Fonts.semiBold,
+    color: '#FFFFFF',
     marginTop: 1,
+    opacity: 0.95,
   },
   sosChevronWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#FFE4E6',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.10)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   sosChevron: {
     fontSize: 16,
     fontFamily: Fonts.bold,
-    color: Colors.accent,
+    color: '#FFFFFF',
   },
   grid: {
     paddingHorizontal: 16,
@@ -409,13 +426,22 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   gridIconCircle: {
-    width: 46,
-    height: 46,
-    borderRadius: 12,
-    borderWidth: 1,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.30)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.35)',
+        } as any)
+      : {}),
   },
   gridEmoji: {
     fontSize: 22,
@@ -423,13 +449,14 @@ const styles = StyleSheet.create({
   gridLabel: {
     fontSize: 14,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
   },
   gridSubtitle: {
     fontSize: 11,
-    fontFamily: Fonts.regular,
-    color: Colors.slateMuted,
+    fontFamily: Fonts.semiBold,
+    color: '#FFFFFF',
     marginTop: 2,
+    opacity: 0.9,
   },
   alertsSection: {
     flex: 1,
@@ -447,28 +474,37 @@ const styles = StyleSheet.create({
   alertsHeading: {
     fontSize: 16,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
   },
   alertCountBadge: {
-    backgroundColor: Colors.surfaceLight,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.10)',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.30)',
   },
   alertCountText: {
     fontSize: 12,
     fontFamily: Fonts.bold,
-    color: Colors.slateMuted,
+    color: '#FFFFFF',
   },
   alertsList: {
     gap: 10,
   },
   alertCard: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.22)',
+    borderRadius: 16,
+    padding: 14,
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.30)',
+        } as any)
+      : {}),
   },
   alertTopLine: {
     flexDirection: 'row',
@@ -493,40 +529,53 @@ const styles = StyleSheet.create({
   alertType: {
     fontSize: 14,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
   },
   alertDistrict: {
     fontSize: 12,
-    fontFamily: Fonts.medium,
-    color: Colors.textSecondary,
+    fontFamily: Fonts.semiBold,
+    color: '#FFFFFF',
     marginTop: 2,
+    opacity: 0.9,
   },
   alertTime: {
     fontSize: 11,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted,
+    fontFamily: Fonts.semiBold,
+    color: '#FFFFFF',
+    opacity: 0.8,
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 28,
   },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.30)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
   emptyIcon: {
     fontSize: 32,
-    marginBottom: 8,
   },
   emptyTitle: {
     fontSize: 15,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
+    marginBottom: 4,
   },
   noAlerts: {
     fontSize: 13,
-    fontFamily: Fonts.regular,
-    color: Colors.slateMuted,
+    fontFamily: Fonts.semiBold,
+    color: '#FFFFFF',
     textAlign: 'center',
-    marginTop: 4,
+    opacity: 0.85,
+    lineHeight: 18,
     paddingHorizontal: 20,
   },
 });
-
