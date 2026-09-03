@@ -22,6 +22,7 @@ from app.models.administrator import Administrator
 from app.models.guest_session import GuestSession
 from app.models.nic_entry import NicEntry
 from app.models.user import User
+from app.services.otp_service import send_otp
 
 router = APIRouter(tags=["Authentication"])
 
@@ -89,9 +90,14 @@ async def register(
     otp = f"{random.randint(100000, 999999)}"
     await redis_client.set(f"otp:{new_user.user_id}", otp, ex=300)
 
-    print(f"--- [MOCK SMS] OTP for {req.email}: {otp} ---")
+    # Send OTP via configured channels (email primary, SMS secondary)
+    delivery = await send_otp(email=req.email, phone=req.phone_number, otp=otp)
 
-    return {"user_id": str(new_user.user_id), "message": "OTP sent"}
+    return {
+        "user_id": str(new_user.user_id),
+        "message": "OTP sent",
+        "delivery": delivery,
+    }
 
 class ResendOtpRequest(BaseModel):
     user_id: uuid.UUID
@@ -129,9 +135,10 @@ async def resend_otp(
     await redis_client.incr(resend_key)
     await redis_client.expire(resend_key, 900)
 
-    print(f"--- [MOCK SMS] Resent OTP for {user.email}: {otp} ---")
+    # Send OTP via configured channels (email primary, SMS secondary)
+    delivery = await send_otp(email=user.email, phone=user.phone_number, otp=otp)
 
-    return {"message": "OTP resent successfully"}
+    return {"message": "OTP resent successfully", "delivery": delivery}
 
 @router.post("/verify-otp")
 async def verify_otp(
