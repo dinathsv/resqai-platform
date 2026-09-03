@@ -90,11 +90,19 @@ export default function AlertDetailScreen() {
     );
   }
 
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(people)/dashboard');
+    }
+  };
+
   if (!alert) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity onPress={handleBack}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
         </View>
@@ -111,7 +119,7 @@ export default function AlertDetailScreen() {
     <SafeAreaView style={styles.container}>
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={handleBack}>
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
       </View>
