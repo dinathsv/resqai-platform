@@ -14,7 +14,13 @@ import asyncio
 import bcrypt
 import asyncpg
 
+# Use DATABASE_URL from environment if available, otherwise fallback to localhost
 DB_URL = os.getenv("DATABASE_URL", "postgresql://resqai_user:resqai_pass@localhost:5433/resqai")
+
+# asyncpg doesn't support 'postgresql+asyncpg://', so we replace it
+if DB_URL.startswith("postgresql+asyncpg://"):
+    DB_URL = DB_URL.replace("postgresql+asyncpg://", "postgresql://")
+
 
 ADMIN_EMAIL = "admin@resqai.lk"
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")

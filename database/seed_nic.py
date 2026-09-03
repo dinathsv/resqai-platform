@@ -9,7 +9,14 @@ from datetime import datetime
 
 import asyncpg
 
-DB_URL = "postgresql://resqai_user:resqai_pass@localhost:5433/resqai"
+import os
+
+# Use DATABASE_URL from environment if available, otherwise fallback to localhost
+DB_URL = os.environ.get("DATABASE_URL", "postgresql://resqai_user:resqai_pass@localhost:5433/resqai")
+
+# asyncpg doesn't support 'postgresql+asyncpg://', so we replace it
+if DB_URL.startswith("postgresql+asyncpg://"):
+    DB_URL = DB_URL.replace("postgresql+asyncpg://", "postgresql://")
 
 DISTRICTS = [
     "Colombo", "Gampaha", "Kandy", "Ratnapura", "Galle",

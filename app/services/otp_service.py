@@ -89,6 +89,43 @@ class EmailOTPSender(OTPSender):
             return False
 
 
+from app.services.sms_service import normalize_phone_number, sms_gateway
+
+
+class SMSlenzOTPSender(OTPSender):
+    """SMSlenz Sri Lanka SMS OTP Sender."""
+
+    def __init__(self, gateway=None):
+        self.gateway = gateway or sms_gateway
+
+    async def send(self, *, recipient: str, otp: str) -> bool:
+        try:
+            normalized = normalize_phone_number(recipient)
+            if not normalized:
+                logger.warning("SMSlenz OTP: Invalid phone number format '%s'", recipient)
+                return False
+
+            message = (
+                f"Your ResQAI verification code is: {otp}. "
+                "It expires in 5 minutes. Do not share this code with anyone."
+            )
+
+            result = await self.gateway.send_sms(contact=normalized, message=message)
+            if result.get("success"):
+                logger.info("SMSlenz SMS OTP delivered successfully to %s", normalized)
+                return True
+            else:
+                logger.error(
+                    "SMSlenz SMS OTP delivery failed for %s: %s",
+                    normalized,
+                    result.get("error") or result.get("message"),
+                )
+                return False
+        except Exception:
+            logger.exception("Failed to send SMSlenz SMS OTP to %s", recipient)
+            return False
+
+
 class TwilioSMSOTPSender(OTPSender):
 
     TWILIO_API_URL = "https://api.twilio.com/2010-04-01/Accounts/{sid}/Messages.json"
@@ -138,6 +175,12 @@ def _is_configured(*values: str) -> bool:
 def build_otp_senders() -> list[OTPSender]:
     senders: list[OTPSender] = []
 
+    # Primary SMS Gateway: SMSlenz (Sri Lanka)
+    if sms_gateway.is_configured:
+        senders.append(SMSlenzOTPSender())
+        logger.info("SMSlenz SMS OTP sender configured (User ID: %s, Sender ID: %s)", settings.SMSLENZ_USER_ID, settings.SMSLENZ_SENDER_ID)
+
+    # Email OTP Delivery (optional / multi-channel)
     if _is_configured(
         settings.SMTP_HOST,
         settings.SMTP_USER,
@@ -155,7 +198,8 @@ def build_otp_senders() -> list[OTPSender]:
         )
         logger.info("Email OTP sender configured (host=%s)", settings.SMTP_HOST)
 
-    if _is_configured(
+    # Legacy Twilio SMS fallback (if SMSlenz not configured)
+    if not sms_gateway.is_configured and _is_configured(
         settings.TWILIO_ACCOUNT_SID,
         settings.TWILIO_AUTH_TOKEN,
         settings.TWILIO_FROM_NUMBER,
@@ -173,7 +217,7 @@ def build_otp_senders() -> list[OTPSender]:
         senders.append(MockOTPSender())
         logger.warning(
             "No OTP delivery providers configured — using MockOTPSender. "
-            "Set SMTP_* or TWILIO_* env vars to enable real delivery."
+            "Set SMSLENZ_* or SMTP_* env vars to enable real delivery."
         )
 
     return senders
@@ -184,7 +228,13 @@ async def send_otp(*, email: str, phone: str | None, otp: str) -> dict[str, bool
     results: dict[str, bool] = {}
 
     for sender in senders:
-        if isinstance(sender, EmailOTPSender):
+        if isinstance(sender, SMSlenzOTPSender):
+            if phone:
+                results["sms"] = await sender.send(recipient=phone, otp=otp)
+            else:
+                logger.info("Skipping SMSlenz SMS — no phone number provided")
+                results["sms"] = False
+        elif isinstance(sender, EmailOTPSender):
             results["email"] = await sender.send(recipient=email, otp=otp)
         elif isinstance(sender, TwilioSMSOTPSender):
             if phone:
@@ -196,3 +246,4 @@ async def send_otp(*, email: str, phone: str | None, otp: str) -> dict[str, bool
             results["mock"] = await sender.send(recipient=email, otp=otp)
 
     return results
+
