@@ -179,7 +179,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: 'transparent',
   },
   flex: {
     flex: 1,
@@ -197,13 +197,20 @@ const styles = StyleSheet.create({
   badgeWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surfaceLight,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingVertical: 5,
+    paddingHorizontal: 12,
     borderRadius: 20,
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.28)',
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.25)',
+        } as any)
+      : {}),
   },
   brandIconCircle: {
     marginRight: 6,
@@ -214,7 +221,7 @@ const styles = StyleSheet.create({
   brandTag: {
     fontSize: 11,
     fontFamily: Fonts.bold,
-    color: Colors.slateMuted,
+    color: '#FFFFFF',
     letterSpacing: 0.8,
   },
   titleRow: {
@@ -224,19 +231,20 @@ const styles = StyleSheet.create({
   logoTextPrimary: {
     fontSize: 38,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
     letterSpacing: -0.5,
   },
   logoTextAccent: {
     fontSize: 38,
     fontFamily: Fonts.bold,
-    color: Colors.accent,
+    color: '#F47294',
     letterSpacing: -0.5,
   },
   tagline: {
     fontSize: 14,
-    fontFamily: Fonts.medium,
-    color: Colors.slateMuted,
+    fontFamily: Fonts.semiBold,
+    color: '#FFFFFF',
+    opacity: 0.9,
     marginTop: 4,
   },
   card: {
@@ -247,29 +255,30 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 20,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
     textAlign: 'center',
   },
   cardSubtitle: {
     fontSize: 13,
-    fontFamily: Fonts.regular,
-    color: Colors.slateMuted,
+    fontFamily: Fonts.semiBold,
+    color: '#FFFFFF',
+    opacity: 0.9,
     textAlign: 'center',
     marginTop: 2,
     marginBottom: 20,
   },
   errorBox: {
-    backgroundColor: '#FFF1F2',
+    backgroundColor: 'rgba(190, 35, 77, 0.25)',
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#FECDD3',
+    borderColor: 'rgba(255, 255, 255, 0.20)',
   },
   errorText: {
-    color: Colors.accent,
+    color: '#FFFFFF',
     fontSize: 13,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.bold,
     textAlign: 'center',
   },
   inputGroup: {
@@ -277,8 +286,8 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    fontFamily: Fonts.medium,
-    color: Colors.textSecondary,
+    fontFamily: Fonts.semiBold,
+    color: '#FFFFFF',
     marginBottom: 6,
   },
   input: {
@@ -286,20 +295,29 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
     fontSize: 15,
-    fontFamily: Fonts.regular,
-    color: Colors.textPrimary,
+    fontFamily: Fonts.semiBold,
+    color: '#FFFFFF',
   },
   loginButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: 'rgba(184, 46, 85, 0.85)',
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
     marginTop: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
     shadowColor: Colors.accent,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
     elevation: 4,
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          boxShadow: '0 4px 16px rgba(184, 46, 85, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.3)',
+        } as any)
+      : {}),
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -324,16 +342,23 @@ const styles = StyleSheet.create({
   },
   guestButton: {
     alignItems: 'center',
-    paddingVertical: 13,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.borderDark,
-    backgroundColor: Colors.surface,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.28)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          boxShadow: '0 4px 14px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.25)',
+        } as any)
+      : {}),
   },
   guestText: {
     fontSize: 14,
-    fontFamily: Fonts.semiBold,
-    color: Colors.textSecondary,
+    fontFamily: Fonts.bold,
+    color: '#FFFFFF',
   },
 });
 
