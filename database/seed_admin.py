@@ -9,14 +9,23 @@ Default credentials:
     Password: admin123
 """
 
+import os
 import asyncio
 import bcrypt
 import asyncpg
 
-DB_URL = "postgresql://resqai_user:resqai_pass@localhost:5433/resqai"
+# Use DATABASE_URL from environment if available, otherwise fallback to localhost
+DB_URL = os.getenv("DATABASE_URL", "postgresql://resqai_user:resqai_pass@localhost:5433/resqai")
+
+# asyncpg doesn't support 'postgresql+asyncpg://', so we replace it
+if DB_URL.startswith("postgresql+asyncpg://"):
+    DB_URL = DB_URL.replace("postgresql+asyncpg://", "postgresql://")
+
 
 ADMIN_EMAIL = "admin@resqai.lk"
-ADMIN_PASSWORD = "admin123"
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+if not ADMIN_PASSWORD:
+    raise ValueError("ADMIN_PASSWORD environment variable must be set")
 ADMIN_NAME = "ResQAI Admin"
 ADMIN_AGENCY = "DMC"
 ADMIN_DISTRICT = "Colombo"

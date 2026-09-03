@@ -40,7 +40,8 @@ export default function LoginPage() {
   return (
     <div className={styles.wrapper}>
       <form className={styles.form} onSubmit={handleSubmit}>
-        <div className={styles.title}>ResQAI Admin Login</div>
+        <div className={styles.title}>ResQAI Command Center</div>
+        <div className={styles.subtitle}>Authorized Emergency Services Portal</div>
 
         <div className={styles.field}>
           <label className={styles.label} htmlFor="login-email">Email</label>

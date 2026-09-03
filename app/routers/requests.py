@@ -3,20 +3,25 @@ ResQAI — Requests Router.
 Handles help requests creation, listing, locating resources, and status updates.
 """
 
+import logging
+import os
+import uuid
 from typing import Any
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy import desc, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.middleware.auth import get_current_user, require_role
 from app.models.help_request import HelpRequest
-from pydantic import BaseModel
-import os
 
+logger = logging.getLogger("resqai.requests")
 router = APIRouter(tags=["Requests"])
+
+NODE_BACKEND_URL = os.getenv("NODE_BACKEND_URL", "http://localhost:5000")
 
 class SubmitRequest(BaseModel):
     message: str
@@ -26,11 +31,42 @@ class SubmitRequest(BaseModel):
 class StatusUpdateRequest(BaseModel):
     status: str
 
-async def notify_critical_request(request_id: str, emergency_type: str):
+async def notify_critical_request(
+    request_id: str,
+    emergency_type: str,
+    urgency_level: int,
+    ai_summary: str | None = None,
+):
+    """
+    Alert admins about critical emergency requests (urgency >= 4).
+    Sends a real-time WebSocket event to the admin dashboard via the
+    Node.js backend, which broadcasts to all connected admin sockets.
+    """
+    payload = {
+        "request_id": request_id,
+        "emergency_type": emergency_type,
+        "urgency_level": urgency_level,
+        "ai_summary": ai_summary,
+    }
+    logger.warning(
+        "CRITICAL ALERT: type=%s urgency=%d request=%s",
+        emergency_type, urgency_level, request_id,
+    )
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{NODE_BACKEND_URL}/api/requests/critical-alert",
+                json=payload,
+                timeout=5.0,
+            )
+            if resp.status_code == 200:
+                logger.info("Critical alert delivered to admin dashboard")
+            else:
+                logger.error("Critical alert delivery failed: %s", resp.text)
+    except Exception as exc:
+        logger.error("Failed to send critical alert to Node backend: %s", exc)
 
-    print(f"⚠ CRITICAL: {emergency_type} — Request #{request_id}")
-
-@router.post("")
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def create_request(
     req: SubmitRequest,
     current_user: dict[str, Any] = Depends(get_current_user),
@@ -63,7 +99,7 @@ async def create_request(
         emergency_type=emergency_type,
         urgency_level=urgency_level,
         ai_summary=ai_summary,
-        status="submitted"
+        status="pending"
     )
 
     if role == "guest":
@@ -75,13 +111,18 @@ async def create_request(
 
     new_req.gps_location = f"SRID=4326;POINT({req.lng} {req.lat})"
 
+    # Alert admin BEFORE saving if critical (urgency >= 4)
+    # This ensures admin is notified even if database save fails
+    req_id = uuid.uuid4()  # Generate ID early for notification
+    req_id_str = str(req_id)
+    if urgency_level >= 4:
+        await notify_critical_request(req_id_str, emergency_type, urgency_level, ai_summary)
+
+    # Now save to database
+    new_req.request_id = req_id  # Use the same ID
     db.add(new_req)
     await db.commit()
     await db.refresh(new_req)
-
-    req_id_str = str(new_req.request_id)
-    if urgency_level >= 4:
-        await notify_critical_request(req_id_str, emergency_type)
 
     return {
         "request_id": req_id_str,

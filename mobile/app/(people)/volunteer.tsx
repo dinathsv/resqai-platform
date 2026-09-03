@@ -216,7 +216,7 @@ export default function VolunteerScreen() {
       ) : activeTab === 'available' ? (
         <FlatList
           data={missions}
-          keyExtractor={(item) => item.mission_id}
+          keyExtractor={(item: Mission) => item.mission_id}
           renderItem={renderMission}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
@@ -226,7 +226,7 @@ export default function VolunteerScreen() {
       ) : (
         <FlatList
           data={assignments}
-          keyExtractor={(item) => item.assignment_id}
+          keyExtractor={(item: Assignment) => item.assignment_id}
           renderItem={renderAssignment}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={

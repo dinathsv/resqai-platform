@@ -67,49 +67,60 @@ export default function MinimalButton({
 const styles = StyleSheet.create({
   base: {
     paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    paddingHorizontal: 22,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
   },
   primary: {
     backgroundColor: Colors.accent,
     shadowColor: Colors.accent,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
+    shadowOpacity: 0.28,
+    shadowRadius: 10,
     elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   outline: {
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.surface,
     borderWidth: 1.5,
-    borderColor: Colors.accent,
+    borderColor: Colors.borderDark,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
   cta: {
     backgroundColor: Colors.cta,
     shadowColor: Colors.cta,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOpacity: 0.28,
+    shadowRadius: 10,
     elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   small: {
-    paddingVertical: 8,
+    paddingVertical: 9,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   disabled: {
-    opacity: 0.4,
+    opacity: 0.45,
   },
   text: {
     fontSize: 15,
     fontFamily: Fonts.semiBold,
+    letterSpacing: 0.2,
   },
   primaryText: {
     color: Colors.white,
   },
   outlineText: {
-    color: Colors.accent,
+    color: Colors.textPrimary,
   },
   ctaText: {
     color: Colors.white,
@@ -117,4 +128,4 @@ const styles = StyleSheet.create({
   smallText: {
     fontSize: 13,
   },
-})
+});

@@ -1,5 +1,5 @@
 
-import React from 'react'
+import React, { useState } from 'react'
 import { View, Text, TextInput, StyleSheet, KeyboardTypeOptions } from 'react-native'
 import { Colors, Fonts, Glass } from '../constants/theme'
 
@@ -22,11 +22,16 @@ export default function MinimalInput({
   secureTextEntry = false,
   maxLength,
 }: MinimalInputProps) {
+  const [isFocused, setIsFocused] = useState(false);
+
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, isFocused && styles.labelFocused]}>{label}</Text>
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          isFocused && styles.inputFocused,
+        ]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -34,6 +39,8 @@ export default function MinimalInput({
         keyboardType={keyboardType}
         secureTextEntry={secureTextEntry}
         maxLength={maxLength}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
       />
     </View>
   )
@@ -49,12 +56,25 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginBottom: 6,
   },
+  labelFocused: {
+    color: Colors.accent,
+    fontFamily: Fonts.semiBold,
+  },
   input: {
     ...Glass.input,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    fontSize: 16,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    fontSize: 15,
     fontFamily: Fonts.regular,
     color: Colors.textPrimary,
+    backgroundColor: Colors.surface,
+  },
+  inputFocused: {
+    borderColor: Colors.accent,
+    shadowColor: Colors.accent,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
   },
 })

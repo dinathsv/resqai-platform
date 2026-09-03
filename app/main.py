@@ -5,12 +5,13 @@ ResQAI — Main FastAPI Application
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.database import engine, Base
-from app.routers import ai, auth, requests
+from app.routers import ai, alerts, auth, donations, requests
 import app.routers.auth as auth_router
 
 logging.basicConfig(
@@ -58,21 +59,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled error on %s: %s", request.url.path, exc)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error. Please try again later."},
+    )
+
 app.include_router(auth.router, prefix="/api/auth")
 app.include_router(requests.router, prefix="/api/requests")
 app.include_router(ai.router, prefix="/api/ai")
+app.include_router(alerts.router, prefix="/api/alerts")
+app.include_router(donations.router, prefix="/api/donations")
 
 from fastapi import APIRouter
 
-alerts_router = APIRouter(tags=["Alerts"])
-donations_router = APIRouter(tags=["Donations"])
 missions_router = APIRouter(tags=["Missions"])
 admin_router = APIRouter(tags=["Admin"])
 quiz_router = APIRouter(tags=["Quiz"])
 locator_router = APIRouter(tags=["Locator"])
 
-app.include_router(alerts_router, prefix="/api/alerts")
-app.include_router(donations_router, prefix="/api/donations")
 app.include_router(missions_router, prefix="/api/missions")
 app.include_router(admin_router, prefix="/api/admin")
 app.include_router(quiz_router, prefix="/api/quiz")

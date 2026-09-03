@@ -123,133 +123,215 @@ export default function DashboardPage() {
     return `LKR ${amount.toLocaleString()}`;
   }
 
+  function getUrgencyBadge(level: number) {
+    if (level === 5) {
+      return (
+        <span className={`${styles.urgencyPill} ${styles.urgency5}`}>
+          ● Critical ({level})
+        </span>
+      );
+    }
+    if (level === 4) {
+      return (
+        <span className={`${styles.urgencyPill} ${styles.urgency4}`}>
+          ▲ High ({level})
+        </span>
+      );
+    }
+    return (
+      <span className={`${styles.urgencyPill} ${styles.urgencyNormal}`}>
+        Standard ({level})
+      </span>
+    );
+  }
+
+  function getStatusBadge(status: string) {
+    switch (status) {
+      case 'verified':
+      case 'dispatched':
+        return <span className="statusBadge statusSuccess">{status}</span>;
+      case 'critical':
+        return <span className="statusBadge statusCritical">{status}</span>;
+      case 'pending':
+      case 'ai_processing':
+        return <span className="statusBadge statusWarning">{status}</span>;
+      default:
+        return <span className="statusBadge statusInfo">{status}</span>;
+    }
+  }
+
   return (
     <div className="page">
-      <h1>Dashboard</h1>
+      <div className={styles.sectionHeader}>
+        <div>
+          <h1>Disaster Operations Deck</h1>
+          <p className={styles.sectionMeta}>
+            National Disaster Management Center · Sri Lanka Multi-Agency Command
+          </p>
+        </div>
+      </div>
 
       <div className={styles.statsRow}>
         <div className={styles.statBox}>
+          <div className={styles.statTop}>
+            <span className={styles.statLabel}>Active Requests</span>
+            <div className={styles.statIcon}>🆘</div>
+          </div>
           <div className={styles.statNumber}>{stats?.active_requests ?? '—'}</div>
-          <div className={styles.statLabel}>Active Requests</div>
         </div>
-        <div className={styles.statBox}>
+
+        <div className={`${styles.statBox} ${styles.statBoxCritical}`}>
+          <div className={styles.statTop}>
+            <span className={styles.statLabel}>Critical Triage</span>
+            <div className={styles.statIcon}>🚨</div>
+          </div>
           <div className={styles.statNumber}>{stats?.critical_count ?? '—'}</div>
-          <div className={styles.statLabel}>Critical</div>
         </div>
-        <div className={styles.statBox}>
+
+        <div className={`${styles.statBox} ${styles.statBoxWarning}`}>
+          <div className={styles.statTop}>
+            <span className={styles.statLabel}>Active Alerts</span>
+            <div className={styles.statIcon}>📢</div>
+          </div>
           <div className={styles.statNumber}>{stats?.active_alerts ?? '—'}</div>
-          <div className={styles.statLabel}>Active Alerts</div>
         </div>
-        <div className={styles.statBox}>
+
+        <div className={`${styles.statBox} ${styles.statBoxSuccess}`}>
+          <div className={styles.statTop}>
+            <span className={styles.statLabel}>Relief Donations</span>
+            <div className={styles.statIcon}>🤝</div>
+          </div>
           <div className={styles.statNumber}>
             {stats ? formatCurrency(stats.total_donations) : '—'}
           </div>
-          <div className={styles.statLabel}>Donations</div>
         </div>
       </div>
 
       <div className="section">
         <div className={styles.sectionHeader}>
-          <h2>AI Situation Report</h2>
+          <h2>🤖 AI Situational Telemetry Report</h2>
           <div>
             {reportTime && (
-              <span className={styles.sectionMeta}>Last updated: {reportTime}</span>
+              <span className={styles.sectionMeta} style={{ marginRight: '12px' }}>
+                Synced at {reportTime}
+              </span>
             )}
             <button
               className={styles.refreshBtn}
               onClick={generateReport}
               disabled={reportLoading}
             >
-              Refresh
+              {reportLoading ? 'Analyzing...' : 'Generate New Intel'}
             </button>
           </div>
         </div>
         <div className={styles.reportBox}>
           {reportLoading ? (
-            <p className={styles.loadingText}>Generating report...</p>
+            <p className={styles.loadingText}>Synthesizing multi-modal disaster reports with Gemini AI...</p>
           ) : report ? (
             <>
               <div className={styles.reportStats}>
                 <span><strong>Total Incidents:</strong> {report.total_incidents}</span>
-                <span><strong>Critical:</strong> {report.critical_count}</span>
+                <span><strong>High-Priority Zones:</strong> {report.critical_count} critical</span>
               </div>
               <div className={styles.reportText}>
                 {report.narrative.split('\n').map((p, i) => (
                   <p key={i}>{p}</p>
                 ))}
               </div>
+              {report.zones && report.zones.length > 0 && (
+                <div className={styles.zonesList}>
+                  {report.zones.map((zone, idx) => (
+                    <span key={idx} className={styles.zoneChip}>📍 {zone}</span>
+                  ))}
+                </div>
+              )}
             </>
           ) : (
             <p className={styles.loadingText}>
-              Click &quot;Refresh&quot; to generate an AI situation report.
+              Click &quot;Generate New Intel&quot; to synthesize pending incident reports across Sri Lanka districts.
             </p>
           )}
         </div>
       </div>
 
       <div className="section">
-        <h2>Active Requests</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Type</th>
-              <th>Urgency</th>
-              <th>Message</th>
-              <th>Time</th>
-              <th>Source</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests && requests.length > 0 ? (
-              requests.map((r) => (
-                <tr key={r.request_id}>
-                  <td>{r.request_id.slice(0, 8)}</td>
-                  <td>{r.emergency_type}</td>
-                  <td className={urgencyClass(r.urgency_level)}>{r.urgency_level}</td>
-                  <td>{r.original_message.slice(0, 50)}{r.original_message.length > 50 ? '...' : ''}</td>
-                  <td>{new Date(r.created_at).toLocaleTimeString()}</td>
-                  <td>{r.source || 'App'}</td>
-                  <td>{r.status}</td>
-                  <td>
-                    <div className={styles.tableActions}>
-                      <Link href={`/requests/${r.request_id}`} className={styles.actionLink}>
-                        View
-                      </Link>
-                      <button
-                        className={styles.resolveBtn}
-                        onClick={() => resolveRequest(r.request_id)}
-                      >
-                        Resolve
-                      </button>
-                    </div>
+        <div className={styles.sectionHeader}>
+          <h2>Live Citizen Triage Feed</h2>
+        </div>
+        <div className="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Triage Urgency</th>
+                <th>Citizen Message</th>
+                <th>Timestamp</th>
+                <th>Channel</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests && requests.length > 0 ? (
+                requests.map((r) => (
+                  <tr key={r.request_id}>
+                    <td><code>{r.request_id.slice(0, 8)}</code></td>
+                    <td><strong>{r.emergency_type}</strong></td>
+                    <td>{getUrgencyBadge(r.urgency_level)}</td>
+                    <td>{r.original_message.slice(0, 50)}{r.original_message.length > 50 ? '...' : ''}</td>
+                    <td>{new Date(r.created_at).toLocaleTimeString()}</td>
+                    <td><span className="statusBadge statusInfo">{r.source || 'Mobile App'}</span></td>
+                    <td>{getStatusBadge(r.status)}</td>
+                    <td>
+                      <div className={styles.tableActions}>
+                        <Link href={`/requests/${r.request_id}`} className={styles.actionLink}>
+                          Inspect
+                        </Link>
+                        <button
+                          className={styles.resolveBtn}
+                          onClick={() => resolveRequest(r.request_id)}
+                        >
+                          Resolve
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                    No active emergency requests requiring immediate triage.
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={8}>No active requests</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className={styles.chatSection}>
-        <h2>Inter-Agency Chat</h2>
+        <div className={styles.sectionHeader}>
+          <h2>🛡️ Inter-Agency Field Communications</h2>
+        </div>
         <div className={styles.chatBox}>
           <div className={styles.chatMessages}>
-            {chatMessages.map((msg, i) => (
-              <div key={msg.id || i} className={styles.chatMessage}>
-                <strong>[{msg.agency}] {msg.sender}:</strong>
-                {msg.message_text}
-                <span className={styles.chatTime}>
-                  [{new Date(msg.created_at).toLocaleTimeString()}]
-                </span>
-              </div>
-            ))}
+            {chatMessages.length === 0 ? (
+              <p className={styles.loadingText} style={{ padding: '20px', textAlign: 'center' }}>
+                Secure telemetry channel connected. Messages from Army, Police, and DMC will appear in real time.
+              </p>
+            ) : (
+              chatMessages.map((msg, i) => (
+                <div key={msg.id || i} className={styles.chatMessage}>
+                  <strong>[{msg.agency}] {msg.sender}:</strong>
+                  {msg.message_text}
+                  <span className={styles.chatTime}>
+                    {new Date(msg.created_at).toLocaleTimeString()}
+                  </span>
+                </div>
+              ))
+            )}
             <div ref={chatEndRef} />
           </div>
           <div className={styles.chatInputRow}>
@@ -258,10 +340,10 @@ export default function DashboardPage() {
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendChat()}
-              placeholder="Type a message..."
+              placeholder="Broadcast message to active rescue coordinators..."
               id="chat-input"
             />
-            <button onClick={sendChat}>Send</button>
+            <button onClick={sendChat}>Transmit</button>
           </div>
         </div>
       </div>

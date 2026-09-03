@@ -22,6 +22,7 @@ from app.models.administrator import Administrator
 from app.models.guest_session import GuestSession
 from app.models.nic_entry import NicEntry
 from app.models.user import User
+from app.services.otp_service import send_otp
 
 router = APIRouter(tags=["Authentication"])
 
@@ -89,9 +90,55 @@ async def register(
     otp = f"{random.randint(100000, 999999)}"
     await redis_client.set(f"otp:{new_user.user_id}", otp, ex=300)
 
-    print(f"--- [MOCK SMS] OTP for {req.email}: {otp} ---")
+    # Send OTP via configured channels (email primary, SMS secondary)
+    delivery = await send_otp(email=req.email, phone=req.phone_number, otp=otp)
 
-    return {"user_id": str(new_user.user_id), "message": "OTP sent"}
+    return {
+        "user_id": str(new_user.user_id),
+        "message": "OTP sent",
+        "delivery": delivery,
+    }
+
+class ResendOtpRequest(BaseModel):
+    user_id: uuid.UUID
+
+@router.post("/resend-otp")
+async def resend_otp(
+    req: ResendOtpRequest,
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+):
+    """Resend a new OTP for registration verification. Rate-limited to 3 resends."""
+
+    # Rate-limit resend attempts
+    resend_key = f"otp_resend_count:{req.user_id}"
+    resend_count = await redis_client.get(resend_key)
+    if resend_count and int(resend_count) >= 3:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many OTP resend attempts. Please wait and try again.",
+        )
+
+    # Check user exists and is not already verified
+    result = await db.execute(select(User).where(User.user_id == req.user_id))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if user.is_verified:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Account already verified")
+
+    # Generate and store new OTP
+    otp = f"{random.randint(100000, 999999)}"
+    await redis_client.set(f"otp:{req.user_id}", otp, ex=300)
+
+    # Track resend count (expires after 15 minutes)
+    await redis_client.incr(resend_key)
+    await redis_client.expire(resend_key, 900)
+
+    # Send OTP via configured channels (email primary, SMS secondary)
+    delivery = await send_otp(email=user.email, phone=user.phone_number, otp=otp)
+
+    return {"message": "OTP resent successfully", "delivery": delivery}
 
 @router.post("/verify-otp")
 async def verify_otp(
@@ -178,7 +225,9 @@ async def admin_login(
     access_token = create_access_token(
         data={
             "sub": str(admin.admin_id),
+            "user_id": str(admin.admin_id),
             "role": "admin",
+            "email": admin.email,
             "agency": admin.agency,
             "district": admin.district,
         },

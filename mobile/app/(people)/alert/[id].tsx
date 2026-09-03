@@ -28,7 +28,7 @@ interface AlertDetail {
 }
 
 export default function AlertDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams() as { id: string };
   const router = useRouter();
   const [alert, setAlert] = useState<AlertDetail | null>(null);
   const [loading, setLoading] = useState(true);

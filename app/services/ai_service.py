@@ -48,5 +48,6 @@ async def close():
     """Close the underlying HTTP client gracefully."""
     global _client
     if _client is not None:
-        await _client.aclose()
+        # The new google-genai SDK does not have an aclose() method on Client.
+        # It handles connections internally or relies on garbage collection.
         _client = None
