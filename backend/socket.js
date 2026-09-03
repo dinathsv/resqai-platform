@@ -14,7 +14,7 @@ function initSocket(io) {
       const decoded = verifyToken(token);
       socket.user = {
         user_id: decoded.user_id || decoded.sub,
-        email: decoded.email,
+        email: decoded.email || decoded.nic || 'anonymous',
         role: decoded.role || 'people',
       };
       next();
@@ -27,6 +27,9 @@ function initSocket(io) {
     console.log(`Socket connected: ${socket.user.email} (${socket.user.role})`);
 
     socket.join(`role:${socket.user.role}`);
+    if (socket.user.role === 'guest') {
+      socket.join('role:people');
+    }
     socket.join(`user:${socket.user.user_id}`);
 
     socket.on('disconnect', () => {
@@ -37,6 +40,8 @@ function initSocket(io) {
 
 function broadcastAlert(io, alert) {
   io.to('role:people').emit('alert_received', alert);
+  io.to('role:people').emit('emergency_alert', alert);
+  io.emit('emergency_alert', alert);
 }
 
 function notifyCriticalRequest(io, request) {
