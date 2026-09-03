@@ -113,7 +113,13 @@ export default function GuestScreen() {
         <View style={styles.content}>
           <TouchableOpacity
             style={styles.backLink}
-            onPress={() => router.back()}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(auth)/login');
+              }
+            }}
             activeOpacity={0.7}
           >
             <Text style={styles.backText}>← Back to Sign In</Text>

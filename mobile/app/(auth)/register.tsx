@@ -193,7 +193,13 @@ export default function RegisterScreen() {
 
           <TouchableOpacity
             style={styles.linkButton}
-            onPress={() => router.back()}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(auth)/login');
+              }
+            }}
             activeOpacity={0.7}
           >
             <Text style={styles.linkText}>
