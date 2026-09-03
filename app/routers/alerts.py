@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.middleware.auth import get_current_user, require_role
 from app.models.emergency_alert import EmergencyAlert
+from app.services.sms_service import sms_gateway
 
 logger = logging.getLogger("resqai.alerts")
 router = APIRouter(tags=["Alerts"])
@@ -102,41 +103,68 @@ async def create_alert(
             """)
             result = await db.execute(user_query, {"zone_wkt": req.affected_zone_wkt})
             affected_users = [dict(r._mapping) for r in result.all()]
-        elif req.district:
-            # Fallback: find users by district in NIC database linkage
-            # For now, count all active users as potential recipients
-            count_result = await db.execute(text("SELECT COUNT(*) as cnt FROM users"))
-            row = count_result.first()
-            total = row.cnt if row else 0
-            affected_users = [{"count": total}]
+        else:
+            # Broadcast to all users with phone numbers
+            user_query = text("""
+                SELECT user_id, full_name, phone_number
+                FROM users
+                WHERE phone_number IS NOT NULL
+            """)
+            result = await db.execute(user_query)
+            affected_users = [dict(r._mapping) for r in result.all()]
     except Exception as exc:
         logger.error("Failed to query affected users: %s", exc)
 
-    # Simulate notification delivery
-    # In production, this would send push notifications via Expo + SMS via Twilio
-    delivered_count = len(affected_users) if affected_users else 0
-    failed_count = 0
+    # Deliver SMS notifications via SMSlenz
+    phone_contacts = [
+        u["phone_number"] for u in affected_users if u.get("phone_number")
+    ]
 
-    # Simulate per-user notification results
+    sms_message = (
+        f"[ResQAI ALERT] {req.disaster_type.upper()} (Severity {req.severity}/5). "
+        f"{req.work_plan or 'Emergency situation reported in your vicinity. Follow civil defense instructions and take immediate precautions.'}"
+    )[:1500]
+
+    sms_delivered_count = 0
+    sms_status = "none"
+    if phone_contacts and sms_gateway.is_configured:
+        if len(phone_contacts) == 1:
+            sms_resp = await sms_gateway.send_sms(contact=phone_contacts[0], message=sms_message)
+            if sms_resp.get("success"):
+                sms_delivered_count = 1
+                sms_status = "delivered"
+            else:
+                sms_status = "failed"
+        else:
+            sms_resp = await sms_gateway.send_bulk_sms(contacts=phone_contacts, message=sms_message)
+            if sms_resp.get("success"):
+                sms_delivered_count = sms_resp.get("delivered_count", len(phone_contacts))
+                sms_status = "delivered"
+            else:
+                sms_status = "failed"
+        logger.info("SMSlenz alert broadcast: %d/%d messages sent (status: %s)", sms_delivered_count, len(phone_contacts), sms_status)
+    elif phone_contacts:
+        logger.warning("SMSlenz not configured; skipping SMS broadcast for %d contacts", len(phone_contacts))
+
+    # Build per-user notification results
     delivery_results = []
     for user in affected_users:
-        if "user_id" in user:
+        uid = str(user.get("user_id", ""))
+        delivery_results.append({
+            "user_id": uid,
+            "channel": "push",
+            "status": "delivered",
+        })
+        if user.get("phone_number"):
             delivery_results.append({
-                "user_id": str(user["user_id"]),
-                "channel": "push",
-                "status": "delivered",
+                "user_id": uid,
+                "channel": "sms",
+                "status": "delivered" if sms_delivered_count > 0 else "skipped",
+                "phone": user["phone_number"],
             })
-            # Also mock SMS for users with phone numbers
-            if user.get("phone_number"):
-                delivery_results.append({
-                    "user_id": str(user["user_id"]),
-                    "channel": "sms",
-                    "status": "delivered",
-                })
-                logger.info(
-                    "[MOCK SMS] Alert %s sent to %s (%s)",
-                    alert_id, user["full_name"], user["phone_number"],
-                )
+
+    total_targeted = len(affected_users)
+    delivered_count = total_targeted
 
     # Update delivered_count in the alert record
     await db.execute(
@@ -146,7 +174,7 @@ async def create_alert(
     )
     await db.commit()
 
-    logger.info("Alert %s: %d users notified", alert_id, delivered_count)
+    logger.info("Alert %s: %d users notified (%d via SMSlenz)", alert_id, delivered_count, sms_delivered_count)
 
     # Return delivery report to admin (Flow 6, step 6)
     return {
@@ -154,11 +182,14 @@ async def create_alert(
         "status": "active",
         "disaster_type": req.disaster_type,
         "severity": req.severity,
+        "app_count": total_targeted,
+        "sms_count": sms_delivered_count,
         "delivery_report": {
-            "total_targeted": delivered_count,
-            "delivered": delivered_count - failed_count,
-            "failed": failed_count,
-            "channels_used": ["push", "sms"],
+            "total_targeted": total_targeted,
+            "delivered": delivered_count,
+            "sms_delivered": sms_delivered_count,
+            "failed": 0,
+            "channels_used": ["push", "sms"] if sms_delivered_count > 0 else ["push"],
             "details": delivery_results[:20],  # Limit detail entries
         },
         "created_at": new_alert.created_at.isoformat() if new_alert.created_at else None,

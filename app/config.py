@@ -26,7 +26,13 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM_EMAIL: str = ""
 
-    # --- OTP Delivery: Twilio SMS (secondary / optional) ---
+    # --- SMS Gateway: SMSlenz (Sri Lanka) ---
+    SMSLENZ_USER_ID: str = "2462"
+    SMSLENZ_API_KEY: str = "3ef7d7d9-1ae3-4615-b43c-b795f67375e7"
+    SMSLENZ_SENDER_ID: str = "SMSlenzDEMO"
+    SMSLENZ_BASE_URL: str = "https://smslenz.lk/api"
+
+    # --- Legacy Twilio SMS (deprecated fallback) ---
     TWILIO_ACCOUNT_SID: str = ""
     TWILIO_AUTH_TOKEN: str = ""
     TWILIO_FROM_NUMBER: str = ""

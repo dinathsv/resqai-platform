@@ -40,6 +40,10 @@ services:
       - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in your environment/.env}
       - AI_API_KEY=${AI_API_KEY:-dummy_key}
       - AI_MODEL=gemini-3.6-flash
+      - SMSLENZ_USER_ID=${SMSLENZ_USER_ID:-2462}
+      - SMSLENZ_API_KEY=${SMSLENZ_API_KEY:-3ef7d7d9-1ae3-4615-b43c-b795f67375e7}
+      - SMSLENZ_SENDER_ID=${SMSLENZ_SENDER_ID:-SMSlenzDEMO}
+      - SMSLENZ_BASE_URL=${SMSLENZ_BASE_URL:-https://smslenz.lk/api}
     depends_on:
       postgres:
         condition: service_healthy
@@ -59,6 +63,10 @@ services:
       - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in your environment/.env}
       - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in your environment/.env}
       - REDIS_URL=redis://redis:6379
+      - SMSLENZ_USER_ID=${SMSLENZ_USER_ID:-2462}
+      - SMSLENZ_API_KEY=${SMSLENZ_API_KEY:-3ef7d7d9-1ae3-4615-b43c-b795f67375e7}
+      - SMSLENZ_SENDER_ID=${SMSLENZ_SENDER_ID:-SMSlenzDEMO}
+      - SMSLENZ_BASE_URL=${SMSLENZ_BASE_URL:-https://smslenz.lk/api}
     depends_on:
       postgres:
         condition: service_healthy
