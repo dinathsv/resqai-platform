@@ -209,7 +209,17 @@ export default function QuizScreen() {
           <View style={styles.finishedButtons}>
             <MinimalButton title="Try Again" variant="outline" onPress={tryAgain} />
             <View style={{ height: 12 }} />
-            <MinimalButton title="Back to Home" variant="cta" onPress={() => router.back()} />
+            <MinimalButton
+              title="Back to Home"
+              variant="cta"
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/(people)/dashboard');
+                }
+              }}
+            />
           </View>
         </ScrollView>
       </SafeAreaView>
