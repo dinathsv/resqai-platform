@@ -29,20 +29,28 @@ async def call_llm(
     Send a single-turn message to the LLM and return the text response.
     Returns None on any exception so callers can handle fallback.
     """
-    try:
-        client = _get_client()
-        response = await client.aio.models.generate_content(
-            model=settings.AI_MODEL,
-            contents=user_message,
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                max_output_tokens=max_tokens
+    import asyncio
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            client = _get_client()
+            response = await client.aio.models.generate_content(
+                model=settings.AI_MODEL,
+                contents=user_message,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    max_output_tokens=max_tokens
+                )
             )
-        )
-        return response.text
-    except Exception as exc:
-        logger.error("LLM API call failed: %s", exc, exc_info=True)
-        return None
+            return response.text
+        except Exception as exc:
+            if "429" in str(exc) and attempt < max_retries - 1:
+                wait_time = 4 * (attempt + 1)
+                logger.warning("Rate limit hit (429). Retrying in %s seconds...", wait_time)
+                await asyncio.sleep(wait_time)
+                continue
+            logger.error("LLM API call failed: %s", exc, exc_info=True)
+            return None
 
 async def close():
     """Close the underlying HTTP client gracefully."""
