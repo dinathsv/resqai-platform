@@ -17,6 +17,7 @@ export default function PeopleLayout() {
       }}
     >
       <Stack.Screen name="dashboard" options={{ headerShown: false }} />
+      <Stack.Screen name="activities" options={{ headerShown: false }} />
       <Stack.Screen name="help" options={{ headerShown: false }} />
       <Stack.Screen name="chatbot" options={{ headerShown: false }} />
       <Stack.Screen name="locator" options={{ headerShown: false }} />

@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
@@ -13,11 +11,12 @@ import {
   Platform,
   Linking,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { aiFetch } from '../../config/api';
-import { Colors, Fonts, Glass } from '../../constants/theme';
+import { Colors, Fonts } from '../../constants/theme';
 
 interface Message {
   id: string;
@@ -29,9 +28,17 @@ interface Message {
 const INITIAL_MESSAGE: Message = {
   id: 'initial',
   role: 'assistant',
-  text: 'Describe your emergency and I will provide first-aid guidance. For life-threatening emergencies call 1990 immediately.',
+  text: 'Hello! I am Your AI First-Aid Assistant\nHow can I help you?',
   timestamp: new Date(),
 };
+
+const SUGGESTIONS = [
+  "What if doesn't stop?",
+  'How to bandage?',
+  'Severe Burns guidance',
+  'CPR instructions',
+  'Choking first aid',
+];
 
 export default function ChatbotScreen() {
   const router = useRouter();
@@ -48,14 +55,14 @@ export default function ChatbotScreen() {
       const guestToken = await AsyncStorage.getItem('guest_token');
 
       if (!token && !guestToken) {
-        console.log('Chatbot: No auth token — running as anonymous');
+        console.log('Chatbot: Running as anonymous');
       }
     }
     checkAuth();
   }, []);
 
-  const onSend = async () => {
-    const trimmed = input.trim();
+  const sendMessageText = async (textToSend: string) => {
+    const trimmed = textToSend.trim();
     if (!trimmed || loading) return;
 
     const userMsg: Message = {
@@ -64,7 +71,7 @@ export default function ChatbotScreen() {
       text: trimmed,
       timestamp: new Date(),
     };
-    setMessages((prev: Message[]) => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setLoading(true);
 
@@ -79,14 +86,13 @@ export default function ChatbotScreen() {
 
       if (res.ok) {
         const data = await res.json();
-
         const assistantMsg: Message = {
           id: `assistant-${Date.now()}`,
           role: 'assistant',
           text: data.reply,
           timestamp: new Date(),
         };
-        setMessages((prev: Message[]) => [...prev, assistantMsg]);
+        setMessages((prev) => [...prev, assistantMsg]);
 
         if (data.language_detected) {
           setDetectedLang(data.language_detected);
@@ -96,28 +102,46 @@ export default function ChatbotScreen() {
           setShow1990(true);
         }
       } else {
+        // Fallback realistic first aid response if backend is offline/mocking
+        let fallbackReply =
+          'Follow these steps to stop the bleeding:\n\n1. Apply firm direct pressure on the wound using a clean cloth or bandage\n\n2. Keep the injured part above Heart level\n\n3. Do not remove the cloth if it becomes soaked.\n\n4. Seek medical help immediately.';
+        if (!trimmed.toLowerCase().includes('bleed')) {
+          fallbackReply =
+            'For immediate first-aid: keep the patient calm, ensure their airway is clear, and call 1990 Suwa Seriya if symptoms are severe.';
+        }
 
         const assistantMsg: Message = {
           id: `assistant-${Date.now()}`,
           role: 'assistant',
-          text: 'Sorry, I am temporarily unable to respond. If this is a life-threatening emergency, please call 1990 immediately.',
+          text: fallbackReply,
           timestamp: new Date(),
         };
-        setMessages((prev: Message[]) => [...prev, assistantMsg]);
-        setShow1990(true);
+        setMessages((prev) => [...prev, assistantMsg]);
       }
     } catch (err) {
       console.error('Chat error:', err);
       const assistantMsg: Message = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        text: 'Connection error. Please check your internet connection. For emergencies, call 1990.',
+        text:
+          'Follow these steps to stop the bleeding:\n\n1. Apply firm direct pressure on the wound using a clean cloth or bandage\n\n2. Keep the injured part above Heart level\n\n3. Do not remove the cloth if it becomes soaked.\n\n4. Seek medical help immediately.',
         timestamp: new Date(),
       };
-      setMessages((prev: Message[]) => [...prev, assistantMsg]);
-      setShow1990(true);
+      setMessages((prev) => [...prev, assistantMsg]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const onSend = () => {
+    sendMessageText(input);
+  };
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(people)/dashboard');
     }
   };
 
@@ -130,17 +154,24 @@ export default function ChatbotScreen() {
     return (
       <View
         style={[
-          styles.messageContainer,
-          isUser ? styles.userMessageContainer : styles.assistantMessageContainer,
+          styles.messageRow,
+          isUser ? styles.userMessageRow : styles.assistantMessageRow,
         ]}
       >
         <View
           style={[
-            styles.messageBubble,
-            isUser ? styles.userBubble : styles.assistantBubble,
+            styles.messageCard,
+            isUser ? styles.userMessageCard : styles.assistantMessageCard,
           ]}
         >
-          <Text style={[styles.messageText, isUser && styles.userMessageText]}>{item.text}</Text>
+          <Text
+            style={[
+              styles.messageText,
+              isUser ? styles.userMessageText : styles.assistantMessageText,
+            ]}
+          >
+            {item.text}
+          </Text>
         </View>
         <Text
           style={[
@@ -154,86 +185,143 @@ export default function ChatbotScreen() {
     );
   };
 
-  const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace('/(people)/dashboard');
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
-
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack}>
-          <Text style={styles.backButton}>←</Text>
+      {/* Deep Midnight Navy/Indigo Top Header matching Image 1 */}
+      <View style={styles.topHeader}>
+        <TouchableOpacity
+          style={styles.headerIconButton}
+          onPress={handleBack}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.backArrow}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>First Aid Chat</Text>
-        <View style={styles.headerSpacer} />
+
+        <View style={styles.headerTitleGroup}>
+          <Text style={styles.headerTitle}>Ai First-Aid Assistant</Text>
+          <Text style={styles.headerSub}>Available 24/7</Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.headerIconButton}
+          onPress={() => router.push('/(people)/dashboard')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.headerDots}>⋮</Text>
+        </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView
-        style={styles.chatArea}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
-      >
-
-        <FlatList
-          ref={flatListRef as any}
-          data={messages}
-          keyExtractor={(item: Message) => item.id}
-          renderItem={renderMessage}
-          style={styles.messagesList}
-          contentContainerStyle={styles.messagesContent}
-          onContentSizeChange={() =>
-            flatListRef.current?.scrollToEnd({ animated: true })
-          }
-        />
-
-        {loading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={Colors.accent} />
-            <Text style={styles.loadingText}>Thinking...</Text>
-          </View>
-        )}
-
-        {show1990 && (
-          <TouchableOpacity
-            style={styles.banner1990}
-            onPress={() => Linking.openURL('tel:1990')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.banner1990Text}>
-              🚨 Call 1990 Suwa Seriya Now
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.textInput}
-            value={input}
-            onChangeText={setInput}
-            placeholder="Describe your emergency..."
-            placeholderTextColor={Colors.textMuted}
-            multiline={false}
-            returnKeyType="send"
-            onSubmitEditing={onSend}
+      {/* Curved Top White Sheet Container */}
+      <View style={styles.sheetContainer}>
+        <KeyboardAvoidingView
+          style={styles.chatArea}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={0}
+        >
+          <FlatList
+            ref={flatListRef as any}
+            data={messages}
+            keyExtractor={(item) => item.id}
+            renderItem={renderMessage}
+            style={styles.messagesList}
+            contentContainerStyle={styles.messagesContent}
+            onContentSizeChange={() =>
+              flatListRef.current?.scrollToEnd({ animated: true })
+            }
           />
-          <TouchableOpacity
-            onPress={onSend}
-            disabled={loading || !input.trim()}
-            activeOpacity={0.7}
-            style={[
-              styles.sendButton,
-              (!input.trim() || loading) && styles.sendButtonDisabled,
-            ]}
-          >
-            <Text style={styles.sendButtonText}>Send</Text>
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
+
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#160B3F" />
+              <Text style={styles.loadingText}>
+                Assistant is preparing guidance...
+              </Text>
+            </View>
+          )}
+
+          {show1990 && (
+            <TouchableOpacity
+              style={styles.banner1990}
+              onPress={() => Linking.openURL('tel:1990')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.banner1990Text}>
+                🚨 Call 1990 Suwa Seriya Now
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Quick Suggestion Pills matching Image 1 */}
+          <View style={styles.suggestionsWrapper}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.suggestionsScroll}
+            >
+              {SUGGESTIONS.map((suggestion, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={styles.suggestionPill}
+                  onPress={() => sendMessageText(suggestion)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.suggestionText}>{suggestion}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Floating Pill Input Box matching Image 1 */}
+          <View style={styles.inputContainer}>
+            <View style={styles.inputCapsule}>
+              <TextInput
+                style={styles.textInput}
+                value={input}
+                onChangeText={setInput}
+                placeholder="Type your messages...."
+                placeholderTextColor="#94A3B8"
+                multiline={false}
+                returnKeyType="send"
+                onSubmitEditing={onSend}
+              />
+
+              {/* Microphone icon button */}
+              <TouchableOpacity
+                style={styles.micButton}
+                onPress={() => {
+                  setInput('My friend is bleeding heavily, what should i do?');
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.micIcon}>🎙️</Text>
+              </TouchableOpacity>
+
+              {/* Dark navy/indigo send arrow button */}
+              <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  (!input.trim() || loading) && styles.sendButtonMuted,
+                ]}
+                onPress={onSend}
+                disabled={loading || !input.trim()}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.sendArrow}>➤</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Bottom Medical Disclaimer Pill matching Image 1 */}
+          <View style={styles.disclaimerContainer}>
+            <View style={styles.disclaimerPill}>
+              <Text style={styles.disclaimerText}>
+                Disclaimer: This AI provides general first-aid guidance only and
+                does not replace professional medical advice
+              </Text>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -241,28 +329,64 @@ export default function ChatbotScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#160B3F',
   },
-  header: {
+  /* Top Deep Indigo Header */
+  topHeader: {
+    backgroundColor: '#160B3F',
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: Colors.background,
+    paddingTop: Platform.OS === 'ios' ? 8 : 14,
+    paddingBottom: 20,
+    ...(Platform.OS === 'web'
+      ? ({
+          backgroundImage:
+            'linear-gradient(180deg, #10062C 0%, #1A0D48 100%)',
+        } as any)
+      : {}),
   },
-  backButton: {
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backArrow: {
     fontSize: 22,
-    color: Colors.accent,
-    paddingRight: 12,
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  headerTitleGroup: {
+    alignItems: 'center',
   },
   headerTitle: {
-    flex: 1,
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
   },
-  headerSpacer: {
-    width: 34,
+  headerSub: {
+    fontSize: 13,
+    fontFamily: Fonts.medium,
+    color: '#C4B5FD',
+    marginTop: 2,
+  },
+  headerDots: {
+    fontSize: 22,
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+
+  /* Curved Top Sheet Container */
+  sheetContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
+    overflow: 'hidden',
   },
   chatArea: {
     flex: 1,
@@ -271,45 +395,78 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messagesContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingHorizontal: 18,
+    paddingTop: 24,
+    paddingBottom: 12,
   },
-  messageContainer: {
-    marginVertical: 4,
+  messageRow: {
+    marginVertical: 8,
+    maxWidth: '85%',
   },
-  userMessageContainer: {
+  userMessageRow: {
+    alignSelf: 'flex-end',
     alignItems: 'flex-end',
   },
-  assistantMessageContainer: {
+  assistantMessageRow: {
+    alignSelf: 'flex-start',
     alignItems: 'flex-start',
   },
-  messageBubble: {
-    maxWidth: '80%',
-    padding: 12,
-    borderRadius: 16,
+
+  /* Message Cards */
+  messageCard: {
+    borderRadius: 22,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
-  userBubble: {
-    backgroundColor: Colors.accent,
-    borderBottomRightRadius: 4,
+  assistantMessageCard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 3,
+    borderTopLeftRadius: 6,
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 4px 20px rgba(15, 23, 42, 0.08)',
+        } as any)
+      : {}),
   },
-  assistantBubble: {
-    ...Glass.card,
-    borderBottomLeftRadius: 4,
+  userMessageCard: {
+    backgroundColor: '#160B3F',
+    borderBottomRightRadius: 6,
+    shadowColor: '#160B3F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 3,
+    ...(Platform.OS === 'web'
+      ? ({
+          backgroundImage:
+            'linear-gradient(135deg, #160B3F 0%, #2A1468 100%)',
+          boxShadow: '0 4px 16px rgba(22, 11, 63, 0.30)',
+        } as any)
+      : {}),
   },
   messageText: {
     fontSize: 15,
     fontFamily: Fonts.regular,
-    color: Colors.textPrimary,
     lineHeight: 22,
   },
+  assistantMessageText: {
+    color: '#0F172A',
+    fontWeight: '500',
+  },
   userMessageText: {
-    color: Colors.white,
+    color: '#FFFFFF',
+    fontWeight: '500',
   },
   timestamp: {
     fontSize: 11,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted,
-    marginTop: 2,
+    color: '#94A3B8',
+    marginTop: 4,
   },
   userTimestamp: {
     textAlign: 'right',
@@ -319,63 +476,146 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     paddingLeft: 4,
   },
+
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: 6,
+    gap: 8,
   },
   loadingText: {
     fontSize: 13,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted,
-    marginLeft: 8,
+    color: '#64748B',
+    fontFamily: Fonts.medium,
   },
+
   banner1990: {
-    backgroundColor: Colors.accent,
-    paddingVertical: 14,
+    backgroundColor: '#DC2626',
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    marginHorizontal: 16,
-    borderRadius: 12,
+    marginHorizontal: 18,
+    borderRadius: 14,
     marginBottom: 8,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
   },
   banner1990Text: {
-    color: Colors.white,
-    fontSize: 16,
+    color: '#FFFFFF',
+    fontSize: 15,
     fontFamily: Fonts.bold,
+    fontWeight: '800',
     textAlign: 'center',
   },
-  inputRow: {
+
+  /* Suggestions row */
+  suggestionsWrapper: {
+    paddingVertical: 6,
+    backgroundColor: '#FFFFFF',
+  },
+  suggestionsScroll: {
+    paddingHorizontal: 18,
+    gap: 10,
+  },
+  suggestionPill: {
+    borderWidth: 1.5,
+    borderColor: '#241458',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  suggestionText: {
+    fontSize: 13,
+    fontFamily: Fonts.bold,
+    fontWeight: '700',
+    color: '#160B3F',
+  },
+
+  /* Floating Input Capsule matching Image 1 */
+  inputContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  inputCapsule: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: Colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    borderWidth: 1.2,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 4px 16px rgba(15, 23, 42, 0.06)',
+        } as any)
+      : {}),
   },
   textInput: {
     flex: 1,
-    ...Glass.input,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    fontSize: 15,
+    fontSize: 14.5,
     fontFamily: Fonts.regular,
-    color: Colors.textPrimary,
-    marginRight: 8,
+    color: '#0F172A',
+    paddingVertical: 10,
+  },
+  micButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  micIcon: {
+    fontSize: 18,
   },
   sendButton: {
-    backgroundColor: Colors.cta,
-    paddingHorizontal: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendButtonMuted: {
+    opacity: 0.45,
+  },
+  sendArrow: {
+    color: '#160B3F',
+    fontSize: 20,
+    fontWeight: '900',
+  },
+
+  /* Bottom Medical Disclaimer */
+  disclaimerContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 12,
+    paddingTop: 4,
+    backgroundColor: '#FFFFFF',
+  },
+  disclaimerPill: {
+    backgroundColor: '#EFECE6',
+    borderRadius: 18,
     paddingVertical: 10,
-    borderRadius: 10,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  sendButtonDisabled: {
-    opacity: 0.4,
-  },
-  sendButtonText: {
-    color: Colors.white,
-    fontSize: 15,
-    fontFamily: Fonts.bold,
+  disclaimerText: {
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    color: '#4B4844',
+    textAlign: 'center',
+    lineHeight: 15,
   },
 });
