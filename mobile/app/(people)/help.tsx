@@ -38,6 +38,8 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { Colors, Fonts, Glass } from '../../constants/theme';
+import BottomNav from '../../components/BottomNav';
+import TopBar from '../../components/TopBar';
 
 export default function HelpScreen() {
   const router = useRouter();
@@ -166,15 +168,8 @@ export default function HelpScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <TopBar title="Help Center" showBack onBack={handleBack} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButtonTouch} activeOpacity={0.7}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Help Center</Text>
-          <View style={styles.headerSpacer} />
-        </View>
 
         <Text style={styles.subtitle}>
           Select an emergency response channel based on immediate threat level

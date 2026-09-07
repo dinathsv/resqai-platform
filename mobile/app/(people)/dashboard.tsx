@@ -16,6 +16,7 @@ import { apiFetch } from '../../config/api';
 import { connectSocket, disconnectSocket } from '../../config/socket';
 import { Colors, Fonts } from '../../constants/theme';
 import BottomNav from '../../components/BottomNav';
+import TopBar from '../../components/TopBar';
 
 interface AlertItem {
   alert_id: string;
@@ -124,25 +125,8 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Top Header matching Image 3 */}
-      <View style={styles.topHeader}>
-        <TouchableOpacity
-          style={styles.headerIconButton}
-          onPress={() => router.push('/(people)/activities')}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.dotsIcon}>⋮</Text>
-        </TouchableOpacity>
-
-        <View style={styles.headerTitleGroup}>
-          <Text style={styles.headerBrand}>ResQAi</Text>
-          <Text style={styles.headerSub}>
-            Ai powered Real-Time Disaster Relief Platform
-          </Text>
-        </View>
-
-        <View style={styles.headerSpacer} />
-      </View>
+      {/* Professional Top Bar: Logo on Left, 3-Dot Menu on Right */}
+      <TopBar />
 
       <ScrollView
         style={styles.scrollContent}

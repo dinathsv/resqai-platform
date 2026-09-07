@@ -16,6 +16,7 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { Colors, Fonts } from '../../constants/theme';
+import TopBar from '../../components/TopBar';
 
 interface Hospital {
   hospital_id: string;
@@ -345,14 +346,8 @@ export default function LocatorScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Navigation Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButtonTouch} activeOpacity={0.7}>
-          <Text style={styles.backButton}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Find Emergency Care</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      {/* Professional Top Bar with Back and 3-Dot Navigation Menu */}
+      <TopBar title="Find Emergency Care" showBack onBack={handleBack} />
 
       <FlatList
         data={hospitals}

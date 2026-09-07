@@ -163,9 +163,9 @@ export default function ActivitiesScreen() {
                 <Text style={styles.backArrow}>←</Text>
               </View>
               <Image
-                source={require('../../assets/Resqai.jpeg')}
+                source={require('../../assets/resqai-shield.png')}
                 style={styles.headerLogo}
-                resizeMode="cover"
+                resizeMode="contain"
               />
               <Text style={styles.headerBrandText}>ResQAI</Text>
             </TouchableOpacity>
@@ -174,8 +174,9 @@ export default function ActivitiesScreen() {
               style={styles.bannerIconBtn}
               onPress={() => router.push('/(people)/dashboard')}
               activeOpacity={0.7}
+              accessibilityLabel="Open menu"
             >
-              <Text style={styles.bannerGear}>⚙</Text>
+              <Text style={styles.bannerGear}>⋮</Text>
             </TouchableOpacity>
           </View>
 
@@ -421,11 +422,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   headerLogo: {
-    width: 32,
+    width: 28,
     height: 32,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
   },
   headerBrandText: {
     color: '#FFFFFF',
