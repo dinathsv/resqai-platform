@@ -143,6 +143,15 @@ export default function ActivitiesScreen() {
     };
   }, []);
 
+  const handleSignOut = async () => {
+    try {
+      await AsyncStorage.clear();
+    } catch (e) {
+      console.warn('Sign out clear error:', e);
+    }
+    router.replace('/');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -152,32 +161,30 @@ export default function ActivitiesScreen() {
       >
         {/* Red Header Banner */}
         <View style={styles.headerBanner}>
-          {/* Top Bar with Logo, Back button, and Settings Gear */}
+          {/* Top Bar with Logo on top, Back button underneath, no 3-dot button */}
           <View style={styles.bannerTopBar}>
-            <TouchableOpacity
-              style={styles.topLeftGroup}
-              onPress={() => router.push('/(people)/dashboard')}
-              activeOpacity={0.8}
-            >
-              <View style={styles.backCircle}>
-                <Text style={styles.backArrow}>←</Text>
+            <View style={styles.bannerHeaderLeft}>
+              {/* 1. First: Logo */}
+              <View style={styles.logoBadgeWrap}>
+                <Image
+                  source={require('../../assets/Resqai.jpeg')}
+                  style={styles.headerLogo}
+                  resizeMode="contain"
+                />
               </View>
-              <Image
-                source={require('../../assets/resqai-shield.png')}
-                style={styles.headerLogo}
-                resizeMode="contain"
-              />
-              <Text style={styles.headerBrandText}>ResQAI</Text>
-            </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.bannerIconBtn}
-              onPress={() => router.push('/(people)/dashboard')}
-              activeOpacity={0.7}
-              accessibilityLabel="Open menu"
-            >
-              <Text style={styles.bannerGear}>⋮</Text>
-            </TouchableOpacity>
+              {/* 2. Under Logo: Back Button */}
+              <TouchableOpacity
+                style={styles.backUnderLogoBtn}
+                onPress={() => router.replace('/(people)/dashboard')}
+                activeOpacity={0.75}
+              >
+                <View style={styles.backCircle}>
+                  <Text style={styles.backArrow}>←</Text>
+                </View>
+                <Text style={styles.backBtnLabel}>Back</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Avatar and Real User Name Greeting */}
@@ -362,10 +369,21 @@ export default function ActivitiesScreen() {
             </View>
           </View>
         )}
+
+        {/* Account Sign Out Button */}
+        <View style={styles.signOutWrapper}>
+          <TouchableOpacity
+            style={styles.signOutBtn}
+            onPress={handleSignOut}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.signOutBtnText}>🚪 Sign Out</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
-      {/* Bottom Navigation with Activities Active */}
-      <BottomNav currentTab="activities" />
+      {/* Bottom Navigation with Profile Active */}
+      <BottomNav currentTab="profile" />
     </SafeAreaView>
   );
 }
@@ -398,49 +416,74 @@ const styles = StyleSheet.create({
       : {}),
   },
   bannerTopBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 16,
   },
-  topLeftGroup: {
+  bannerHeaderLeft: {
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  logoBadgeWrap: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 3,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  headerLogo: {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+  },
+  backUnderLogoBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
   },
   backCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   backArrow: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '800',
   },
-  headerLogo: {
-    width: 28,
-    height: 32,
-  },
-  headerBrandText: {
+  backBtnLabel: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 13,
     fontFamily: Fonts.bold,
-    fontWeight: '800',
-    letterSpacing: -0.3,
+    fontWeight: '700',
   },
-  bannerIconBtn: {
-    width: 36,
-    height: 36,
+  signOutWrapper: {
+    paddingHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  signOutBtn: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 14,
+    paddingVertical: 13,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#FECACA',
   },
-  bannerGear: {
-    color: '#FFFFFF',
-    fontSize: 20,
+  signOutBtnText: {
+    color: '#DC2626',
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    fontWeight: '700',
   },
   bannerUserRow: {
     flexDirection: 'row',

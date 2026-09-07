@@ -142,12 +142,9 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
     if (tab === 'home') {
       router.replace('/(people)/dashboard');
     } else if (tab === 'alerts') {
-      // In ResQAI, alerts can route to latest active alerts or dashboard alert section
       router.push('/(people)/dashboard');
-    } else if (tab === 'activities') {
+    } else if (tab === 'activities' || tab === 'profile') {
       router.replace('/(people)/activities');
-    } else if (tab === 'profile') {
-      setProfileModalVisible(true);
     }
   };
 

@@ -19,7 +19,8 @@ interface TopBarProps {
   onBack?: () => void;
   showLogo?: boolean;
   rightAction?: React.ReactNode;
-  theme?: 'light' | 'dark';
+  theme?: 'light' | 'dark' | 'red';
+  transparent?: boolean;
 }
 
 export default function TopBar({
@@ -29,11 +30,12 @@ export default function TopBar({
   showLogo = false,
   rightAction,
   theme = 'light',
+  transparent = false,
 }: TopBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [menuVisible, setMenuVisible] = useState(false);
-  const isDark = theme === 'dark';
+  const isDark = theme === 'dark' || theme === 'red';
 
   const handleDefaultBack = () => {
     if (router.canGoBack()) {
@@ -65,6 +67,7 @@ export default function TopBar({
         style={[
           styles.headerBar,
           isDark && styles.headerBarDark,
+          transparent && styles.headerBarTransparent,
         ]}
       >
         {/* Left Side: Back button or ResQAI Logo */}
@@ -88,10 +91,10 @@ export default function TopBar({
             <TouchableOpacity
               onPress={() => router.replace('/(people)/dashboard')}
               activeOpacity={0.8}
-              style={styles.logoTouch}
+              style={[styles.logoTouch, styles.logoBadge]}
             >
               <Image
-                source={require('../assets/resqai-logo-horizontal.png')}
+                source={require('../assets/Resqai.jpeg')}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
@@ -112,11 +115,13 @@ export default function TopBar({
               {title}
             </Text>
           ) : showBack && showLogo ? (
-            <Image
-              source={require('../assets/resqai-logo-horizontal.png')}
-              style={styles.logoImageSmall}
-              resizeMode="contain"
-            />
+            <View style={styles.logoBadgeSmall}>
+              <Image
+                source={require('../assets/Resqai.jpeg')}
+                style={styles.logoImageSmall}
+                resizeMode="contain"
+              />
+            </View>
           ) : null}
         </View>
 
@@ -161,19 +166,21 @@ export default function TopBar({
                 <View style={styles.menuDropdown}>
                   {/* Menu Header */}
                   <View style={styles.menuHeader}>
-                  <Image
-                    source={require('../assets/resqai-logo-horizontal.png')}
-                    style={styles.menuLogo}
-                    resizeMode="contain"
-                  />
-                  <TouchableOpacity
-                    onPress={() => setMenuVisible(false)}
-                    style={styles.closeButton}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.closeIcon}>✕</Text>
-                  </TouchableOpacity>
-                </View>
+                    <View style={styles.logoBadgeSmall}>
+                      <Image
+                        source={require('../assets/Resqai.jpeg')}
+                        style={styles.menuLogo}
+                        resizeMode="contain"
+                      />
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => setMenuVisible(false)}
+                      style={styles.closeButton}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.closeIcon}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
 
                 <View style={styles.menuDivider} />
 
@@ -307,21 +314,41 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   leftContainer: {
-    minWidth: 110,
+    minWidth: 48,
     justifyContent: 'center',
     alignItems: 'flex-start',
   },
   logoTouch: {
-    paddingVertical: 4,
-    paddingRight: 8,
+    padding: 2,
+  },
+  logoBadge: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 3,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  logoBadgeSmall: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 2,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   logoImage: {
-    width: 120,
-    height: 34,
+    width: 36,
+    height: 36,
+    borderRadius: 6,
   },
   logoImageSmall: {
-    width: 90,
-    height: 26,
+    width: 28,
+    height: 28,
+    borderRadius: 4,
   },
   backButtonTouch: {
     paddingVertical: 6,
@@ -378,9 +405,13 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
     lineHeight: 22,
   },
+  headerBarTransparent: {
+    backgroundColor: 'transparent',
+    borderBottomWidth: 0,
+  },
   headerBarDark: {
-    backgroundColor: '#160B3F',
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'transparent',
+    borderBottomColor: 'transparent',
   },
   backButtonTextDark: {
     color: '#FFFFFF',
@@ -389,8 +420,8 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   dotsButtonDark: {
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    borderColor: 'rgba(255, 255, 255, 0.20)',
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    borderColor: 'rgba(255, 255, 255, 0.40)',
   },
   dotsIconDark: {
     color: '#FFFFFF',

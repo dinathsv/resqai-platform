@@ -9,6 +9,7 @@ import {
   Platform,
   Linking,
   Dimensions,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -57,11 +58,15 @@ export default function DashboardScreen() {
           if (mounted && alertsData.alerts && alertsData.alerts.length > 0) {
             setAlerts(alertsData.alerts);
             const first = alertsData.alerts[0];
+            const typeCapitalized = first.disaster_type
+              ? first.disaster_type.charAt(0).toUpperCase() + first.disaster_type.slice(1)
+              : 'Flood';
             setTopAlert({
-              title: `${first.disaster_type.toUpperCase()} Alert`,
+              title: `${typeCapitalized} Alert`,
               description:
+                first.work_plan ||
                 first.description ||
-                `Severe conditions reported in ${first.district || 'Western Province'}`,
+                (first.district ? `Severe conditions reported in ${first.district}` : 'Heavy rainfall and strong winds in western province'),
               id: first.alert_id,
             });
           }
@@ -85,14 +90,18 @@ export default function DashboardScreen() {
         const socket = await connectSocket();
         if (!socket) return;
 
-        const onAlertReceived = (alert: AlertItem) => {
+        const onAlertReceived = (alert: any) => {
           if (!mounted) return;
           setAlerts((prev) => [alert, ...prev]);
+          const typeCapitalized = alert.disaster_type
+            ? alert.disaster_type.charAt(0).toUpperCase() + alert.disaster_type.slice(1)
+            : 'Emergency';
           setTopAlert({
-            title: `${alert.disaster_type.toUpperCase()} Alert`,
+            title: `${typeCapitalized} Alert`,
             description:
+              alert.work_plan ||
               alert.description ||
-              `Severe conditions reported in ${alert.district || 'Western Province'}`,
+              (alert.district ? `Severe conditions reported in ${alert.district}` : 'Emergency warning issued by Disaster Management Centre'),
             id: alert.alert_id,
           });
         };
@@ -125,15 +134,18 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Professional Top Bar: Logo on Left, 3-Dot Menu on Right */}
-      <TopBar />
+      {/* Red Top Header Band extending behind TopBar down to half of Flood Alert banner */}
+      <View style={styles.topHeaderBackground} pointerEvents="none" />
+
+      {/* TopBar with Resqai.jpeg Logo and white 3-dot button */}
+      <TopBar theme="dark" transparent />
 
       <ScrollView
         style={styles.scrollContent}
         contentContainerStyle={styles.scrollInner}
         showsVerticalScrollIndicator={false}
       >
-        {/* Disaster Alert Banner matching Image 3 */}
+        {/* Disaster Alert Banner overlapping header band halfway */}
         <View style={styles.alertBanner}>
           <View style={styles.alertBannerRow}>
             {/* Warning triangle in glowing circular container */}
@@ -174,8 +186,12 @@ export default function DashboardScreen() {
             onPress={() => router.push('/(people)/help')}
             activeOpacity={0.75}
           >
-            <View style={styles.sosCircle}>
-              <Text style={styles.sosCircleText}>SOS</Text>
+            <View style={styles.actionIconCardWrap}>
+              <Image
+                source={require('../../assets/SOS.png')}
+                style={styles.actionIconImage}
+                resizeMode="contain"
+              />
             </View>
             <Text style={styles.actionLabel}>Emergency{'\n'}Request</Text>
           </TouchableOpacity>
@@ -186,8 +202,12 @@ export default function DashboardScreen() {
             onPress={() => router.push('/(people)/locator')}
             activeOpacity={0.75}
           >
-            <View style={styles.actionIconBox}>
-              <Text style={styles.actionEmoji}>🏥</Text>
+            <View style={styles.actionIconCardWrap}>
+              <Image
+                source={require('../../assets/Hospital.png')}
+                style={styles.actionIconImage}
+                resizeMode="contain"
+              />
             </View>
             <Text style={styles.actionLabel}>Nearest{'\n'}Hospitals</Text>
           </TouchableOpacity>
@@ -198,10 +218,12 @@ export default function DashboardScreen() {
             onPress={() => router.push('/(people)/chatbot')}
             activeOpacity={0.75}
           >
-            <View style={styles.aiHexBadge}>
-              <View style={styles.aiHexInner}>
-                <Text style={styles.aiHexText}>AI</Text>
-              </View>
+            <View style={styles.actionIconCardWrap}>
+              <Image
+                source={require('../../assets/Chatbot.png')}
+                style={styles.actionIconImage}
+                resizeMode="contain"
+              />
             </View>
             <Text style={styles.actionLabel}>Ai First aid{'\n'}Assistant</Text>
           </TouchableOpacity>
@@ -341,13 +363,30 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 36,
   },
+  topHeaderBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 145,
+    backgroundColor: '#DC2626',
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    zIndex: 0,
+    ...(Platform.OS === 'web'
+      ? ({
+          backgroundImage: 'linear-gradient(180deg, #D41C2C 0%, #B91C1C 100%)',
+        } as any)
+      : {}),
+  },
   scrollContent: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
+    zIndex: 1,
   },
   scrollInner: {
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: 12,
     paddingBottom: 24,
   },
 
@@ -359,15 +398,17 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingBottom: 14,
     marginBottom: 18,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.40)',
     shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.28,
-    shadowRadius: 16,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.30,
+    shadowRadius: 18,
+    elevation: 5,
     ...(Platform.OS === 'web'
       ? ({
-          backgroundImage: 'linear-gradient(135deg, #E01E2E 0%, #B91C1C 100%)',
-          boxShadow: '0 8px 24px rgba(220, 38, 38, 0.25)',
+          backgroundImage: 'linear-gradient(135deg, #E22735 0%, #B91C1C 100%)',
+          boxShadow: '0 8px 24px rgba(220, 38, 38, 0.28)',
         } as any)
       : {}),
   },
@@ -469,52 +510,16 @@ const styles = StyleSheet.create({
         } as any)
       : {}),
   },
-  sosCircle: {
+  actionIconCardWrap: {
+    width: 52,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  actionIconImage: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: '#0F172A',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  sosCircleText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  actionIconBox: {
-    width: 48,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  actionEmoji: {
-    fontSize: 32,
-  },
-  aiHexBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-    borderWidth: 1.5,
-    borderColor: '#0F172A',
-  },
-  aiHexInner: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  aiHexText: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-    fontWeight: '900',
-    color: '#0F172A',
   },
   actionLabel: {
     fontSize: 12,
