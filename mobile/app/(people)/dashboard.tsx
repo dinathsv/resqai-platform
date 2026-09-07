@@ -47,7 +47,7 @@ export default function DashboardScreen() {
         const meRes = await apiFetch('/api/auth/me');
         if (meRes.ok) {
           const meData = await meRes.json();
-          if (mounted) setUserName(meData.full_name || 'Vithu');
+          if (mounted) setUserName(meData.full_name || 'Citizen');
         }
 
         const alertsRes = await apiFetch('/api/alerts');

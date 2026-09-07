@@ -92,6 +92,9 @@ services:
     container_name: resqai_mobile
     ports:
       - "8081:8081"
+    volumes:
+      - ./mobile:/app
+      - /app/node_modules
     environment:
       - EXPO_WEB_PORT=8081
       - HOST=0.0.0.0

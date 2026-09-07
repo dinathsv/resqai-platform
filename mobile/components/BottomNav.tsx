@@ -430,8 +430,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.55)',
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   profileSheet: {
+    width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
