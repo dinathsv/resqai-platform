@@ -34,12 +34,14 @@ services:
     container_name: resqai_python_api
     ports:
       - "8000:8000"
+    volumes:
+      - ./app:/workspace/app
     environment:
       - DATABASE_URL=postgresql+asyncpg://resqai_user:resqai_pass@postgres:5432/resqai
       - REDIS_URL=redis://redis:6379
       - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in your environment/.env}
       - AI_API_KEY=${AI_API_KEY:-dummy_key}
-      - AI_MODEL=gemini-3.6-flash
+      - AI_MODEL=${AI_MODEL:-gemini-3.5-flash-lite}
       - SMSLENZ_USER_ID=${SMSLENZ_USER_ID:-2462}
       - SMSLENZ_API_KEY=${SMSLENZ_API_KEY:-3ef7d7d9-1ae3-4615-b43c-b795f67375e7}
       - SMSLENZ_SENDER_ID=${SMSLENZ_SENDER_ID:-SMSlenzDEMO}
