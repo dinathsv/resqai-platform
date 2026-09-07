@@ -3,19 +3,28 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  width: 100%;
+  flex: 1;
   background: radial-gradient(circle at 50% 30%, #172036 0%, #090d16 70%);
   padding: 24px;
 }
 
 .form {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   border: 1px solid var(--border-medium);
-  padding: 36px 32px;
-  background: rgba(17, 24, 39, 0.8);
+  padding: 40px 32px;
+  background: rgba(17, 24, 39, 0.85);
   backdrop-filter: blur(16px);
   border-radius: var(--radius-xl);
   box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+}
+
+.brandIcon {
+  font-size: 36px;
+  text-align: center;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 16px rgba(99, 102, 241, 0.4));
 }
 
 .title {

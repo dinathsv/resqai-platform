@@ -132,7 +132,7 @@ export default function RootLayout({
             </button>
           )}
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-          <main className={isLoginPage ? undefined : styles.main}>
+          <main className={isLoginPage ? styles.mainLogin : styles.main}>
             {isLoginPage || authChecked ? children : null}
           </main>
         </div>
