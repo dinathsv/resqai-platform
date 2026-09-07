@@ -64,8 +64,7 @@ export default function HelpScreen() {
         lng: location.coords.longitude,
       };
     } catch {
-      // Default to Colombo center if location fails
-      return { lat: 6.9271, lng: 79.8612 };
+      return null;
     }
   };
 

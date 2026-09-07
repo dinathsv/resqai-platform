@@ -15,7 +15,7 @@ import {
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
-import { Colors, Fonts, Glass } from '../../constants/theme';
+import { Colors, Fonts } from '../../constants/theme';
 
 interface Hospital {
   hospital_id: string;
@@ -30,28 +30,7 @@ interface Hospital {
 
 const EMERGENCY_TYPES = ['Medical', 'Flood', 'Accident', 'Fire', 'Trapped'];
 
-// Common Sri Lanka city / district coordinates for quick, accurate local resolution
-const SRI_LANKA_LOCATIONS: Record<string, { lat: number; lng: number; name: string }> = {
-  kelaniya: { lat: 6.9537, lng: 79.9157, name: 'Kelaniya, Gampaha' },
-  gampaha: { lat: 7.0840, lng: 79.9943, name: 'Gampaha' },
-  colombo: { lat: 6.9271, lng: 79.8612, name: 'Colombo Central' },
-  kandy: { lat: 7.2906, lng: 80.6337, name: 'Kandy' },
-  galle: { lat: 6.0535, lng: 80.2210, name: 'Galle' },
-  matara: { lat: 5.9549, lng: 80.5550, name: 'Matara' },
-  negombo: { lat: 7.2008, lng: 79.8736, name: 'Negombo' },
-  jaffna: { lat: 9.6615, lng: 80.0255, name: 'Jaffna' },
-  kurunegala: { lat: 7.4863, lng: 80.3623, name: 'Kurunegala' },
-  anuradhapura: { lat: 8.3114, lng: 80.4037, name: 'Anuradhapura' },
-  ratnapura: { lat: 6.6828, lng: 80.3992, name: 'Ratnapura' },
-  badulla: { lat: 6.9934, lng: 81.0550, name: 'Badulla' },
-  dehiwala: { lat: 6.8517, lng: 79.8656, name: 'Dehiwala-Mount Lavinia' },
-  moratuwa: { lat: 6.7730, lng: 79.8816, name: 'Moratuwa' },
-  batticaloa: { lat: 7.7102, lng: 81.6924, name: 'Batticaloa' },
-  trincomalee: { lat: 8.5874, lng: 81.2152, name: 'Trincomalee' },
-  kalutara: { lat: 6.5854, lng: 79.9607, name: 'Kalutara' },
-};
-
-// Google Maps API Key from environment (optional - falls back to free embed)
+// Google Maps API Key from environment (optional - falls back to free direct embed)
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 
 export default function LocatorScreen() {
@@ -74,7 +53,7 @@ export default function LocatorScreen() {
     emergencyTypeRef.current = emergencyType;
   }, [emergencyType]);
 
-  // Request high-accuracy GPS position on mount
+  // Request high-accuracy device GPS position on mount
   useEffect(() => {
     fetchCurrentLocation();
   }, []);
@@ -85,16 +64,14 @@ export default function LocatorScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setLocationError('GPS permission not granted. Enter your city or area below.');
+        setLocationError('GPS permission not granted. Search your city or address below.');
         setLoadingLocation(false);
-        // Default to Colombo center if permission denied
-        const defaultCoords = { lat: 6.9271, lng: 79.8612, label: 'Colombo (Default)' };
-        setUserLocation(defaultCoords);
-        fetchHospitals(defaultCoords.lat, defaultCoords.lng, emergencyTypeRef.current);
+        setUserLocation(null);
+        setHospitals([]);
         return;
       }
 
-      // Explicitly request High Accuracy GPS
+      // Explicitly request High Accuracy GPS from the device
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
@@ -102,16 +79,14 @@ export default function LocatorScreen() {
       const coords = {
         lat: location.coords.latitude,
         lng: location.coords.longitude,
-        label: 'Live Device GPS',
       };
       setUserLocation(coords);
       fetchHospitals(coords.lat, coords.lng, emergencyTypeRef.current);
     } catch (err) {
       console.error('Location error:', err);
-      setLocationError('Could not obtain fine GPS fix. Enter your city or area below.');
-      const fallback = { lat: 6.9271, lng: 79.8612, label: 'Colombo (Fallback)' };
-      setUserLocation(fallback);
-      fetchHospitals(fallback.lat, fallback.lng, emergencyTypeRef.current);
+      setLocationError('Could not obtain live GPS coordinates. Search your city or area below.');
+      setUserLocation(null);
+      setHospitals([]);
     } finally {
       setLoadingLocation(false);
     }
@@ -142,6 +117,7 @@ export default function LocatorScreen() {
     }
   };
 
+  // Real-time geocoding for user-searched area/city
   const handleManualSearch = async () => {
     const rawQuery = manualArea.trim();
     if (!rawQuery) return;
@@ -149,33 +125,24 @@ export default function LocatorScreen() {
     setSearchingLocation(true);
     setLocationError('');
 
-    const query = rawQuery.toLowerCase();
-
-    // 1. Instant local dictionary check
-    for (const [key, val] of Object.entries(SRI_LANKA_LOCATIONS)) {
-      if (query.includes(key) || key.includes(query)) {
-        const coords = { lat: val.lat, lng: val.lng, label: val.name };
-        setUserLocation(coords);
-        fetchHospitals(coords.lat, coords.lng, emergencyType);
-        setSearchingLocation(false);
-        setManualArea('');
-        return;
-      }
-    }
-
-    // 2. OpenStreetMap Nominatim geocoding
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          rawQuery + ', Sri Lanka'
-        )}&limit=1`
+          rawQuery
+        )}&limit=1`,
+        {
+          headers: {
+            'Accept-Language': 'en',
+            'User-Agent': 'ResQAI-Platform',
+          },
+        }
       );
       const data = await res.json();
       if (data && data.length > 0) {
         const coords = {
           lat: parseFloat(data[0].lat),
           lng: parseFloat(data[0].lon),
-          label: rawQuery,
+          label: data[0].display_name.split(',')[0],
         };
         setUserLocation(coords);
         fetchHospitals(coords.lat, coords.lng, emergencyType);
@@ -187,7 +154,7 @@ export default function LocatorScreen() {
       console.warn('Geocoding request failed:', e);
     }
 
-    setLocationError(`Could not find "${rawQuery}". Try Kelaniya, Gampaha, Kandy, Galle, etc.`);
+    setLocationError(`Could not find "${rawQuery}". Please enter a valid city or address.`);
     setSearchingLocation(false);
   };
 
@@ -197,10 +164,8 @@ export default function LocatorScreen() {
   // Construct Google Maps Embed URL
   const getGoogleEmbedUrl = (lat: number, lng: number) => {
     if (GOOGLE_MAPS_API_KEY) {
-      // Official Google Maps Embed API
       return `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${lat},${lng}&zoom=15`;
     }
-    // Direct Google Maps embed without API key
     return `https://maps.google.com/maps?q=${lat},${lng}&hl=en&z=15&output=embed`;
   };
 
@@ -246,9 +211,29 @@ export default function LocatorScreen() {
   const renderMapSection = () => {
     if (!userLocation) {
       return (
-        <View style={styles.mapPlaceholder}>
-          <ActivityIndicator size="large" color={Colors.accent} />
-          <Text style={styles.loadingLocText}>Detecting accurate GPS coordinates...</Text>
+        <View style={styles.noLocationContainer}>
+          {loadingLocation ? (
+            <View style={styles.mapPlaceholder}>
+              <ActivityIndicator size="large" color={Colors.accent} />
+              <Text style={styles.loadingLocText}>Detecting device GPS...</Text>
+            </View>
+          ) : (
+            <View style={styles.noLocationBox}>
+              <Text style={styles.noLocationIcon}>📍</Text>
+              <Text style={styles.noLocationTitle}>Location Required</Text>
+              <Text style={styles.noLocationSubtitle}>
+                Allow GPS access or enter your city or address below to view nearby emergency care on Google Maps.
+              </Text>
+              <TouchableOpacity
+                style={styles.retryGpsButton}
+                onPress={fetchCurrentLocation}
+                disabled={loadingLocation}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.retryGpsText}>🔄 Enable / Retry GPS</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       );
     }
@@ -262,7 +247,7 @@ export default function LocatorScreen() {
         <View style={styles.mapHeader}>
           <View style={styles.mapHeaderLeft}>
             <Text style={styles.mapHeaderText}>
-              📍 {label ? `${label}: ` : ''}{lat.toFixed(4)}, {lng.toFixed(4)}
+              📍 {label ? `${label} (${lat.toFixed(4)}, ${lng.toFixed(4)})` : `${lat.toFixed(4)}, ${lng.toFixed(4)}`}
             </Text>
             {GOOGLE_MAPS_API_KEY ? (
               <View style={styles.apiBadge}>
@@ -434,7 +419,7 @@ export default function LocatorScreen() {
                 style={styles.manualInput}
                 value={manualArea}
                 onChangeText={setManualArea}
-                placeholder="Change city (e.g. Kelaniya, Gampaha, Kandy)..."
+                placeholder="Search city, town, or address..."
                 placeholderTextColor={Colors.textMuted}
                 onSubmitEditing={handleManualSearch}
                 returnKeyType="search"
@@ -457,11 +442,13 @@ export default function LocatorScreen() {
               <Text style={styles.locationErrorText}>{locationError}</Text>
             ) : null}
 
-            <Text style={styles.hospitalHeading}>
-              {loadingHospitals
-                ? 'Searching nearest facilities...'
-                : `Nearest Medical Facilities (${hospitals.length})`}
-            </Text>
+            {userLocation && (
+              <Text style={styles.hospitalHeading}>
+                {loadingHospitals
+                  ? 'Searching nearest facilities...'
+                  : `Nearest Medical Facilities (${hospitals.length})`}
+              </Text>
+            )}
 
             {loadingHospitals && (
               <ActivityIndicator
@@ -471,9 +458,9 @@ export default function LocatorScreen() {
               />
             )}
 
-            {!loadingHospitals && hospitals.length === 0 && (
+            {!loadingHospitals && userLocation && hospitals.length === 0 && (
               <Text style={styles.noHospitals}>
-                No facilities found within range. Try searching another city above.
+                No medical facilities found within range of this location.
               </Text>
             )}
           </View>
@@ -569,6 +556,52 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.bold,
     textAlign: 'center',
+  },
+  noLocationContainer: {
+    marginHorizontal: 16,
+    marginTop: 12,
+  },
+  noLocationBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  noLocationIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  noLocationTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: '#0F172A',
+    marginBottom: 6,
+  },
+  noLocationSubtitle: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  retryGpsButton: {
+    backgroundColor: '#DC2626',
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+  },
+  retryGpsText: {
+    color: '#FFFFFF',
+    fontSize: 13.5,
+    fontFamily: Fonts.bold,
   },
   mapContainer: {
     backgroundColor: '#FFFFFF',
@@ -697,13 +730,14 @@ const styles = StyleSheet.create({
     height: 180,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    marginHorizontal: 16,
-    marginVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 20,
   },
   loadingLocText: {
-    marginTop: 8,
+    marginTop: 10,
     fontSize: 13,
     fontFamily: Fonts.medium,
     color: '#64748B',
