@@ -91,7 +91,7 @@ async def first_aid_chat(req: FirstAidRequest):
         "- If message is not an emergency, say: This chatbot is for emergencies only. Call 1990 if urgent."
     )
 
-    reply = await call_llm(system_prompt, req.message, max_tokens=256)
+    reply = await call_llm(system_prompt, req.message, max_tokens=1024)
 
     if not reply:
         return {
@@ -142,7 +142,7 @@ async def translate_report(req: TranslateReportRequest):
         "language_detected": lang
     }
 
-    reply = await call_llm(system_prompt, req.message, max_tokens=256)
+    reply = await call_llm(system_prompt, req.message, max_tokens=1024)
     if not reply:
         return fallback
 
@@ -184,7 +184,7 @@ async def generate_summary(req: GenerateSummaryRequest):
 
     user_msg = f"Data: {requests_json}"
 
-    reply = await call_llm(system_prompt, user_msg, max_tokens=512)
+    reply = await call_llm(system_prompt, user_msg, max_tokens=1024)
 
     critical_count = sum(1 for r in req.requests if r.urgency_level and r.urgency_level >= 4)
 
@@ -228,7 +228,7 @@ async def locate_resources(req: LocateResourcesRequest):
     if not req.hospitals:
         return fallback
 
-    reply = await call_llm(system_prompt, user_msg, max_tokens=256)
+    reply = await call_llm(system_prompt, user_msg, max_tokens=1024)
     if not reply:
         return fallback
 
