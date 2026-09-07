@@ -38,28 +38,28 @@ interface GridItem {
 const GRID_ITEMS: GridItem[] = [
   {
     key: 'help',
-    image: require('../../assets/SOS.PNG'),
+    image: require('../../assets/SOS.png'),
     label: 'SOS Help',
     route: '/(people)/help',
     accentColor: '#DC2626',
   },
   {
     key: 'hospital',
-    image: require('../../assets/Hospital.PNG'),
+    image: require('../../assets/Hospital.png'),
     label: 'Find Hospital',
     route: '/(people)/locator',
     accentColor: '#2563EB',
   },
   {
     key: 'chat',
-    image: require('../../assets/Chatbot.PNG'),
+    image: require('../../assets/Chatbot.png'),
     label: 'First Aid Chat',
     route: '/(people)/chatbot',
     accentColor: '#0284C7',
   },
   {
     key: 'alerts',
-    image: require('../../assets/Map.PNG'),
+    image: require('../../assets/Map.png'),
     label: 'Disaster Map',
     route: '/(people)/dashboard',
     accentColor: '#2563EB',
