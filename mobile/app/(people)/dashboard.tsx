@@ -4,12 +4,14 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
+  Image,
   FlatList,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
   Animated,
   Platform,
+  ImageSourcePropType,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -25,44 +27,65 @@ interface AlertItem {
   created_at: string;
 }
 
-const GRID_ITEMS = [
+interface GridItem {
+  key: string;
+  image: ImageSourcePropType;
+  label: string;
+  route: string;
+  accentColor: string;
+}
+
+const GRID_ITEMS: GridItem[] = [
   {
     key: 'help',
-    emoji: '🆘',
-    label: 'Request Help',
-    subtitle: 'Immediate rescue & aid',
+    image: require('../../assets/SOS.PNG'),
+    label: 'SOS Help',
     route: '/(people)/help',
-    badgeColor: Colors.accentLight,
-    badgeBorder: 'rgba(255, 255, 255, 0.15)',
+    accentColor: '#DC2626',
   },
   {
     key: 'hospital',
-    emoji: '🏥',
+    image: require('../../assets/Hospital.PNG'),
     label: 'Find Hospital',
-    subtitle: 'Nearest trauma & care',
     route: '/(people)/locator',
-    badgeColor: Colors.infoLight,
-    badgeBorder: '#BAE6FD',
+    accentColor: '#2563EB',
   },
   {
     key: 'chat',
-    emoji: '💬',
-    label: 'First Aid AI',
-    subtitle: 'Interactive triage bot',
+    image: require('../../assets/Chatbot.PNG'),
+    label: 'First Aid Chat',
     route: '/(people)/chatbot',
-    badgeColor: Colors.ctaLight,
-    badgeBorder: '#A7F3D0',
+    accentColor: '#0284C7',
   },
   {
     key: 'alerts',
-    emoji: '📢',
+    image: require('../../assets/Map.PNG'),
     label: 'Disaster Map',
-    subtitle: 'Live warning radars',
     route: '/(people)/dashboard',
-    badgeColor: Colors.amberLight,
-    badgeBorder: '#FDE68A',
+    accentColor: '#2563EB',
   },
 ];
+
+/* ------------------------------------------------------------------ */
+/*  Fade overlay — simulates a top-to-bottom gradient (clear → white) */
+/*  by stacking thin bands of increasing opacity                      */
+/* ------------------------------------------------------------------ */
+function FadeOverlay() {
+  const BANDS = 8;
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {Array.from({ length: BANDS }).map((_, i) => (
+        <View
+          key={i}
+          style={{
+            flex: 1,
+            backgroundColor: `rgba(255,255,255,${(i / BANDS) * 0.95})`,
+          }}
+        />
+      ))}
+    </View>
+  );
+}
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -183,12 +206,39 @@ export default function DashboardScreen() {
     );
   };
 
+  const renderGridCell = (item: GridItem) => (
+    <TouchableOpacity
+      key={item.key}
+      style={styles.gridCell}
+      onPress={() => router.push(item.route as any)}
+      activeOpacity={0.7}
+    >
+      {/* Logo image – visible & clear at the top */}
+      <Image source={item.image} style={styles.gridImage} resizeMode="contain" />
+
+      {/* Fade overlay: transparent at top → white at bottom */}
+      <FadeOverlay />
+
+      {/* Label pinned to the bottom, always visible */}
+      <View style={styles.gridLabelContainer}>
+        <Text style={[styles.gridLabel, { color: item.accentColor }]}>
+          {item.label}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Top Bar */}
       <View style={styles.header}>
         <View>
-          <View style={styles.brandRow}>
+          <View style={styles.headerBrand}>
+            <Image
+              source={require('../../assets/Resqai.jpeg')}
+              style={styles.headerLogo}
+              resizeMode="contain"
+            />
             <Text style={styles.headerTitle}>ResQAI</Text>
             <View style={styles.livePulseDot} />
             <Text style={styles.liveBadge}>LIVE RELIEF</Text>
@@ -222,36 +272,10 @@ export default function DashboardScreen() {
       {/* 2x2 Tactical Grid */}
       <View style={styles.grid}>
         <View style={styles.gridRow}>
-          {GRID_ITEMS.slice(0, 2).map((item) => (
-            <TouchableOpacity
-              key={item.key}
-              style={styles.gridCell}
-              onPress={() => router.push(item.route as any)}
-              activeOpacity={0.75}
-            >
-              <View style={[styles.gridIconCircle, { backgroundColor: item.badgeColor, borderColor: item.badgeBorder }]}>
-                <Text style={styles.gridEmoji}>{item.emoji}</Text>
-              </View>
-              <Text style={styles.gridLabel}>{item.label}</Text>
-              <Text style={styles.gridSubtitle}>{item.subtitle}</Text>
-            </TouchableOpacity>
-          ))}
+          {GRID_ITEMS.slice(0, 2).map(renderGridCell)}
         </View>
         <View style={styles.gridRow}>
-          {GRID_ITEMS.slice(2, 4).map((item) => (
-            <TouchableOpacity
-              key={item.key}
-              style={styles.gridCell}
-              onPress={() => router.push(item.route as any)}
-              activeOpacity={0.75}
-            >
-              <View style={[styles.gridIconCircle, { backgroundColor: item.badgeColor, borderColor: item.badgeBorder }]}>
-                <Text style={styles.gridEmoji}>{item.emoji}</Text>
-              </View>
-              <Text style={styles.gridLabel}>{item.label}</Text>
-              <Text style={styles.gridSubtitle}>{item.subtitle}</Text>
-            </TouchableOpacity>
-          ))}
+          {GRID_ITEMS.slice(2, 4).map(renderGridCell)}
         </View>
       </View>
 
@@ -302,6 +326,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  headerBrand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerLogo: {
+    width: 32,
+    height: 32,
   },
   headerTitle: {
     fontSize: 26,
@@ -420,43 +453,43 @@ const styles = StyleSheet.create({
   },
   gridCell: {
     flex: 1,
-    ...Glass.card,
-    paddingVertical: 18,
-    paddingHorizontal: 14,
-    alignItems: 'flex-start',
+    height: 150,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+    position: 'relative',
+    borderRadius: 12,
+    margin: 4,
+    /* subtle shadow for depth */
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  gridIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.30)',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  gridImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  gridLabelContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    backgroundColor: 'rgba(255,255,255,0.92)',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-    ...(Platform.OS === 'web'
-      ? ({
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.35)',
-        } as any)
-      : {}),
-  },
-  gridEmoji: {
-    fontSize: 22,
   },
   gridLabel: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-    color: '#FFFFFF',
-  },
-  gridSubtitle: {
-    fontSize: 11,
-    fontFamily: Fonts.semiBold,
-    color: '#FFFFFF',
-    marginTop: 2,
-    opacity: 0.9,
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 0.3,
   },
   alertsSection: {
     flex: 1,
@@ -579,3 +612,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
 });
+
