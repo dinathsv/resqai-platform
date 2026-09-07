@@ -93,9 +93,15 @@ async def first_aid_chat(req: FirstAidRequest):
 
     reply = await call_llm(system_prompt, req.message, max_tokens=1024)
 
+    fallback_replies = {
+        "en": "Please call 1990 Suwa Seriya immediately for emergency assistance.",
+        "si": "හදිසි අවස්ථාවක් සඳහා කරුණාකර වහාම 1990 සුව සැරිය අමතන්න.",
+        "ta": "அவசர உதவிக்கு உடனடியாக 1990 சுவ செரியாவை அழைக்கவும்."
+    }
+
     if not reply:
         return {
-            "reply": "Please call 1990 Suwa Seriya immediately for emergency assistance.",
+            "reply": fallback_replies.get(lang, fallback_replies["en"]),
             "language_detected": lang,
             "show_1990": True,
             "is_critical": True
