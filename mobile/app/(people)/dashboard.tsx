@@ -1,23 +1,21 @@
-
-
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
-  Image,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
-  Animated,
+  ScrollView,
   Platform,
-  ImageSourcePropType,
+  Linking,
+  Dimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { connectSocket, disconnectSocket } from '../../config/socket';
-import { Colors, Fonts, Glass } from '../../constants/theme';
+import { Colors, Fonts } from '../../constants/theme';
+import BottomNav from '../../components/BottomNav';
 
 interface AlertItem {
   alert_id: string;
@@ -25,73 +23,21 @@ interface AlertItem {
   severity: number;
   district: string;
   created_at: string;
-}
-
-interface GridItem {
-  key: string;
-  image: ImageSourcePropType;
-  label: string;
-  route: string;
-  accentColor: string;
-}
-
-const GRID_ITEMS: GridItem[] = [
-  {
-    key: 'help',
-    image: require('../../assets/SOS.png'),
-    label: 'SOS Help',
-    route: '/(people)/help',
-    accentColor: '#DC2626',
-  },
-  {
-    key: 'hospital',
-    image: require('../../assets/Hospital.png'),
-    label: 'Find Hospital',
-    route: '/(people)/locator',
-    accentColor: '#2563EB',
-  },
-  {
-    key: 'chat',
-    image: require('../../assets/Chatbot.png'),
-    label: 'First Aid Chat',
-    route: '/(people)/chatbot',
-    accentColor: '#0284C7',
-  },
-  {
-    key: 'alerts',
-    image: require('../../assets/Map.png'),
-    label: 'Disaster Map',
-    route: '/(people)/dashboard',
-    accentColor: '#2563EB',
-  },
-];
-
-/* ------------------------------------------------------------------ */
-/*  Fade overlay — simulates a top-to-bottom gradient (clear → white) */
-/*  by stacking thin bands of increasing opacity                      */
-/* ------------------------------------------------------------------ */
-function FadeOverlay() {
-  const BANDS = 8;
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {Array.from({ length: BANDS }).map((_, i) => (
-        <View
-          key={i}
-          style={{
-            flex: 1,
-            backgroundColor: `rgba(255,255,255,${(i / BANDS) * 0.95})`,
-          }}
-        />
-      ))}
-    </View>
-  );
+  description?: string;
 }
 
 export default function DashboardScreen() {
   const router = useRouter();
   const [userName, setUserName] = useState<string>('');
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
-  const flashAnim = useRef(new Animated.Value(0)).current;
+  const [topAlert, setTopAlert] = useState<{
+    title: string;
+    description: string;
+    id?: string;
+  }>({
+    title: 'Flood Alert',
+    description: 'Heavy rainfall and strong winds in western province',
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -101,13 +47,23 @@ export default function DashboardScreen() {
         const meRes = await apiFetch('/api/auth/me');
         if (meRes.ok) {
           const meData = await meRes.json();
-          if (mounted) setUserName(meData.full_name || 'User');
+          if (mounted) setUserName(meData.full_name || 'Vithu');
         }
 
         const alertsRes = await apiFetch('/api/alerts');
         if (alertsRes.ok) {
           const alertsData = await alertsRes.json();
-          if (mounted) setAlerts(alertsData.alerts || []);
+          if (mounted && alertsData.alerts && alertsData.alerts.length > 0) {
+            setAlerts(alertsData.alerts);
+            const first = alertsData.alerts[0];
+            setTopAlert({
+              title: `${first.disaster_type.toUpperCase()} Alert`,
+              description:
+                first.description ||
+                `Severe conditions reported in ${first.district || 'Western Province'}`,
+              id: first.alert_id,
+            });
+          }
         }
       } catch (err) {
         console.error('Dashboard init error:', err);
@@ -115,7 +71,9 @@ export default function DashboardScreen() {
     }
 
     init();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -124,33 +82,22 @@ export default function DashboardScreen() {
     async function setupSocket() {
       try {
         const socket = await connectSocket();
-
-        if (!socket) {
-          console.warn('Socket not connected, skipping alert listener setup.');
-          return;
-        }
+        if (!socket) return;
 
         const onAlertReceived = (alert: AlertItem) => {
           if (!mounted) return;
           setAlerts((prev) => [alert, ...prev]);
-
-          Animated.sequence([
-            Animated.timing(flashAnim, {
-              toValue: 1,
-              duration: 200,
-              useNativeDriver: false,
-            }),
-            Animated.timing(flashAnim, {
-              toValue: 0,
-              duration: 800,
-              useNativeDriver: false,
-            }),
-          ]).start();
+          setTopAlert({
+            title: `${alert.disaster_type.toUpperCase()} Alert`,
+            description:
+              alert.description ||
+              `Severe conditions reported in ${alert.district || 'Western Province'}`,
+            id: alert.alert_id,
+          });
         };
 
         socket.on('alert_received', onAlertReceived);
         socket.on('emergency_alert', onAlertReceived);
-
       } catch (err) {
         console.error('Socket setup error:', err);
       }
@@ -163,147 +110,205 @@ export default function DashboardScreen() {
     };
   }, []);
 
-  const handleExit = useCallback(async () => {
-    await AsyncStorage.clear();
-    router.replace('/');
-  }, [router]);
-
-  const formatTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const handleCall = (number: string) => {
+    Linking.openURL(`tel:${number}`);
   };
 
-  const getSeverityBadge = (severity: number) => {
-    if (severity >= 4) {
-      return { label: 'CRITICAL', bg: 'rgba(184, 46, 85, 0.35)', text: '#FFFFFF', border: 'rgba(255, 255, 255, 0.20)' };
+  const handleViewAlert = () => {
+    if (topAlert.id) {
+      router.push(`/(people)/alert/${topAlert.id}` as any);
+    } else {
+      router.push('/(people)/locator');
     }
-    if (severity === 3) {
-      return { label: 'ELEVATED', bg: 'rgba(229, 152, 53, 0.25)', text: '#E59835', border: 'rgba(229, 152, 53, 0.40)' };
-    }
-    return { label: 'ADVISORY', bg: 'rgba(255, 255, 255, 0.10)', text: '#F3D6DE', border: 'rgba(255, 255, 255, 0.12)' };
   };
-
-  const renderAlertItem = ({ item }: { item: AlertItem }) => {
-    const badge = getSeverityBadge(item.severity);
-    return (
-      <TouchableOpacity
-        style={styles.alertCard}
-        onPress={() => router.push(`/(people)/alert/${item.alert_id}` as any)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.alertTopLine}>
-          <View style={[styles.severityPill, { backgroundColor: badge.bg, borderColor: badge.border }]}>
-            <Text style={[styles.severityPillText, { color: badge.text }]}>{badge.label}</Text>
-          </View>
-          <Text style={styles.alertTime}>{formatTime(item.created_at)}</Text>
-        </View>
-
-        <View style={styles.alertContent}>
-          <Text style={styles.alertType}>{item.disaster_type.toUpperCase()}</Text>
-          <Text style={styles.alertDistrict}>📍 {item.district || 'All Island'}</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderGridCell = (item: GridItem) => (
-    <TouchableOpacity
-      key={item.key}
-      style={styles.gridCell}
-      onPress={() => router.push(item.route as any)}
-      activeOpacity={0.7}
-    >
-      {/* Logo image – visible & clear at the top */}
-      <Image source={item.image} style={styles.gridImage} resizeMode="contain" />
-
-      {/* Fade overlay: transparent at top → white at bottom */}
-      <FadeOverlay />
-
-      {/* Label pinned to the bottom, always visible */}
-      <View style={styles.gridLabelContainer}>
-        <Text style={[styles.gridLabel, { color: item.accentColor }]}>
-          {item.label}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Top Bar */}
-      <View style={styles.header}>
-        <View>
-          <View style={styles.headerBrand}>
-            <Image
-              source={require('../../assets/Resqai.jpeg')}
-              style={styles.headerLogo}
-              resizeMode="contain"
-            />
-            <Text style={styles.headerTitle}>ResQAI</Text>
-            <View style={styles.livePulseDot} />
-            <Text style={styles.liveBadge}>LIVE RELIEF</Text>
-          </View>
-          <Text style={styles.welcome}>Hello, {userName || 'Citizen'}</Text>
-        </View>
-
-        <TouchableOpacity onPress={handleExit} style={styles.exitButton} activeOpacity={0.7}>
-          <Text style={styles.headerExit}>Sign Out</Text>
+      {/* Top Header matching Image 3 */}
+      <View style={styles.topHeader}>
+        <TouchableOpacity
+          style={styles.headerIconButton}
+          onPress={() => router.push('/(people)/activities')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.dotsIcon}>⋮</Text>
         </TouchableOpacity>
+
+        <View style={styles.headerTitleGroup}>
+          <Text style={styles.headerBrand}>ResQAi</Text>
+          <Text style={styles.headerSub}>
+            Ai powered Real-Time Disaster Relief Platform
+          </Text>
+        </View>
+
+        <View style={styles.headerSpacer} />
       </View>
 
-      {/* Emergency Quick SOS Banner */}
-      <TouchableOpacity
-        style={styles.emergencyBanner}
-        onPress={() => router.push('/(people)/help')}
-        activeOpacity={0.85}
+      <ScrollView
+        style={styles.scrollContent}
+        contentContainerStyle={styles.scrollInner}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.sosIconCircle}>
-          <Text style={styles.sosEmoji}>🚑</Text>
-        </View>
-        <View style={styles.sosContent}>
-          <Text style={styles.sosHeading}>In Danger? Tap for SOS</Text>
-          <Text style={styles.sosSub}>Call 1990 Ambulance & send live GPS triage</Text>
-        </View>
-        <View style={styles.sosChevronWrap}>
-          <Text style={styles.sosChevron}>→</Text>
-        </View>
-      </TouchableOpacity>
+        {/* Disaster Alert Banner matching Image 3 */}
+        <View style={styles.alertBanner}>
+          <View style={styles.alertBannerRow}>
+            {/* Warning triangle in glowing circular container */}
+            <View style={styles.alertIconCircle}>
+              <View style={styles.warningTriangleOuter}>
+                <Text style={styles.warningExclamation}>⚠️</Text>
+              </View>
+            </View>
 
-      {/* 2x2 Tactical Grid */}
-      <View style={styles.grid}>
-        <View style={styles.gridRow}>
-          {GRID_ITEMS.slice(0, 2).map(renderGridCell)}
-        </View>
-        <View style={styles.gridRow}>
-          {GRID_ITEMS.slice(2, 4).map(renderGridCell)}
-        </View>
-      </View>
+            {/* Alert Texts */}
+            <View style={styles.alertTextWrap}>
+              <Text style={styles.alertHeading}>{topAlert.title}</Text>
+              <Text style={styles.alertBody}>{topAlert.description}</Text>
+            </View>
+          </View>
 
-      {/* Active Alerts Section */}
-      <View style={styles.alertsSection}>
-        <View style={styles.alertsHeaderRow}>
-          <Text style={styles.alertsHeading}>Active Alerts</Text>
-          <View style={styles.alertCountBadge}>
-            <Text style={styles.alertCountText}>{alerts.length}</Text>
+          {/* View Button */}
+          <View style={styles.alertActionRow}>
+            <TouchableOpacity
+              style={styles.viewAlertPill}
+              onPress={handleViewAlert}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.viewAlertText}>View</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {alerts.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🛡️</Text>
-            <Text style={styles.emptyTitle}>No Active Hazards</Text>
-            <Text style={styles.noAlerts}>No active severe warnings reported in your district.</Text>
+        {/* Quick Actions Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+        </View>
+
+        <View style={styles.quickActionsRow}>
+          {/* Card 1: SOS Emergency Request */}
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(people)/help')}
+            activeOpacity={0.75}
+          >
+            <View style={styles.sosCircle}>
+              <Text style={styles.sosCircleText}>SOS</Text>
+            </View>
+            <Text style={styles.actionLabel}>Emergency{'\n'}Request</Text>
+          </TouchableOpacity>
+
+          {/* Card 2: Nearest Hospitals */}
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(people)/locator')}
+            activeOpacity={0.75}
+          >
+            <View style={styles.actionIconBox}>
+              <Text style={styles.actionEmoji}>🏥</Text>
+            </View>
+            <Text style={styles.actionLabel}>Nearest{'\n'}Hospitals</Text>
+          </TouchableOpacity>
+
+          {/* Card 3: AI First Aid Assistant */}
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(people)/chatbot')}
+            activeOpacity={0.75}
+          >
+            <View style={styles.aiHexBadge}>
+              <View style={styles.aiHexInner}>
+                <Text style={styles.aiHexText}>AI</Text>
+              </View>
+            </View>
+            <Text style={styles.actionLabel}>Ai First aid{'\n'}Assistant</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Map Preview matching Image 3 */}
+        <TouchableOpacity
+          style={styles.mapContainer}
+          onPress={() => router.push('/(people)/locator')}
+          activeOpacity={0.9}
+        >
+          {/* Stylized dark-mode road network background */}
+          <View style={styles.mapGridBackground}>
+            {/* Road lines simulation */}
+            <View style={styles.mapRoad1} />
+            <View style={styles.mapRoad2} />
+            <View style={styles.mapRoad3} />
+            <View style={styles.mapRoad4} />
+            <View style={styles.mapRoad5} />
+            <View style={styles.mapRoad6} />
+            <View style={styles.mapRoadCurve1} />
+            <View style={styles.mapRoadCurve2} />
+
+            {/* Glowing Red Location Pins matching Image 3 */}
+            <View style={[styles.mapPinWrap, { top: '22%', left: '26%' }]}>
+              <Text style={styles.mapPin}>📍</Text>
+            </View>
+            <View style={[styles.mapPinWrap, { top: '56%', left: '38%' }]}>
+              <Text style={styles.mapPin}>📍</Text>
+            </View>
+            <View style={[styles.mapPinWrap, { top: '57%', left: '53%' }]}>
+              <Text style={styles.mapPin}>📍</Text>
+            </View>
+            <View style={[styles.mapPinWrap, { top: '68%', left: '51%' }]}>
+              <Text style={styles.mapPin}>📍</Text>
+            </View>
+            <View style={[styles.mapPinWrap, { top: '55%', left: '64%' }]}>
+              <Text style={styles.mapPin}>📍</Text>
+            </View>
           </View>
-        ) : (
-          <FlatList
-            data={alerts}
-            keyExtractor={(item) => item.alert_id}
-            renderItem={renderAlertItem}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.alertsList}
-          />
-        )}
-      </View>
+        </TouchableOpacity>
+
+        {/* Emergency Numbers Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Emergency Numbers</Text>
+        </View>
+
+        <View style={styles.emergencyRow}>
+          {/* 1990 Suwa Seriya */}
+          <TouchableOpacity
+            style={styles.emergencyCard}
+            onPress={() => handleCall('1990')}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.emergencyNumber}>1990</Text>
+            <Text style={styles.emergencyName}>Suwa Seriya</Text>
+            <View style={styles.emergencyIconWrap}>
+              <Text style={styles.ambulanceIcon}>🚑</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* 110 Fire Service */}
+          <TouchableOpacity
+            style={styles.emergencyCard}
+            onPress={() => handleCall('110')}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.emergencyNumber}>110</Text>
+            <Text style={styles.emergencyName}>Fire Service</Text>
+            <View style={styles.emergencyIconWrap}>
+              <Text style={styles.fireIcon}>🔥</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* 119 Police */}
+          <TouchableOpacity
+            style={styles.emergencyCard}
+            onPress={() => handleCall('119')}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.emergencyNumber}>119</Text>
+            <Text style={styles.emergencyName}>Police</Text>
+            <View style={styles.emergencyIconWrap}>
+              <Text style={styles.policeIcon}>👮</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {/* Bottom Navigation */}
+      <BottomNav currentTab="home" />
     </SafeAreaView>
   );
 }
@@ -311,305 +316,387 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: '#FFFFFF',
   },
-  header: {
+  topHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 10,
-    backgroundColor: 'transparent',
+    paddingTop: Platform.OS === 'ios' ? 8 : 14,
+    paddingBottom: 8,
+    backgroundColor: '#FFFFFF',
   },
-  brandRow: {
-    flexDirection: 'row',
+  headerIconButton: {
+    width: 36,
+    height: 36,
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+  },
+  dotsIcon: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  headerTitleGroup: {
+    alignItems: 'center',
   },
   headerBrand: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerLogo: {
-    width: 32,
-    height: 32,
-  },
-  headerTitle: {
-    fontSize: 26,
+    fontSize: 21,
     fontFamily: Fonts.bold,
-    color: '#FFFFFF',
+    color: '#DC2626',
+    fontWeight: '800',
     letterSpacing: -0.5,
   },
-  livePulseDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#F47294',
-  },
-  liveBadge: {
-    fontSize: 10,
-    fontFamily: Fonts.bold,
-    color: '#F47294',
-    letterSpacing: 0.8,
-  },
-  welcome: {
-    fontSize: 14,
-    fontFamily: Fonts.semiBold,
-    color: '#FFFFFF',
-    marginTop: 2,
-    opacity: 0.95,
-  },
-  exitButton: {
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.30)',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    ...(Platform.OS === 'web'
-      ? ({
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.35)',
-        } as any)
-      : {}),
-  },
-  headerExit: {
-    fontSize: 12,
-    fontFamily: Fonts.bold,
-    color: '#FFFFFF',
-  },
-  emergencyBanner: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 14,
-    ...Glass.cardUrgent,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sosIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.10)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    ...(Platform.OS === 'web'
-      ? ({
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.3)',
-        } as any)
-      : {}),
-  },
-  sosEmoji: {
-    fontSize: 22,
-  },
-  sosContent: {
-    flex: 1,
-  },
-  sosHeading: {
-    fontSize: 15,
-    fontFamily: Fonts.bold,
-    color: '#FFFFFF',
-  },
-  sosSub: {
-    fontSize: 12,
-    fontFamily: Fonts.semiBold,
-    color: '#FFFFFF',
-    marginTop: 1,
-    opacity: 0.95,
-  },
-  sosChevronWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.10)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sosChevron: {
-    fontSize: 16,
-    fontFamily: Fonts.bold,
-    color: '#FFFFFF',
-  },
-  grid: {
-    paddingHorizontal: 16,
-    marginBottom: 14,
-    gap: 10,
-  },
-  gridRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  gridCell: {
-    flex: 1,
-    height: 150,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-    position: 'relative',
-    borderRadius: 12,
-    margin: 4,
-    /* subtle shadow for depth */
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  gridImage: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-  },
-  gridLabelContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    alignItems: 'center',
-  },
-  gridLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    textAlign: 'center',
-    letterSpacing: 0.3,
-  },
-  alertsSection: {
-    flex: 1,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    ...Glass.card,
-    padding: 18,
-  },
-  alertsHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  alertsHeading: {
-    fontSize: 16,
-    fontFamily: Fonts.bold,
-    color: '#FFFFFF',
-  },
-  alertCountBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.10)',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.30)',
-  },
-  alertCountText: {
-    fontSize: 12,
-    fontFamily: Fonts.bold,
-    color: '#FFFFFF',
-  },
-  alertsList: {
-    gap: 10,
-  },
-  alertCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.22)',
-    borderRadius: 16,
-    padding: 14,
-    ...(Platform.OS === 'web'
-      ? ({
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.30)',
-        } as any)
-      : {}),
-  },
-  alertTopLine: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  severityPill: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  severityPillText: {
-    fontSize: 10,
-    fontFamily: Fonts.bold,
-    letterSpacing: 0.5,
-  },
-  alertContent: {
-    flex: 1,
-  },
-  alertType: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-    color: '#FFFFFF',
-  },
-  alertDistrict: {
-    fontSize: 12,
-    fontFamily: Fonts.semiBold,
-    color: '#FFFFFF',
-    marginTop: 2,
-    opacity: 0.9,
-  },
-  alertTime: {
+  headerSub: {
     fontSize: 11,
-    fontFamily: Fonts.semiBold,
-    color: '#FFFFFF',
-    opacity: 0.8,
+    fontFamily: Fonts.medium,
+    color: '#64748B',
+    marginTop: 1,
   },
-  emptyState: {
+  headerSpacer: {
+    width: 36,
+  },
+  scrollContent: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scrollInner: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 24,
+  },
+
+  /* Alert Banner */
+  alertBanner: {
+    backgroundColor: '#DC2626',
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 14,
+    marginBottom: 18,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 16,
+    elevation: 4,
+    ...(Platform.OS === 'web'
+      ? ({
+          backgroundImage: 'linear-gradient(135deg, #E01E2E 0%, #B91C1C 100%)',
+          boxShadow: '0 8px 24px rgba(220, 38, 38, 0.25)',
+        } as any)
+      : {}),
+  },
+  alertBannerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  alertIconCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 28,
+    marginRight: 14,
   },
-  emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.30)',
+  warningTriangleOuter: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
   },
-  emptyIcon: {
+  warningExclamation: {
     fontSize: 32,
   },
-  emptyTitle: {
-    fontSize: 15,
+  alertTextWrap: {
+    flex: 1,
+  },
+  alertHeading: {
+    fontSize: 20,
     fontFamily: Fonts.bold,
+    fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 4,
   },
-  noAlerts: {
+  alertBody: {
+    fontSize: 12.5,
+    fontFamily: Fonts.medium,
+    color: '#FFE4E6',
+    lineHeight: 17,
+  },
+  alertActionRow: {
+    alignItems: 'flex-end',
+    marginTop: 8,
+  },
+  viewAlertPill: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 6,
+    paddingHorizontal: 22,
+    borderRadius: 20,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  viewAlertText: {
     fontSize: 13,
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.bold,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+
+  /* Section Header */
+  sectionHeader: {
+    marginBottom: 10,
+    marginTop: 4,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.3,
+  },
+
+  /* Quick Actions */
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  actionCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingVertical: 18,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 4px 16px rgba(15, 23, 42, 0.06)',
+        } as any)
+      : {}),
+  },
+  sosCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  sosCircleText: {
     color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  actionIconBox: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  actionEmoji: {
+    fontSize: 32,
+  },
+  aiHexBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+  },
+  aiHexInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiHexText: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  actionLabel: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    fontWeight: '700',
+    color: '#0F172A',
     textAlign: 'center',
-    opacity: 0.85,
-    lineHeight: 18,
-    paddingHorizontal: 20,
+    lineHeight: 16,
+  },
+
+  /* Dark Map Preview */
+  mapContainer: {
+    height: 175,
+    borderRadius: 22,
+    overflow: 'hidden',
+    backgroundColor: '#111827',
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: '#1F2937',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  mapGridBackground: {
+    flex: 1,
+    backgroundColor: '#121A28',
+    position: 'relative',
+  },
+  mapRoad1: {
+    position: 'absolute',
+    top: -20,
+    left: '20%',
+    width: 3.5,
+    height: 220,
+    backgroundColor: 'rgba(212, 175, 55, 0.45)',
+    transform: [{ rotate: '25deg' }],
+  },
+  mapRoad2: {
+    position: 'absolute',
+    top: 40,
+    left: -20,
+    width: 380,
+    height: 3,
+    backgroundColor: 'rgba(212, 175, 55, 0.45)',
+    transform: [{ rotate: '-8deg' }],
+  },
+  mapRoad3: {
+    position: 'absolute',
+    top: 100,
+    left: -10,
+    width: 400,
+    height: 2.5,
+    backgroundColor: 'rgba(212, 175, 55, 0.35)',
+    transform: [{ rotate: '12deg' }],
+  },
+  mapRoad4: {
+    position: 'absolute',
+    top: -30,
+    left: '60%',
+    width: 3,
+    height: 240,
+    backgroundColor: 'rgba(212, 175, 55, 0.45)',
+    transform: [{ rotate: '-18deg' }],
+  },
+  mapRoad5: {
+    position: 'absolute',
+    top: -10,
+    left: '80%',
+    width: 2.5,
+    height: 220,
+    backgroundColor: 'rgba(212, 175, 55, 0.35)',
+    transform: [{ rotate: '35deg' }],
+  },
+  mapRoad6: {
+    position: 'absolute',
+    top: 140,
+    left: '10%',
+    width: 280,
+    height: 2,
+    backgroundColor: 'rgba(212, 175, 55, 0.30)',
+  },
+  mapRoadCurve1: {
+    position: 'absolute',
+    top: 30,
+    left: '30%',
+    width: 140,
+    height: 100,
+    borderRadius: 70,
+    borderWidth: 2,
+    borderColor: 'rgba(212, 175, 55, 0.30)',
+  },
+  mapRoadCurve2: {
+    position: 'absolute',
+    bottom: -20,
+    left: '45%',
+    width: 120,
+    height: 80,
+    borderRadius: 60,
+    borderWidth: 2,
+    borderColor: 'rgba(212, 175, 55, 0.25)',
+  },
+  mapPinWrap: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapPin: {
+    fontSize: 22,
+  },
+
+  /* Emergency Numbers */
+  emergencyRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  emergencyCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 4px 16px rgba(15, 23, 42, 0.06)',
+        } as any)
+      : {}),
+  },
+  emergencyNumber: {
+    fontSize: 15,
+    fontFamily: Fonts.bold,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  emergencyName: {
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    color: '#475569',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  emergencyIconWrap: {
+    width: 42,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ambulanceIcon: {
+    fontSize: 28,
+  },
+  fireIcon: {
+    fontSize: 28,
+  },
+  policeIcon: {
+    fontSize: 28,
   },
 });
-

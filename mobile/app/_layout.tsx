@@ -54,7 +54,7 @@ function useWebMobileFrame() {
         padding: 0;
         height: 100%;
         width: 100%;
-        background-color: #0E0306;
+        background-color: #0B0F17;
         overflow: hidden;
       }
       #root {
@@ -63,7 +63,7 @@ function useWebMobileFrame() {
         justify-content: center !important;
         height: 100% !important;
         width: 100% !important;
-        background-color: #0E0306;
+        background-color: #0B0F17;
       }
       #root > div {
         display: flex !important;
@@ -74,7 +74,7 @@ function useWebMobileFrame() {
       }
       @media (max-width: 480px) {
         html, body, #root {
-          background-color: #300814;
+          background-color: #F8FAFC;
         }
       }
     `;
@@ -173,24 +173,18 @@ const styles = StyleSheet.create({
           height: '100vh',
           maxHeight: isMobileWeb ? '100vh' : 900,
           overflow: 'hidden',
-          borderRadius: isMobileWeb ? 0 : 32,
-          backgroundColor: '#300814',
-          ...(isWeb
-            ? ({
-                backgroundImage:
-                  'radial-gradient(circle at 85% 15%, rgba(190, 35, 77, 0.45) 0%, transparent 50%), radial-gradient(circle at 15% 85%, rgba(139, 20, 55, 0.40) 0%, transparent 55%), radial-gradient(circle at 50% 50%, rgba(68, 12, 28, 0.60) 0%, rgba(38, 6, 15, 0.98) 100%)',
-              } as any)
-            : {}),
+          borderRadius: isMobileWeb ? 0 : 36,
+          backgroundColor: '#F8FAFC',
           ...(isMobileWeb
             ? {}
             : {
                 shadowColor: '#000000',
                 shadowOffset: { width: 0, height: 25 },
-                shadowOpacity: 0.75,
-                shadowRadius: 80,
-                elevation: 24,
+                shadowOpacity: 0.40,
+                shadowRadius: 50,
+                elevation: 20,
                 borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.16)',
+                borderColor: 'rgba(255, 255, 255, 0.12)',
               }),
         } as any,
       }
