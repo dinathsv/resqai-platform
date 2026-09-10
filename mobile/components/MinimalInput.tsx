@@ -1,7 +1,7 @@
-
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { View, Text, TextInput, StyleSheet, KeyboardTypeOptions } from 'react-native'
-import { Colors, Fonts, Glass } from '../constants/theme'
+import { Fonts } from '../constants/theme'
+import { useTheme } from '../context/ThemeContext'
 
 interface MinimalInputProps {
   label: string
@@ -22,20 +22,33 @@ export default function MinimalInput({
   secureTextEntry = false,
   maxLength,
 }: MinimalInputProps) {
-  const [isFocused, setIsFocused] = useState(false);
+  const { theme } = useTheme()
+  const [isFocused, setIsFocused] = useState(false)
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, isFocused && styles.labelFocused]}>{label}</Text>
+      <Text
+        style={[
+          styles.label,
+          { color: isFocused ? theme.brandActive : theme.textSecondary },
+          isFocused && { fontFamily: Fonts.semiBold },
+        ]}
+      >
+        {label}
+      </Text>
       <TextInput
         style={[
           styles.input,
-          isFocused && styles.inputFocused,
+          {
+            backgroundColor: theme.inputBg,
+            borderColor: isFocused ? theme.brandActive : theme.inputBorder,
+            color: theme.textPrimary,
+          },
         ]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={Colors.textMuted}
+        placeholderTextColor={theme.textMuted}
         keyboardType={keyboardType}
         secureTextEntry={secureTextEntry}
         maxLength={maxLength}
@@ -53,28 +66,14 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontFamily: Fonts.medium,
-    color: Colors.textSecondary,
     marginBottom: 6,
   },
-  labelFocused: {
-    color: Colors.accent,
-    fontFamily: Fonts.semiBold,
-  },
   input: {
-    ...Glass.input,
     paddingVertical: 13,
     paddingHorizontal: 16,
     fontSize: 15,
     fontFamily: Fonts.regular,
-    color: Colors.textPrimary,
-    backgroundColor: Colors.surface,
-  },
-  inputFocused: {
-    borderColor: Colors.accent,
-    shadowColor: Colors.accent,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
+    borderRadius: 14,
+    borderWidth: 1.5,
   },
 })

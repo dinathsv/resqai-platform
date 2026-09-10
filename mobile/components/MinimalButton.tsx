@@ -1,6 +1,4 @@
-
-
-import React from 'react'
+﻿import React from 'react'
 import {
   TouchableOpacity,
   Text,
@@ -8,7 +6,9 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native'
-import { Colors, Fonts } from '../constants/theme'
+import { ThemeTokens } from '../constants/theme'
+import { useTheme } from '../context/ThemeContext'
+import { Fonts } from '../constants/theme'
 
 interface MinimalButtonProps {
   title: string
@@ -29,9 +29,20 @@ export default function MinimalButton({
   textStyle,
   disabled = false,
 }: MinimalButtonProps) {
+  const { theme } = useTheme()
   const isCta = variant === 'cta'
   const isPrimary = variant === 'primary'
   const isOutline = variant === 'outline'
+
+  const bgColor = isCta
+    ? theme.emergency
+    : isPrimary
+    ? theme.brandActive
+    : theme.surface
+
+  const borderColor = isOutline ? theme.border : 'rgba(255,255,255,0.20)'
+  const textColor = isOutline ? theme.textPrimary : '#FFFFFF'
+  const shadowColor = isCta ? theme.emergency : isPrimary ? theme.brandActive : '#000000'
 
   return (
     <TouchableOpacity
@@ -40,9 +51,13 @@ export default function MinimalButton({
       activeOpacity={0.7}
       style={[
         styles.base,
-        isPrimary && styles.primary,
-        isOutline && styles.outline,
-        isCta && styles.cta,
+        {
+          backgroundColor: bgColor,
+          borderColor,
+          borderWidth: isOutline ? 1.5 : 1,
+          shadowColor,
+          shadowOpacity: isOutline ? 0.04 : 0.28,
+        },
         small && styles.small,
         disabled && styles.disabled,
         style,
@@ -51,9 +66,7 @@ export default function MinimalButton({
       <Text
         style={[
           styles.text,
-          isPrimary && styles.primaryText,
-          isOutline && styles.outlineText,
-          isCta && styles.ctaText,
+          { color: textColor, fontFamily: Fonts.semiBold },
           small && styles.smallText,
           textStyle,
         ]}
@@ -72,36 +85,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-  },
-  primary: {
-    backgroundColor: Colors.accent,
-    shadowColor: Colors.accent,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.28,
     shadowRadius: 10,
     elevation: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  outline: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1.5,
-    borderColor: Colors.borderDark,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  cta: {
-    backgroundColor: Colors.cta,
-    shadowColor: Colors.cta,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.28,
-    shadowRadius: 10,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   small: {
     paddingVertical: 9,
@@ -113,19 +99,9 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 15,
-    fontFamily: Fonts.semiBold,
     letterSpacing: 0.2,
-  },
-  primaryText: {
-    color: Colors.white,
-  },
-  outlineText: {
-    color: Colors.textPrimary,
-  },
-  ctaText: {
-    color: Colors.white,
   },
   smallText: {
     fontSize: 13,
   },
-});
+})

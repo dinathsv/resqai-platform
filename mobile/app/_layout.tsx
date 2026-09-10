@@ -1,6 +1,4 @@
-
-
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,38 +22,41 @@ import {
   Montserrat_600SemiBold,
   Montserrat_700Bold,
 } from '@expo-google-fonts/montserrat';
-import { Colors, Fonts } from '../constants/theme';
+import { Fonts } from '../constants/theme';
+import { ThemeProvider, useTheme } from '../context/ThemeContext';
 
 const isWeb = Platform.OS === 'web';
 
-/**
- * On web: inject global styles to create the dark background
- * and constrain the app to a mobile phone frame.
- */
 function useWebMobileFrame() {
   useEffect(() => {
     if (!isWeb) return;
-
-    // Load Apple SF Pro font on web
     const fontLink = document.createElement('link');
     fontLink.rel = 'stylesheet';
     fontLink.href = 'https://fonts.cdnfonts.com/css/sf-pro-display';
     document.head.appendChild(fontLink);
-
     const style = document.createElement('style');
     style.textContent = `
       * {
         font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", system-ui, sans-serif !important;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+      }
+      *::-webkit-scrollbar {
+        width: 0 !important;
+        height: 0 !important;
+        display: none !important;
       }
       html, body {
         margin: 0;
         padding: 0;
         height: 100%;
         width: 100%;
-        background-color: #0B0F17;
+        background-color: #1A2624;
         overflow: hidden;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
       }
       #root {
         display: flex !important;
@@ -63,7 +64,7 @@ function useWebMobileFrame() {
         justify-content: center !important;
         height: 100% !important;
         width: 100% !important;
-        background-color: #0B0F17;
+        background-color: #1A2624;
       }
       #root > div {
         display: flex !important;
@@ -74,26 +75,23 @@ function useWebMobileFrame() {
       }
       @media (max-width: 480px) {
         html, body, #root {
-          background-color: #F8FAFC;
+          background-color: #34383A;
         }
       }
     `;
     document.head.appendChild(style);
-
     return () => {
       document.head.removeChild(style);
-      if (fontLink.parentNode) {
-        fontLink.parentNode.removeChild(fontLink);
-      }
+      if (fontLink.parentNode) fontLink.parentNode.removeChild(fontLink);
     };
   }, []);
 }
 
-export default function RootLayout() {
+// Inner layout that can read theme from context
+function AppLayout() {
   const { isOnline } = useNetworkSync();
   const router = useRouter();
-
-  useWebMobileFrame();
+  const { theme } = useTheme();
 
   const [fontsLoaded] = useFonts({
     Montserrat_400Regular,
@@ -111,18 +109,18 @@ export default function RootLayout() {
 
   if (!fontsLoaded) {
     return (
-      <View style={[styles.loadingRoot, isWeb && styles.webFrame]}>
-        <ActivityIndicator size="large" color={Colors.accent} />
+      <View style={[styles.loadingRoot, isWeb && styles.webFrame, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.brandActive} />
       </View>
     );
   }
 
   const appContent = (
-    <View style={styles.root}>
-      <StatusBar style="light" />
+    <View style={[styles.root, { backgroundColor: theme.background }]}>
+      <StatusBar style={theme.isDark ? 'light' : 'dark'} />
       {!isOnline && (
-        <View style={styles.offlineBanner}>
-          <Text style={styles.offlineText}>
+        <View style={[styles.offlineBanner, { backgroundColor: theme.brand }]}>
+          <Text style={[styles.offlineText, { color: '#FFFFFF' }]}>
             Offline — requests will sync when connected
           </Text>
         </View>
@@ -131,12 +129,29 @@ export default function RootLayout() {
     </View>
   );
 
-  // On web: wrap in a mobile phone frame container
   if (isWeb) {
-    return <View style={styles.webFrame}>{appContent}</View>;
+    return (
+      <View
+        style={[
+          styles.webFrame,
+          { backgroundColor: theme.background },
+        ]}
+      >
+        {appContent}
+      </View>
+    );
   }
 
   return appContent;
+}
+
+export default function RootLayout() {
+  useWebMobileFrame();
+  return (
+    <ThemeProvider>
+      <AppLayout />
+    </ThemeProvider>
+  );
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -145,22 +160,18 @@ const isMobileWeb = isWeb && screenWidth <= 480;
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: 'transparent',
   },
   loadingRoot: {
     flex: 1,
-    backgroundColor: Colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
   offlineBanner: {
-    backgroundColor: Colors.accent,
     height: 28,
     justifyContent: 'center',
     alignItems: 'center',
   },
   offlineText: {
-    color: Colors.white,
     fontSize: 12,
     fontFamily: Fonts.medium,
     textAlign: 'center',
@@ -174,7 +185,6 @@ const styles = StyleSheet.create({
           maxHeight: isMobileWeb ? '100vh' : 900,
           overflow: 'hidden',
           borderRadius: isMobileWeb ? 0 : 36,
-          backgroundColor: '#F8FAFC',
           ...(isMobileWeb
             ? {}
             : {

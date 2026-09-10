@@ -1,151 +1,269 @@
 import { Platform } from 'react-native';
 
-/**
- * ResQAI Mobile Theme — Modern Clean Disaster Relief & AI Assistant Design System
- * Matches reference screenshots:
- *   - Clean Light Canvas (#F8FAFC / #FFFFFF)
- *   - Vibrant Emergency Brand Red (#DC2626 / #EF4444)
- *   - Midnight Navy (#160B3F / #0F172A) for AI Assistant & User bubbles
- *   - Crisp typography with high legibility
- */
-
-export const Colors = {
-  // Canvas & Surfaces
-  background: '#F8FAFC',
-  surface: '#FFFFFF',
-  surfaceLight: '#F1F5F9',
-  surfaceSubtle: '#F8FAFC',
-  surfaceElevated: '#FFFFFF',
-
-  // Primary & Text
-  primary: '#0F172A',
-  primaryLight: '#1E293B',
-  slateMuted: '#64748B',
-
-  // Brand Emergency Red
-  brandRed: '#DC2626',
-  brandRedDark: '#B91C1C',
-  brandRedLight: '#FEE2E2',
-  brandRedGlow: 'rgba(220, 38, 38, 0.25)',
-
-  // Accent mapping (mapped to brand red for key highlights)
-  accent: '#DC2626',
-  accentDark: '#B91C1C',
-  accentLight: 'rgba(220, 38, 38, 0.12)',
-  accentGlow: 'rgba(220, 38, 38, 0.25)',
-
-  // Midnight Navy (used in AI First-Aid header and user chat bubble)
-  navy: '#160B3F',
-  navyDark: '#0E0628',
-  navyLight: '#241458',
-  navyBubble: '#1B0F48',
-
-  // CTA & Actions
-  cta: '#DC2626',
-  ctaDark: '#B91C1C',
-  ctaLight: 'rgba(220, 38, 38, 0.12)',
-
-  // Specialized Accents & Statuses
-  amberWarning: '#E59835',
-  amberLight: 'rgba(229, 152, 53, 0.18)',
-  infoBlue: '#2563EB',
-  infoLight: 'rgba(37, 99, 235, 0.15)',
-
-  // High-legibility typography
-  textPrimary: '#0F172A',
-  textSecondary: '#475569',
-  textMuted: '#94A3B8',
-  border: '#E2E8F0',
-  borderLight: '#F1F5F9',
-  borderDark: '#CBD5E1',
-  white: '#FFFFFF',
-  black: '#000000',
-  overlay: 'rgba(15, 23, 42, 0.65)',
-
-  // Semantic
-  error: '#DC2626',
-  errorLight: '#FEE2E2',
-  success: '#16A34A',
-  successLight: '#DCFCE7',
-  warning: '#F59E0B',
-  warningLight: '#FEF3C7',
-  info: '#2563EB',
+// ---------------------------------------------
+//  ResQAI Brand Palette (immutable constants)
+// ---------------------------------------------
+export const Brand = {
+  darkGreen:      '#164F43',
+  emeraldGreen:   '#26745F',
+  crimsonRed:     '#B51F2A',
+  brightRed:      '#D52D35',
+  silver:         '#C7C9C9',
+  darkGray:       '#34383A',
+  white:          '#FFFFFF',
 } as const;
 
-/** Apple iOS SF Pro Typography across the system */
+// ---------------------------------------------
+//  Theme token shape
+// ---------------------------------------------
+export type ThemeTokens = {
+  isDark: boolean;
+  background:      string;
+  backgroundDeep:  string;
+  surface:         string;
+  surfaceElevated: string;
+  surfaceSubtle:   string;
+  textPrimary:     string;
+  textSecondary:   string;
+  textMuted:       string;
+  brand:           string;
+  brandActive:     string;
+  emergency:       string;
+  emergencySevere: string;
+  emergencyLight:  string;
+  border:          string;
+  borderSubtle:    string;
+  navBar:          string;
+  navBarBorder:    string;
+  inputBg:         string;
+  inputBorder:     string;
+  overlay:         string;
+  white:           string;
+  silver:          string;
+  success:         string;
+  successLight:    string;
+  warning:         string;
+  warningLight:    string;
+  accent:          string;
+  accentLight:     string;
+  accentDark:      string;
+  primary:         string;
+  textSecondaryOld:string;
+};
+
+// ---------------------------------------------
+//  DARK THEME
+// ---------------------------------------------
+export const darkTheme: ThemeTokens = {
+  isDark: true,
+  background:      '#34383A',
+  backgroundDeep:  '#1A2624',
+  surface:         'rgba(22, 79, 67, 0.40)',
+  surfaceElevated: 'rgba(38, 116, 95, 0.22)',
+  surfaceSubtle:   'rgba(255, 255, 255, 0.05)',
+  textPrimary:     '#FFFFFF',
+  textSecondary:   '#C7C9C9',
+  textMuted:       'rgba(199, 201, 201, 0.65)',
+  brand:           '#164F43',
+  brandActive:     '#26745F',
+  emergency:       '#D52D35',
+  emergencySevere: '#B51F2A',
+  emergencyLight:  'rgba(213, 45, 53, 0.18)',
+  border:          'rgba(38, 116, 95, 0.40)',
+  borderSubtle:    'rgba(255, 255, 255, 0.10)',
+  navBar:          'rgba(26, 38, 36, 0.97)',
+  navBarBorder:    'rgba(38, 116, 95, 0.35)',
+  inputBg:         'rgba(22, 79, 67, 0.30)',
+  inputBorder:     'rgba(38, 116, 95, 0.50)',
+  overlay:         'rgba(0, 0, 0, 0.65)',
+  white:           '#FFFFFF',
+  silver:          '#C7C9C9',
+  success:         '#26745F',
+  successLight:    'rgba(38, 116, 95, 0.20)',
+  warning:         '#E59835',
+  warningLight:    'rgba(229, 152, 53, 0.18)',
+  accent:          '#26745F',
+  accentLight:     'rgba(38, 116, 95, 0.20)',
+  accentDark:      '#164F43',
+  primary:         '#FFFFFF',
+  textSecondaryOld:'#C7C9C9',
+};
+
+// ---------------------------------------------
+//  LIGHT THEME
+// ---------------------------------------------
+export const lightTheme: ThemeTokens = {
+  isDark: false,
+  background:      '#FFFFFF',
+  backgroundDeep:  '#F0F5F3',
+  surface:         '#FFFFFF',
+  surfaceElevated: '#F0F5F3',
+  surfaceSubtle:   '#F8FAF9',
+  textPrimary:     '#34383A',
+  textSecondary:   '#164F43',
+  textMuted:       '#6B7E79',
+  brand:           '#164F43',
+  brandActive:     '#26745F',
+  emergency:       '#D52D35',
+  emergencySevere: '#B51F2A',
+  emergencyLight:  'rgba(213, 45, 53, 0.08)',
+  border:          '#C7C9C9',
+  borderSubtle:    'rgba(22, 79, 67, 0.15)',
+  navBar:          '#FFFFFF',
+  navBarBorder:    '#E8ECEB',
+  inputBg:         '#FFFFFF',
+  inputBorder:     '#C7C9C9',
+  overlay:         'rgba(52, 56, 58, 0.50)',
+  white:           '#FFFFFF',
+  silver:          '#C7C9C9',
+  success:         '#26745F',
+  successLight:    'rgba(38, 116, 95, 0.10)',
+  warning:         '#C07A28',
+  warningLight:    'rgba(192, 122, 40, 0.10)',
+  accent:          '#26745F',
+  accentLight:     'rgba(38, 116, 95, 0.10)',
+  accentDark:      '#164F43',
+  primary:         '#34383A',
+  textSecondaryOld:'#164F43',
+};
+
+// ---------------------------------------------
+//  Backward-compat Colors export
+// ---------------------------------------------
+export const Colors = {
+  background:      darkTheme.background,
+  surface:         '#26745F',
+  surfaceLight:    darkTheme.surfaceSubtle,
+  surfaceSubtle:   darkTheme.surfaceSubtle,
+  surfaceElevated: darkTheme.surfaceElevated,
+  primary:         darkTheme.textPrimary,
+  primaryLight:    darkTheme.textSecondary,
+  slateMuted:      darkTheme.textMuted,
+  brandRed:        '#D52D35',
+  brandRedDark:    '#B51F2A',
+  brandRedLight:   'rgba(213, 45, 53, 0.18)',
+  brandRedGlow:    'rgba(213, 45, 53, 0.25)',
+  accent:          '#26745F',
+  accentDark:      '#164F43',
+  accentLight:     'rgba(38, 116, 95, 0.20)',
+  accentGlow:      'rgba(38, 116, 95, 0.30)',
+  navy:            '#164F43',
+  navyDark:        '#0E3530',
+  navyLight:       '#26745F',
+  navyBubble:      '#164F43',
+  cta:             '#D52D35',
+  ctaDark:         '#B51F2A',
+  ctaLight:        'rgba(213, 45, 53, 0.18)',
+  amberWarning:    '#E59835',
+  amberLight:      'rgba(229, 152, 53, 0.18)',
+  infoBlue:        '#2563EB',
+  infoLight:       'rgba(37, 99, 235, 0.15)',
+  textPrimary:     darkTheme.textPrimary,
+  textSecondary:   darkTheme.textSecondary,
+  textMuted:       darkTheme.textMuted,
+  border:          darkTheme.border,
+  borderLight:     darkTheme.borderSubtle,
+  borderDark:      'rgba(38, 116, 95, 0.60)',
+  white:           '#FFFFFF',
+  black:           '#000000',
+  overlay:         darkTheme.overlay,
+  error:           '#D52D35',
+  errorLight:      'rgba(213, 45, 53, 0.18)',
+  success:         '#26745F',
+  successLight:    'rgba(38, 116, 95, 0.20)',
+  warning:         '#E59835',
+  warningLight:    'rgba(229, 152, 53, 0.18)',
+  info:            '#2563EB',
+} as const;
+
+// ---------------------------------------------
+//  Typography
+// ---------------------------------------------
 const SF_PRO_FAMILY = Platform.select({
-  ios: 'System',
-  web: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", system-ui, sans-serif',
+  ios:     'System',
+  web:     '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", system-ui, sans-serif',
   default: 'System',
 }) as string;
 
 export const Fonts = {
-  regular: SF_PRO_FAMILY,
-  medium: SF_PRO_FAMILY,
+  regular:  SF_PRO_FAMILY,
+  medium:   SF_PRO_FAMILY,
   semiBold: SF_PRO_FAMILY,
-  bold: SF_PRO_FAMILY,
+  bold:     SF_PRO_FAMILY,
 } as const;
 
-/** Clean white cards with refined drop shadows & borders */
-export const Glass = {
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    borderRadius: 20,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    elevation: 2,
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 4px 18px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04)',
-        } as any)
-      : {}),
-  },
-  cardElevated: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 22,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.10,
-    shadowRadius: 20,
-    elevation: 4,
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04)',
-        } as any)
-      : {}),
-  },
-  cardUrgent: {
-    backgroundColor: '#DC2626',
-    borderWidth: 0,
-    borderRadius: 22,
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 18,
-    elevation: 5,
-    ...(Platform.OS === 'web'
-      ? ({
-          backgroundImage: 'linear-gradient(135deg, #DC2626 0%, #EF4444 100%)',
-          boxShadow: '0 8px 24px rgba(220, 38, 38, 0.28)',
-        } as any)
-      : {}),
-  },
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    borderRadius: 24,
-    color: '#0F172A',
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
-        } as any)
-      : {}),
-  },
-} as const;
+// ---------------------------------------------
+//  Glassmorphism helpers (theme-aware)
+// ---------------------------------------------
+export function makeGlass(theme: ThemeTokens) {
+  const blur = Platform.OS === 'web';
+  return {
+    card: {
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 20,
+      shadowColor: theme.isDark ? '#000000' : '#164F43',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: theme.isDark ? 0.35 : 0.06,
+      shadowRadius: 14,
+      elevation: 3,
+      ...(blur ? ({
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        boxShadow: theme.isDark
+          ? '0 4px 20px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.08)'
+          : '0 4px 18px rgba(22,79,67,0.08), 0 1px 3px rgba(22,79,67,0.04)',
+      } as any) : {}),
+    },
+    cardElevated: {
+      backgroundColor: theme.surfaceElevated,
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 22,
+      shadowColor: theme.isDark ? '#000000' : '#164F43',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: theme.isDark ? 0.40 : 0.10,
+      shadowRadius: 20,
+      elevation: 5,
+      ...(blur ? ({
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        boxShadow: theme.isDark
+          ? '0 8px 28px rgba(0,0,0,0.45), inset 0 1px 1px rgba(255,255,255,0.08)'
+          : '0 8px 24px rgba(22,79,67,0.10), 0 2px 6px rgba(22,79,67,0.05)',
+      } as any) : {}),
+    },
+    cardUrgent: {
+      backgroundColor: theme.emergency,
+      borderWidth: 0,
+      borderRadius: 22,
+      shadowColor: theme.emergency,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.35,
+      shadowRadius: 18,
+      elevation: 5,
+      ...(blur ? ({
+        backgroundImage: 'linear-gradient(135deg, #B51F2A 0%, #D52D35 100%)',
+        boxShadow: '0 8px 24px rgba(213,45,53,0.35)',
+      } as any) : {}),
+    },
+    input: {
+      backgroundColor: theme.inputBg,
+      borderWidth: 1.5,
+      borderColor: theme.inputBorder,
+      borderRadius: 24,
+      color: theme.textPrimary,
+      ...(blur ? ({
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        boxShadow: theme.isDark
+          ? '0 2px 8px rgba(0,0,0,0.25)'
+          : '0 2px 8px rgba(22,79,67,0.04)',
+      } as any) : {}),
+    },
+  };
+}
+
+// Backward-compat static Glass (dark theme values)
+export const Glass = makeGlass(darkTheme);
