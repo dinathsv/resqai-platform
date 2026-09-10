@@ -16,7 +16,6 @@ const EXPIRES_OPTIONS = [
 export default function NewAlertPage() {
   const [form, setForm] = useState({
     disaster_type: '',
-    severity: 1,
     zone_wkt: '',
     work_plan: '',
     expires_hours: 24,
@@ -35,21 +34,35 @@ export default function NewAlertPage() {
     setError('');
     setResponseText('');
 
+    const payload = {
+      disaster_type: form.disaster_type,
+      disasterType: form.disaster_type,
+      zone_wkt: form.zone_wkt,
+      affectedZone: form.zone_wkt,
+      work_plan: form.work_plan,
+      workPlan: form.work_plan,
+      expires_hours: form.expires_hours,
+      expiresIn: form.expires_hours,
+      severity: 1,
+      is_draft: isDraft,
+    };
+
     try {
-      const res = await api.post('/api/alerts', {
-        ...form,
-        is_draft: isDraft,
-      });
+      const res = await api.post('/api/alerts', payload);
       const data = res.data;
       setResponseText(
-        `Alert issued. Delivered to ${data.app_count ?? 0} users via app, ${data.sms_count ?? 0} via SMS.`
+        `Alert issued successfully! Delivered to ${data.app_count ?? 0} users via app, ${data.sms_count ?? 0} via SMS.`
       );
     } catch (err: unknown) {
+      console.error('Issue Alert submission error:', err);
       if (err && typeof err === 'object' && 'response' in err) {
-        const axiosErr = err as { response?: { data?: { message?: string } } };
-        setError(axiosErr.response?.data?.message || 'Failed to issue alert');
+        const axiosErr = err as { response?: { status?: number; data?: { error?: string; message?: string } } };
+        console.error('API Response Status:', axiosErr.response?.status);
+        console.error('API Response Data:', axiosErr.response?.data);
+        const detail = axiosErr.response?.data?.error || axiosErr.response?.data?.message;
+        setError(detail ? `Failed to issue alert: ${detail}` : 'Failed to issue alert (Server error)');
       } else {
-        setError('Network error');
+        setError('Network error: Could not reach the server');
       }
     } finally {
       setLoading(false);
@@ -78,34 +91,13 @@ export default function NewAlertPage() {
         </div>
 
         <div className={styles.field}>
-          <label className={styles.label}>Severity Level</label>
-          <div className={styles.severityRow}>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                type="button"
-                className={form.severity === n ? styles.severityBtnActive : styles.severityBtn}
-                onClick={() => update('severity', n)}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-          {form.severity >= 4 && (
-            <div className={styles.criticalWarning}>
-              Critical alert — admins will be notified via SMS
-            </div>
-          )}
-        </div>
-
-        <div className={styles.field}>
           <label className={styles.label} htmlFor="alert-zone">Affected Zone</label>
           <textarea
             id="alert-zone"
             rows={3}
             value={form.zone_wkt}
             onChange={(e) => update('zone_wkt', e.target.value)}
-            placeholder="Colombo, Gampaha or POLYGON((...))    "
+            placeholder="Colombo, Gampaha or POLYGON((...))"
             required
           />
           <div className={styles.helper}>
@@ -144,7 +136,6 @@ export default function NewAlertPage() {
             <span className={styles.previewType}>
               {form.disaster_type || 'Disaster Type'}
             </span>
-            {' | Severity: '}{form.severity}/5
             {form.work_plan && (
               <div className={styles.previewWorkPlan}>
                 {form.work_plan.slice(0, 100)}{form.work_plan.length > 100 ? '...' : ''}

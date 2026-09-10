@@ -16,6 +16,7 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { Colors, Fonts } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import TopBar from '../../components/TopBar';
 
 interface Hospital {
@@ -35,6 +36,7 @@ const EMERGENCY_TYPES = ['Medical', 'Flood', 'Accident', 'Fire', 'Trapped'];
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 
 export default function LocatorScreen() {
+  const { theme } = useTheme();
   const router = useRouter();
   const [userLocation, setUserLocation] = useState<{
     lat: number;
@@ -345,7 +347,7 @@ export default function LocatorScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Professional Top Bar with Back and 3-Dot Navigation Menu */}
       <TopBar title="Find Emergency Care" showBack onBack={handleBack} />
 

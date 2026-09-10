@@ -1,6 +1,6 @@
 .statsRow {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-bottom: 28px;
 }
@@ -13,7 +13,7 @@
   box-shadow: var(--shadow-card);
   position: relative;
   overflow: hidden;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, var(--transition-theme);
 }
 
 .statBox:hover {
@@ -52,21 +52,37 @@
 
 .statIcon {
   font-size: 20px;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.04);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 144, 255, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid rgba(0, 144, 255, 0.2);
+  transition: var(--transition-theme);
+}
+
+.statBoxCritical .statIcon {
+  background: var(--status-critical-bg);
+  border-color: var(--status-critical-border);
+}
+
+.statBoxWarning .statIcon {
+  background: var(--status-warning-bg);
+  border-color: var(--status-warning-border);
+}
+
+.statBoxSuccess .statIcon {
+  background: var(--status-success-bg);
+  border-color: var(--status-success-border);
 }
 
 .statNumber {
   font-size: 32px;
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: #ffffff;
+  color: var(--text-main);
   line-height: 1;
   margin-bottom: 6px;
   font-family: 'JetBrains Mono', monospace;
@@ -109,10 +125,11 @@
   border: 1px solid var(--border-medium);
   padding: 24px;
   margin-bottom: 28px;
-  background: linear-gradient(180deg, #111827 0%, #0d1320 100%);
+  background: var(--bg-surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-elevated);
   position: relative;
+  transition: var(--transition-theme);
 }
 
 .reportBox::after {
@@ -124,14 +141,14 @@
   font-weight: 800;
   letter-spacing: 0.1em;
   color: var(--accent-primary);
-  background: rgba(99, 102, 241, 0.12);
+  background: rgba(0, 144, 255, 0.1);
   padding: 3px 8px;
   border-radius: 4px;
-  border: 1px solid rgba(99, 102, 241, 0.25);
+  border: 1px solid rgba(0, 144, 255, 0.2);
 }
 
 .reportText {
-  color: #e2e8f0;
+  color: var(--text-main);
   font-size: 14px;
   line-height: 1.7;
 }
@@ -152,7 +169,7 @@
 
 .reportStats strong {
   margin-right: 6px;
-  color: #818cf8;
+  color: var(--accent-primary);
 }
 
 .zonesList {
@@ -165,11 +182,11 @@
 .zoneChip {
   font-size: 11.5px;
   font-weight: 600;
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.1);
+  color: var(--status-info);
+  background: var(--status-info-bg);
   padding: 3px 10px;
   border-radius: 9999px;
-  border: 1px solid rgba(56, 189, 248, 0.2);
+  border: 1px solid var(--status-info-border);
 }
 
 .loadingText {
@@ -202,7 +219,7 @@
 
 .urgencyNormal {
   color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-surface-elevated);
   border: 1px solid var(--border-subtle);
 }
 
@@ -226,6 +243,7 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-card);
+  transition: var(--transition-theme);
 }
 
 .chatMessages {
@@ -240,14 +258,15 @@
 .chatMessage {
   font-size: 13px;
   padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--bg-surface-elevated);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
+  transition: var(--transition-theme);
 }
 
 .chatMessage strong {
   margin-right: 6px;
-  color: #818cf8;
+  color: var(--accent-primary);
   font-weight: 700;
 }
 
@@ -262,6 +281,7 @@
   display: flex;
   border-top: 1px solid var(--border-subtle);
   background: var(--bg-surface-elevated);
+  transition: var(--transition-theme);
 }
 
 .chatInputRow input {
@@ -303,6 +323,12 @@
   border-radius: var(--radius-sm);
 }
 
+@media (max-width: 1100px) {
+  .statsRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .statsRow {
     grid-template-columns: 1fr;
@@ -315,4 +341,3 @@
     height: 220px;
   }
 }
-

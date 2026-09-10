@@ -8,15 +8,15 @@ import Cookies from 'js-cookie';
 import styles from './layout.module.css';
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Command Center', icon: '⚡' },
-  { href: '/alerts', label: 'Disaster Alerts', icon: '📢' },
-  { href: '/requests', label: 'Live Triage', icon: '🆘' },
-  { href: '/missions', label: 'Rescue Missions', icon: '🚁' },
-  { href: '/users', label: 'Personnel & Volunteers', icon: '👥' },
-  { href: '/reports', label: 'Situational Intel', icon: '📊' },
+  { href: '/dashboard', label: 'Command Center' },
+  { href: '/alerts', label: 'Disaster Alerts' },
+  { href: '/requests', label: 'Live Triage' },
+  { href: '/missions', label: 'Rescue Missions' },
+  { href: '/users', label: 'Personnel & Volunteers' },
+  { href: '/reports', label: 'Situational Intel' },
 ];
 
-function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+function Sidebar({ isOpen, onClose, theme, onToggleTheme }: { isOpen: boolean; onClose: () => void; theme: string; onToggleTheme: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -39,9 +39,14 @@ function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
               <div className={styles.sidebarSubtitle}>Disaster Response Sri Lanka</div>
             </div>
           </div>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="Close menu">
-            ✕
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button className={styles.themeToggle} onClick={onToggleTheme} aria-label="Toggle theme">
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+            <button className={styles.closeBtn} onClick={onClose} aria-label="Close menu">
+              ✕
+            </button>
+          </div>
         </div>
 
         <div className={styles.telemetryStatus}>
@@ -94,6 +99,20 @@ export default function RootLayout({
   const isLoginPage = pathname === '/login';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [theme, setTheme] = useState('dark');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('resqai-theme') || 'dark';
+    setTheme(saved);
+    document.documentElement.setAttribute('data-theme', saved);
+  }, []);
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('resqai-theme', next);
+    document.documentElement.setAttribute('data-theme', next);
+  };
 
   useEffect(() => {
     setSidebarOpen(false);
@@ -131,7 +150,7 @@ export default function RootLayout({
               ☰
             </button>
           )}
-          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} theme={theme} onToggleTheme={toggleTheme} />
           <main className={isLoginPage ? styles.mainLogin : styles.main}>
             {isLoginPage || authChecked ? children : null}
           </main>

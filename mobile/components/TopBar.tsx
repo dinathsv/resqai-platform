@@ -94,7 +94,7 @@ export default function TopBar({
               style={[styles.logoTouch, styles.logoBadge]}
             >
               <Image
-                source={require('../assets/Resqai.jpeg')}
+                source={require('../assets/resqai_logo.png')}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
@@ -117,7 +117,7 @@ export default function TopBar({
           ) : showBack && showLogo ? (
             <View style={styles.logoBadgeSmall}>
               <Image
-                source={require('../assets/Resqai.jpeg')}
+                source={require('../assets/resqai_logo.png')}
                 style={styles.logoImageSmall}
                 resizeMode="contain"
               />
@@ -168,7 +168,7 @@ export default function TopBar({
                   <View style={styles.menuHeader}>
                     <View style={styles.logoBadgeSmall}>
                       <Image
-                        source={require('../assets/Resqai.jpeg')}
+                        source={require('../assets/resqai_logo.png')}
                         style={styles.menuLogo}
                         resizeMode="contain"
                       />

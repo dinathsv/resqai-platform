@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { aiFetch } from '../../config/api';
 import { Colors, Fonts } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import TopBar from '../../components/TopBar';
 
 interface Message {
@@ -42,6 +43,7 @@ const SUGGESTIONS = [
 ];
 
 export default function ChatbotScreen() {
+  const { theme } = useTheme();
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState('');
@@ -187,7 +189,7 @@ export default function ChatbotScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Midnight Navy Top Header with Back and 3-Dot Navigation Menu */}
       <TopBar
         title="AI First-Aid Assistant"
