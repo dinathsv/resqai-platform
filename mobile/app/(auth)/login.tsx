@@ -65,7 +65,17 @@ export default function LoginScreen() {
         } else if (res.status === 429) {
           setError('Too many failed attempts. Account locked for 15 minutes.');
         } else {
-          setError(data.detail || 'Login failed. Please try again.');
+          const detail = data.detail;
+          if (typeof detail === 'string') {
+            setError(detail);
+          } else if (Array.isArray(detail)) {
+            // Pydantic validation errors: [{msg, loc, type, ...}, ...]
+            setError(detail.map((d: any) => d.msg || JSON.stringify(d)).join('; '));
+          } else if (detail && typeof detail === 'object') {
+            setError(detail.msg || JSON.stringify(detail));
+          } else {
+            setError('Login failed. Please try again.');
+          }
         }
       }
     } catch (err) {
