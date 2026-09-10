@@ -32,7 +32,7 @@ router = APIRouter(tags=["Alerts"])
 
 class CreateAlertRequest(BaseModel):
     disaster_type: str = Field(..., min_length=1)
-    severity: int = Field(..., ge=1, le=5)
+    severity: int | None = Field(3, ge=1, le=5)
     affected_zone_wkt: str | None = Field(
         None,
         description="WKT polygon for affected zone, e.g. 'POLYGON((79.8 6.9, 79.9 6.9, ...))'"

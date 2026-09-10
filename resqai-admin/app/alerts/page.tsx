@@ -91,7 +91,6 @@ export default function AlertsPage() {
           <tr>
             <th>ID</th>
             <th>Type</th>
-            <th>Severity</th>
             <th>Status</th>
             <th>Issued</th>
             <th>Expires</th>
@@ -104,7 +103,6 @@ export default function AlertsPage() {
               <tr key={alert.alert_id}>
                 <td>{alert.alert_id.slice(0, 8)}</td>
                 <td>{alert.disaster_type}</td>
-                <td>{alert.severity}/5</td>
                 <td>{alert.status}</td>
                 <td>{new Date(alert.created_at).toLocaleString()}</td>
                 <td>{new Date(alert.expires_at).toLocaleString()}</td>
@@ -127,7 +125,7 @@ export default function AlertsPage() {
             ))
           ) : (
             <tr>
-              <td colSpan={7}>No alerts found</td>
+              <td colSpan={6}>No alerts found</td>
             </tr>
           )}
         </tbody>
