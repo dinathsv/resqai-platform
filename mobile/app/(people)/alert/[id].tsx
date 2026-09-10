@@ -13,6 +13,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { apiFetch } from '../../../config/api';
 import { Colors, Fonts, Glass } from '../../../constants/theme';
+import TopBar from '../../../components/TopBar';
 
 interface AlertDetail {
   alert_id: string;
@@ -118,11 +119,7 @@ export default function AlertDetailScreen() {
   return (
     <SafeAreaView style={styles.container}>
 
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack}>
-          <Text style={styles.backButton}>← Back</Text>
-        </TouchableOpacity>
-      </View>
+      <TopBar title="Alert Details" showBack onBack={handleBack} />
 
       <ScrollView style={styles.content}>
 

@@ -38,6 +38,8 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { Colors, Fonts, Glass } from '../../constants/theme';
+import BottomNav from '../../components/BottomNav';
+import TopBar from '../../components/TopBar';
 
 export default function HelpScreen() {
   const router = useRouter();
@@ -64,8 +66,7 @@ export default function HelpScreen() {
         lng: location.coords.longitude,
       };
     } catch {
-      // Default to Colombo center if location fails
-      return { lat: 6.9271, lng: 79.8612 };
+      return null;
     }
   };
 
@@ -167,15 +168,8 @@ export default function HelpScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <TopBar title="Help Center" showBack onBack={handleBack} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleBack}>
-            <Text style={styles.backButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Help Center</Text>
-          <View style={styles.headerSpacer} />
-        </View>
 
         <Text style={styles.subtitle}>
           Select an emergency response channel based on immediate threat level
@@ -326,61 +320,92 @@ const isMobileWeb = isWeb && screenWidth <= 480;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: '#F8FAFC',
   },
   scrollContent: {
-    paddingBottom: 32,
+    paddingBottom: 36,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: 'transparent',
+    paddingTop: Platform.OS === 'ios' ? 8 : 16,
+    paddingBottom: 8,
+    backgroundColor: '#F8FAFC',
+  },
+  backButtonTouch: {
+    paddingVertical: 6,
+    paddingRight: 10,
   },
   backButton: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: Fonts.bold,
-    color: '#FFFFFF',
+    color: '#DC2626',
   },
   headerTitle: {
     flex: 1,
     fontSize: 20,
     fontFamily: Fonts.bold,
-    color: '#FFFFFF',
+    color: '#0F172A',
     textAlign: 'center',
+    letterSpacing: -0.3,
   },
   headerSpacer: {
-    width: 50,
+    width: 60,
   },
   subtitle: {
-    fontSize: 14,
-    fontFamily: Fonts.semiBold,
-    color: '#FFFFFF',
-    opacity: 0.9,
+    fontSize: 13,
+    fontFamily: Fonts.medium,
+    color: '#64748B',
     paddingHorizontal: 20,
+    marginTop: 2,
     marginBottom: 20,
+    lineHeight: 18,
   },
   optionCard: {
-    ...Glass.card,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 14,
     padding: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    elevation: 2,
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 4px 16px rgba(15, 23, 42, 0.06)',
+        } as any)
+      : {}),
   },
   emergencyCard: {
-    ...Glass.cardUrgent,
+    backgroundColor: '#DC2626',
+    borderColor: '#DC2626',
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.28,
+    shadowRadius: 20,
+    elevation: 6,
+    ...(Platform.OS === 'web'
+      ? ({
+          backgroundImage: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+          boxShadow: '0 8px 24px rgba(220, 38, 38, 0.28)',
+        } as any)
+      : {}),
   },
   badgeCritical: {
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 2.5,
     borderRadius: 8,
-    marginBottom: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.30)',
+    marginBottom: 6,
   },
   badgeCriticalText: {
     fontSize: 9,
@@ -392,100 +417,79 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.30)',
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
-    ...(Platform.OS === 'web'
-      ? ({
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.35)',
-        } as any)
-      : {}),
   },
   emergencyIcon: {
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.38)',
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
   },
   emoji: {
-    fontSize: 22,
+    fontSize: 24,
   },
   optionContent: {
     flex: 1,
   },
   optionTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: Fonts.bold,
-    color: '#FFFFFF',
-    marginBottom: 2,
+    color: '#0F172A',
+    marginBottom: 3,
   },
   emergencyTitle: {
     color: '#FFFFFF',
   },
   optionDesc: {
-    fontSize: 12,
-    fontFamily: Fonts.semiBold,
-    color: '#FFFFFF',
-    opacity: 0.92,
-    lineHeight: 17,
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#64748B',
+    lineHeight: 18,
   },
   emergencyDesc: {
-    color: '#FFFFFF',
-    opacity: 0.95,
+    color: 'rgba(255, 255, 255, 0.95)',
+    fontFamily: Fonts.medium,
   },
   chevron: {
-    fontSize: 20,
-    color: '#FFFFFF',
-    opacity: 0.85,
+    fontSize: 22,
+    fontFamily: Fonts.bold,
+    color: '#94A3B8',
     marginLeft: 8,
   },
   emergencyChevronWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.10)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.35)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
   },
   emergencyChevron: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#FFFFFF',
   },
   infoBox: {
     marginHorizontal: 16,
-    marginTop: 14,
+    marginTop: 10,
+    marginBottom: 20,
     padding: 16,
     borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
-    ...(Platform.OS === 'web'
-      ? ({
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.30)',
-        } as any)
-      : {}),
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   infoTitle: {
     fontSize: 13,
     fontFamily: Fonts.bold,
-    color: '#FFFFFF',
+    color: '#0F172A',
     marginBottom: 4,
     textAlign: 'center',
   },
   infoText: {
     fontSize: 12,
-    fontFamily: Fonts.semiBold,
-    color: '#FFFFFF',
-    opacity: 0.9,
+    fontFamily: Fonts.medium,
+    color: '#64748B',
     textAlign: 'center',
     lineHeight: 18,
   },

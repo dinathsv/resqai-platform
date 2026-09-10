@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -272,6 +272,9 @@ const styles = StyleSheet.create({
   navLabel: { fontSize: 11, letterSpacing: -0.2, marginTop: 2 },
   modalBackdrop: { flex: 1, justifyContent: 'flex-end' },
   profileSheet: {
+    width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     borderTopWidth: 1,

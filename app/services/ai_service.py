@@ -27,22 +27,74 @@ async def call_llm(
 ) -> str | None:
     """
     Send a single-turn message to the LLM and return the text response.
+    Includes multi-model fallback and rate-limit handling.
     Returns None on any exception so callers can handle fallback.
     """
-    try:
-        client = _get_client()
-        response = await client.aio.models.generate_content(
-            model=settings.AI_MODEL,
-            contents=user_message,
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                max_output_tokens=max_tokens
-            )
-        )
-        return response.text
-    except Exception as exc:
-        logger.error("LLM API call failed: %s", exc, exc_info=True)
-        return None
+    import asyncio
+    import re
+
+    # Order candidate models starting with configured model, then backups
+    candidate_models: list[str] = [settings.AI_MODEL]
+    for backup in ["gemini-3.5-flash-lite", "gemini-3.5-flash"]:
+        if backup not in candidate_models:
+            candidate_models.append(backup)
+
+    client = _get_client()
+
+    for model_name in candidate_models:
+        max_attempts = 2
+        for attempt in range(max_attempts):
+            try:
+                response = await client.aio.models.generate_content(
+                    model=model_name,
+                    contents=user_message,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_prompt,
+                        max_output_tokens=max_tokens
+                    )
+                )
+                if response and response.text:
+                    return response.text
+            except Exception as exc:
+                exc_str = str(exc)
+                is_rate_limit = "429" in exc_str or "RESOURCE_EXHAUSTED" in exc_str
+
+                if is_rate_limit:
+                    # Daily quota exhaustion - immediately fail over to next model
+                    if "PerDay" in exc_str or "quotaValue': '20'" in exc_str or "limit: 20" in exc_str:
+                        logger.warning(
+                            "Model %s daily quota exhausted. Failing over to next model...",
+                            model_name
+                        )
+                        break
+
+                    # Minute rate limit - brief pause on first attempt, then fail over
+                    if attempt < max_attempts - 1:
+                        retry_delay = 2.0
+                        delay_match = re.search(r"retry in ([\d\.]+)s", exc_str)
+                        if delay_match:
+                            try:
+                                retry_delay = min(float(delay_match.group(1)), 3.0)
+                            except ValueError:
+                                pass
+                        logger.warning(
+                            "Rate limit hit (429) for %s. Retrying in %.1fs...",
+                            model_name, retry_delay
+                        )
+                        await asyncio.sleep(retry_delay)
+                        continue
+                    else:
+                        logger.warning(
+                            "Rate limit hit for %s on all attempts. Failing over...",
+                            model_name
+                        )
+                        break
+                else:
+                    logger.error("LLM call failed for %s: %s", model_name, exc)
+                    break
+
+    logger.error("All candidate LLM models failed to generate response.")
+    return None
 
 async def close():
     """Close the underlying HTTP client gracefully."""

@@ -23,6 +23,7 @@ from app.models.guest_session import GuestSession
 from app.models.nic_entry import NicEntry
 from app.models.user import User
 from app.services.otp_service import send_otp
+from app.middleware.auth import oauth2_scheme, get_current_user
 
 router = APIRouter(tags=["Authentication"])
 
@@ -193,10 +194,59 @@ async def login(
     await redis_client.delete(fail_key)
 
     access_token = create_access_token(
-        data={"sub": str(user.user_id), "role": "people", "email": user.email},
+        data={"sub": str(user.user_id), "role": "people", "email": user.email, "name": user.full_name},
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "user_id": str(user.user_id),
+            "full_name": user.full_name,
+            "email": user.email,
+            "phone_number": user.phone_number,
+        },
+    }
+
+@router.get("/me")
+async def get_me(
+    db: AsyncSession = Depends(get_db),
+    token: str = Depends(oauth2_scheme),
+):
+    """Return current authenticated user profile."""
+    from app.middleware.auth import get_current_user
+    current_user = await get_current_user(token)
+    sub = current_user.get("sub")
+    role = current_user.get("role")
+
+    if role == "guest":
+        return {
+            "user_id": sub,
+            "full_name": f"Guest ({current_user.get('nic', 'Citizen')})",
+            "email": None,
+            "role": "guest",
+        }
+
+    try:
+        user_uuid = uuid.UUID(sub)
+        result = await db.execute(select(User).where(User.user_id == user_uuid))
+        user = result.scalars().first()
+        if user:
+            return {
+                "user_id": str(user.user_id),
+                "full_name": user.full_name,
+                "email": user.email,
+                "phone_number": user.phone_number,
+                "role": role or "people",
+            }
+    except Exception:
+        pass
+
+    return {
+        "user_id": sub,
+        "full_name": current_user.get("name") or current_user.get("email", "Citizen"),
+        "role": role or "people",
+    }
 
 @router.post("/admin/login")
 async def admin_login(

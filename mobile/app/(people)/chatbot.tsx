@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { aiFetch } from '../../config/api';
 import { Colors, Fonts } from '../../constants/theme';
+import TopBar from '../../components/TopBar';
 
 interface Message {
   id: string;
@@ -187,29 +188,13 @@ export default function ChatbotScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Deep Midnight Navy/Indigo Top Header matching Image 1 */}
-      <View style={styles.topHeader}>
-        <TouchableOpacity
-          style={styles.headerIconButton}
-          onPress={handleBack}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.backArrow}>←</Text>
-        </TouchableOpacity>
-
-        <View style={styles.headerTitleGroup}>
-          <Text style={styles.headerTitle}>Ai First-Aid Assistant</Text>
-          <Text style={styles.headerSub}>Available 24/7</Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.headerIconButton}
-          onPress={() => router.push('/(people)/dashboard')}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.headerDots}>⋮</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Midnight Navy Top Header with Back and 3-Dot Navigation Menu */}
+      <TopBar
+        title="AI First-Aid Assistant"
+        showBack
+        onBack={handleBack}
+        theme="dark"
+      />
 
       {/* Curved Top White Sheet Container */}
       <View style={styles.sheetContainer}>

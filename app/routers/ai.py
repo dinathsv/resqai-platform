@@ -35,10 +35,13 @@ def detect_language(text: str) -> str:
     if has_tamil:
         return "ta"
 
-    # Use langdetect for other languages
+    # Use langdetect for other languages, default to English
     try:
         langdetect.DetectorFactory.seed = 0
-        return langdetect.detect(text)
+        detected = langdetect.detect(text)
+        if detected in ["si", "ta"]:
+            return detected
+        return "en"
     except langdetect.LangDetectException:
         return "en"
 
@@ -81,21 +84,32 @@ async def first_aid_chat(req: FirstAidRequest):
         lang = detect_language(req.message)
 
     system_prompt = (
-        "You are a certified first-aid assistant for ResQAI Sri Lanka.\n"
-        "Detect the language of the user message and ALWAYS respond in that exact same language.\n"
+        "You are a certified emergency first-aid assistant for ResQAI Sri Lanka.\n"
+        "Detect the language of the user message (Sinhala, Tamil, or English) and ALWAYS respond in that exact same language.\n"
+        "- If the user writes in English (even with typos or slang like 'im darwning'), respond in English.\n"
+        "- If the user writes in Sinhala (Sinhala script or Singlish phrases like 'mata una', 'watura'), respond in Sinhala.\n"
+        "- If the user writes in Tamil (Tamil script or Tanglish phrases), respond in Tamil.\n"
         "Rules:\n"
-        "- Give numbered steps only — no paragraphs\n"
-        "- Keep response under 150 words\n"
-        "- For cardiac arrest, unconscious, not breathing, severe bleeding: always say to call 1990 Suwa Seriya immediately\n"
-        "- Never diagnose medical conditions\n"
-        "- If message is not an emergency, say: This chatbot is for emergencies only. Call 1990 if urgent."
+        "- If the user sends a greeting (e.g. 'hi', 'hello'), respond with a warm, brief greeting and ask how you can help with their emergency or first aid.\n"
+        "- For emergencies or first-aid queries, give clear, numbered action steps only — no long paragraphs.\n"
+        "- Keep response concise (under 150 words).\n"
+        "- For life-threatening emergencies (e.g. cardiac arrest, drowning, unconsciousness, severe bleeding, trapped/buried in sand or debris, breathing difficulty): "
+        "always prioritize calling 1990 Suwa Seriya immediately, followed by critical life-saving first-aid steps.\n"
+        "- Never diagnose medical conditions.\n"
+        "- If message is completely unrelated to health or emergencies, politely remind them that this service is dedicated to first-aid emergencies."
     )
 
-    reply = await call_llm(system_prompt, req.message, max_tokens=256)
+    reply = await call_llm(system_prompt, req.message, max_tokens=1024)
+
+    fallback_replies = {
+        "en": "Please call 1990 Suwa Seriya immediately for emergency assistance.",
+        "si": "හදිසි අවස්ථාවක් සඳහා කරුණාකර වහාම 1990 සුව සැරිය අමතන්න.",
+        "ta": "அவசர உதவிக்கு உடனடியாக 1990 சுவ செரியாவை அழைக்கவும்."
+    }
 
     if not reply:
         return {
-            "reply": "Please call 1990 Suwa Seriya immediately for emergency assistance.",
+            "reply": fallback_replies.get(lang, fallback_replies["en"]),
             "language_detected": lang,
             "show_1990": True,
             "is_critical": True
@@ -105,9 +119,13 @@ async def first_aid_chat(req: FirstAidRequest):
     msg_lower = req.message.lower()
     combined = reply_lower + " " + msg_lower
 
-    critical_kws = ["1990", "cardiac", "unconscious", "not breathing", "severe bleeding", "call immediately"]
+    critical_kws = [
+        "1990", "cardiac", "unconscious", "not breathing", "severe bleeding",
+        "call immediately", "drowning", "darwning", "buried", "trapped",
+        "සුව සැරිය", "සුවසැරිය", "හුස්ම", "அவசர"
+    ]
     is_critical = any(kw in combined for kw in critical_kws)
-    show_1990 = "1990" in reply_lower or is_critical
+    show_1990 = "1990" in reply or is_critical
 
     return {
         "reply": reply,
@@ -142,7 +160,7 @@ async def translate_report(req: TranslateReportRequest):
         "language_detected": lang
     }
 
-    reply = await call_llm(system_prompt, req.message, max_tokens=256)
+    reply = await call_llm(system_prompt, req.message, max_tokens=1024)
     if not reply:
         return fallback
 
@@ -184,7 +202,7 @@ async def generate_summary(req: GenerateSummaryRequest):
 
     user_msg = f"Data: {requests_json}"
 
-    reply = await call_llm(system_prompt, user_msg, max_tokens=512)
+    reply = await call_llm(system_prompt, user_msg, max_tokens=1024)
 
     critical_count = sum(1 for r in req.requests if r.urgency_level and r.urgency_level >= 4)
 
@@ -228,7 +246,7 @@ async def locate_resources(req: LocateResourcesRequest):
     if not req.hospitals:
         return fallback
 
-    reply = await call_llm(system_prompt, user_msg, max_tokens=256)
+    reply = await call_llm(system_prompt, user_msg, max_tokens=1024)
     if not reply:
         return fallback
 

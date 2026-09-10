@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     GUEST_TOKEN_EXPIRE_MINUTES: int = 30
 
     AI_API_KEY: str = ""
-    AI_MODEL: str = "gemini-3.6-flash"
+    AI_MODEL: str = "gemini-3.5-flash-lite"
 
     # --- OTP Delivery: Email (primary) ---
     SMTP_HOST: str = ""

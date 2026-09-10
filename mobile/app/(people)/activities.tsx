@@ -7,65 +7,150 @@ import {
   SafeAreaView,
   ScrollView,
   Platform,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { Colors, Fonts } from '../../constants/theme';
 import BottomNav from '../../components/BottomNav';
 
+interface RescueItem {
+  request_id: string;
+  title: string;
+  status: string;
+  location?: string;
+  date: string;
+}
+
+interface DonationItem {
+  donation_id: string;
+  amount: number;
+  status: string;
+  title: string;
+  date: string;
+}
+
+interface AlertItem {
+  alert_id: string;
+  disaster_type: string;
+  severity: number;
+  district?: string;
+  work_plan?: string;
+  created_at?: string;
+}
+
 export default function ActivitiesScreen() {
   const router = useRouter();
-  const [userName, setUserName] = useState<string>('Vithu');
-  const [activeRequest, setActiveRequest] = useState({
-    title: 'Flood Resque Request',
-    location: 'Kelniya, Gampaha',
-    date: '1 May 2026  11.22 AM',
-  });
+  const [userName, setUserName] = useState<string>('Citizen');
+  const [myRequests, setMyRequests] = useState<RescueItem[]>([]);
+  const [myDonations, setMyDonations] = useState<DonationItem[]>([]);
+  const [recentAlerts, setRecentAlerts] = useState<AlertItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     let mounted = true;
 
-    async function fetchUserData() {
+    async function loadActivities() {
       try {
+        // 1. Instant username from cache
+        const cachedName = await AsyncStorage.getItem('user_name');
+        if (cachedName && mounted) {
+          setUserName(cachedName);
+        }
+
+        // 2. Fetch authenticated profile
         const meRes = await apiFetch('/api/auth/me');
         if (meRes.ok) {
           const meData = await meRes.json();
           if (mounted && meData.full_name) {
             setUserName(meData.full_name);
+            await AsyncStorage.setItem('user_name', meData.full_name);
           }
         }
 
-        // Fetch user's active help requests
-        const reqRes = await apiFetch('/api/help/requests');
+        // 3. Fetch user's real rescue requests
+        const reqRes = await apiFetch('/api/requests/my');
         if (reqRes.ok) {
           const reqData = await reqRes.json();
-          if (mounted && reqData.requests && reqData.requests.length > 0) {
-            const first = reqData.requests[0];
-            setActiveRequest({
-              title: first.message || 'Flood Resque Request',
-              location: first.district || 'Kelniya, Gampaha',
-              date: first.created_at
-                ? new Date(first.created_at).toLocaleString([], {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
-                : '1 May 2026  11.22 AM',
-            });
+          if (mounted && Array.isArray(reqData)) {
+            setMyRequests(
+              reqData.map((r: any) => ({
+                request_id: r.request_id,
+                title:
+                  r.message ||
+                  `${r.emergency_type ? r.emergency_type.toUpperCase() : 'Emergency'} Request`,
+                status: r.status || 'Active',
+                location: r.location || 'Reported Location',
+                date: r.created_at
+                  ? new Date(r.created_at).toLocaleString([], {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : 'Recent',
+              }))
+            );
+          }
+        }
+
+        // 4. Fetch user's real donations
+        const donRes = await apiFetch('/api/donations');
+        if (donRes.ok) {
+          const donData = await donRes.json();
+          if (mounted && Array.isArray(donData)) {
+            setMyDonations(
+              donData.map((d: any) => ({
+                donation_id: d.donation_id
+                  ? `#DON${d.donation_id.slice(0, 6).toUpperCase()}`
+                  : '#DONATION',
+                amount: d.amount || 0,
+                status: d.status || 'completed',
+                title: d.mission_title || 'Disaster Relief Fund',
+                date: d.created_at
+                  ? new Date(d.created_at).toLocaleDateString([], {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })
+                  : 'Recent',
+              }))
+            );
+          }
+        }
+
+        // 5. Fetch real active alerts
+        const alertRes = await apiFetch('/api/alerts');
+        if (alertRes.ok) {
+          const alertData = await alertRes.json();
+          if (mounted && alertData.alerts && Array.isArray(alertData.alerts)) {
+            setRecentAlerts(alertData.alerts);
           }
         }
       } catch (err) {
-        console.error('Activities fetch error:', err);
+        console.error('Activities load error:', err);
+      } finally {
+        if (mounted) setLoading(false);
       }
     }
 
-    fetchUserData();
+    loadActivities();
     return () => {
       mounted = false;
     };
   }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await AsyncStorage.clear();
+    } catch (e) {
+      console.warn('Sign out clear error:', e);
+    }
+    router.replace('/');
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -74,33 +159,47 @@ export default function ActivitiesScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Red Header Banner matching Image 2 */}
+        {/* Red Header Banner */}
         <View style={styles.headerBanner}>
-          {/* Top Bar with Three Dots and Settings Gear */}
+          {/* Top Bar with Logo on top, Back button underneath, no 3-dot button */}
           <View style={styles.bannerTopBar}>
-            <TouchableOpacity
-              style={styles.bannerIconBtn}
-              onPress={() => router.push('/(people)/dashboard')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.bannerDots}>⋮</Text>
-            </TouchableOpacity>
+            <View style={styles.bannerHeaderLeft}>
+              {/* 1. First: Logo */}
+              <View style={styles.logoBadgeWrap}>
+                <Image
+                  source={require('../../assets/Resqai.jpeg')}
+                  style={styles.headerLogo}
+                  resizeMode="contain"
+                />
+              </View>
 
-            <TouchableOpacity
-              style={styles.bannerIconBtn}
-              onPress={() => router.push('/(people)/dashboard')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.bannerGear}>⚙</Text>
-            </TouchableOpacity>
+              {/* 2. Under Logo: Back Button */}
+              <TouchableOpacity
+                style={styles.backUnderLogoBtn}
+                onPress={() => router.replace('/(people)/dashboard')}
+                activeOpacity={0.75}
+              >
+                <View style={styles.backCircle}>
+                  <Text style={styles.backArrow}>←</Text>
+                </View>
+                <Text style={styles.backBtnLabel}>Back</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Avatar and Greeting */}
+          {/* Avatar and Real User Name Greeting */}
           <View style={styles.bannerUserRow}>
             <View style={styles.avatarCircle}>
               <Text style={styles.avatarSilhouette}>👤</Text>
             </View>
-            <Text style={styles.greetingText}>Hello, {userName}!</Text>
+            <View style={styles.greetingWrap}>
+              <Text style={styles.greetingText}>
+                Hello, {userName || 'Citizen'}!
+              </Text>
+              <Text style={styles.greetingSubText}>
+                Sri Lanka Disaster Relief Network
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -118,7 +217,7 @@ export default function ActivitiesScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* My Rescue Section matching Image 2 */}
+        {/* My Rescue Section */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionHeading}>My Rescue</Text>
           <TouchableOpacity
@@ -129,40 +228,57 @@ export default function ActivitiesScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.rescueCard}>
-          {/* Active Badge */}
-          <View style={styles.badgeRow}>
-            <View style={styles.activeBadge}>
-              <Text style={styles.activeBadgeText}>Active</Text>
+        {myRequests.length > 0 ? (
+          myRequests.map((item) => (
+            <View key={item.request_id} style={styles.rescueCard}>
+              <View style={styles.badgeRow}>
+                <View style={styles.activeBadge}>
+                  <Text style={styles.activeBadgeText}>
+                    {item.status.toUpperCase()}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.rescueTitle}>{item.title}</Text>
+              <View style={styles.locationRow}>
+                <View style={styles.locItem}>
+                  <Text style={styles.locIcon}>📍</Text>
+                  <Text style={styles.locText}>{item.location}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.arrowSquareBtn}
+                  onPress={() => router.push('/(people)/help')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.arrowIcon}>➔</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.calendarRow}>
+                <Text style={styles.calIcon}>📅</Text>
+                <Text style={styles.calText}>{item.date}</Text>
+              </View>
             </View>
-          </View>
-
-          {/* Request Title */}
-          <Text style={styles.rescueTitle}>{activeRequest.title}</Text>
-
-          {/* Location Row with Right Arrow */}
-          <View style={styles.locationRow}>
-            <View style={styles.locItem}>
-              <Text style={styles.locIcon}>📍</Text>
-              <Text style={styles.locText}>{activeRequest.location}</Text>
-            </View>
+          ))
+        ) : (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyEmoji}>🛟</Text>
+            <Text style={styles.emptyTitle}>No Active Rescue Requests</Text>
+            <Text style={styles.emptySub}>
+              You have no active emergency requests. If you or someone nearby is
+              in danger, request immediate relief.
+            </Text>
             <TouchableOpacity
-              style={styles.arrowSquareBtn}
+              style={styles.emptyActionBtn}
               onPress={() => router.push('/(people)/help')}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              <Text style={styles.arrowIcon}>➔</Text>
+              <Text style={styles.emptyActionBtnText}>
+                Request Emergency Help
+              </Text>
             </TouchableOpacity>
           </View>
+        )}
 
-          {/* Calendar Row */}
-          <View style={styles.calendarRow}>
-            <Text style={styles.calIcon}>📅</Text>
-            <Text style={styles.calText}>{activeRequest.date}</Text>
-          </View>
-        </View>
-
-        {/* My Donations Section matching Image 2 */}
+        {/* My Donations Section */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionHeading}>My Donations</Text>
           <TouchableOpacity
@@ -173,53 +289,101 @@ export default function ActivitiesScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.donationCard}>
-          {/* Donation ID & Arrow */}
-          <View style={styles.donationTopRow}>
-            <Text style={styles.donationId}>Donation ID: #DON23678</Text>
+        {myDonations.length > 0 ? (
+          myDonations.map((don) => (
+            <View key={don.donation_id} style={styles.donationCard}>
+              <View style={styles.donationTopRow}>
+                <Text style={styles.donationId}>
+                  Donation ID: {don.donation_id}
+                </Text>
+                <TouchableOpacity
+                  style={styles.arrowSquareBtn}
+                  onPress={() => router.push('/(people)/donate')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.arrowIcon}>➔</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.donationTitle}>{don.title}</Text>
+              <Text style={styles.donationAmountDate}>
+                LKR {don.amount.toLocaleString()}
+                {'   '}
+                {don.date}
+              </Text>
+            </View>
+          ))
+        ) : (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyEmoji}>🤝</Text>
+            <Text style={styles.emptyTitle}>No Donations Yet</Text>
+            <Text style={styles.emptySub}>
+              Contribute essential relief supplies and funds to flood and disaster
+              victims across Sri Lanka.
+            </Text>
             <TouchableOpacity
-              style={styles.arrowSquareBtn}
+              style={styles.emptyActionBtn}
               onPress={() => router.push('/(people)/donate')}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              <Text style={styles.arrowIcon}>➔</Text>
+              <Text style={styles.emptyActionBtnText}>
+                Donate to Relief Fund
+              </Text>
             </TouchableOpacity>
           </View>
+        )}
 
-          {/* Fund Title */}
-          <Text style={styles.donationTitle}>Relief Fund -Flood Victims</Text>
-
-          {/* Amount & Date */}
-          <Text style={styles.donationAmountDate}>
-            LKR 2,500.00{'   '}28 Apr 2026
-          </Text>
-        </View>
-
-        {/* Recent Alerts Section matching Image 2 */}
+        {/* Recent Alerts Section */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionHeading}>Recent Alerts</Text>
         </View>
 
-        <View style={styles.recentAlertCard}>
-          {/* Alert Hazard Square Icon */}
-          <View style={styles.hazardSquare}>
-            <Text style={styles.hazardTriangle}>⚠️</Text>
+        {recentAlerts.length > 0 ? (
+          recentAlerts.map((alert) => (
+            <View key={alert.alert_id} style={styles.recentAlertCard}>
+              <View style={styles.hazardSquare}>
+                <Text style={styles.hazardTriangle}>⚠️</Text>
+              </View>
+              <View style={styles.alertContentTextWrap}>
+                <Text style={styles.recentAlertTitle}>
+                  {alert.disaster_type.toUpperCase()} Alert
+                  {alert.district ? ` in ${alert.district}` : ''}
+                </Text>
+                <Text style={styles.recentAlertSub}>
+                  {alert.work_plan ||
+                    'Active alert in your zone. Please follow safety instructions.'}
+                </Text>
+              </View>
+            </View>
+          ))
+        ) : (
+          <View style={styles.safeAlertCard}>
+            <View style={styles.safeShieldSquare}>
+              <Text style={styles.safeShieldEmoji}>🛡️</Text>
+            </View>
+            <View style={styles.alertContentTextWrap}>
+              <Text style={styles.safeAlertTitle}>No Active Emergency Alerts</Text>
+              <Text style={styles.safeAlertSub}>
+                All monitored zones are reporting normal conditions. We will notify
+                you immediately if an alert is issued.
+              </Text>
+            </View>
           </View>
+        )}
 
-          {/* Alert Content */}
-          <View style={styles.alertContentTextWrap}>
-            <Text style={styles.recentAlertTitle}>
-              Flood Alert in Gampaha District
-            </Text>
-            <Text style={styles.recentAlertSub}>
-              Stay indoors and avoid heavy traffic areas
-            </Text>
-          </View>
+        {/* Account Sign Out Button */}
+        <View style={styles.signOutWrapper}>
+          <TouchableOpacity
+            style={styles.signOutBtn}
+            onPress={handleSignOut}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.signOutBtnText}>🚪 Sign Out</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* Bottom Navigation with Activities Active */}
-      <BottomNav currentTab="activities" />
+      {/* Bottom Navigation with Profile Active */}
+      <BottomNav currentTab="profile" />
     </SafeAreaView>
   );
 }
@@ -252,25 +416,74 @@ const styles = StyleSheet.create({
       : {}),
   },
   bannerTopBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 16,
   },
-  bannerIconBtn: {
+  bannerHeaderLeft: {
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  logoBadgeWrap: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 3,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  headerLogo: {
     width: 36,
     height: 36,
+    borderRadius: 6,
+  },
+  backUnderLogoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+  backCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bannerDots: {
+  backArrow: {
     color: '#FFFFFF',
-    fontSize: 22,
+    fontSize: 14,
     fontWeight: '800',
   },
-  bannerGear: {
+  backBtnLabel: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 13,
+    fontFamily: Fonts.bold,
+    fontWeight: '700',
+  },
+  signOutWrapper: {
+    paddingHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  signOutBtn: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 14,
+    paddingVertical: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  signOutBtnText: {
+    color: '#DC2626',
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    fontWeight: '700',
   },
   bannerUserRow: {
     flexDirection: 'row',
@@ -294,12 +507,21 @@ const styles = StyleSheet.create({
   avatarSilhouette: {
     fontSize: 34,
   },
+  greetingWrap: {
+    flex: 1,
+  },
   greetingText: {
     fontSize: 24,
     fontFamily: Fonts.bold,
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: -0.3,
+  },
+  greetingSubText: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    color: 'rgba(255, 255, 255, 0.85)',
+    marginTop: 2,
   },
 
   /* ResQ-Quiz Floating Card */
@@ -501,6 +723,60 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
 
+  /* Empty State Cards */
+  emptyCard: {
+    marginHorizontal: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 16,
+    alignItems: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 4px 14px rgba(15, 23, 42, 0.04)',
+        } as any)
+      : {}),
+  },
+  emptyEmoji: {
+    fontSize: 36,
+    marginBottom: 8,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontFamily: Fonts.bold,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  emptySub: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 14,
+  },
+  emptyActionBtn: {
+    backgroundColor: '#DC2626',
+    paddingVertical: 9,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+  },
+  emptyActionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontFamily: Fonts.bold,
+    fontWeight: '700',
+  },
+
   /* Recent Alerts Card */
   recentAlertCard: {
     marginHorizontal: 20,
@@ -536,6 +812,44 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   recentAlertSub: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    color: '#475569',
+    lineHeight: 16,
+  },
+
+  /* Safe / No Alerts Card */
+  safeAlertCard: {
+    marginHorizontal: 20,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 20,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    marginBottom: 10,
+  },
+  safeShieldSquare: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#16A34A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  safeShieldEmoji: {
+    fontSize: 24,
+  },
+  safeAlertTitle: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    fontWeight: '800',
+    color: '#15803D',
+    marginBottom: 2,
+  },
+  safeAlertSub: {
     fontSize: 12,
     fontFamily: Fonts.medium,
     color: '#475569',

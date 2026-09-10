@@ -223,6 +223,40 @@ async def list_requests(
         for r in requests
     ]
 
+@router.get("/my")
+async def list_my_requests(
+    current_user: dict[str, Any] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List the current user's or guest's submitted help requests."""
+    sub = current_user.get("sub")
+    role = current_user.get("role")
+
+    query = select(HelpRequest).order_by(desc(HelpRequest.created_at))
+    if role == "guest":
+        query = query.where(HelpRequest.guest_session_id == sub)
+    elif role == "people":
+        try:
+            u_id = uuid.UUID(sub)
+            query = query.where(HelpRequest.user_id == u_id)
+        except Exception:
+            pass
+
+    result = await db.execute(query.limit(20))
+    records = result.scalars().all()
+    return [
+        {
+            "request_id": str(r.request_id),
+            "emergency_type": r.emergency_type,
+            "urgency_level": r.urgency_level,
+            "status": r.status,
+            "message": r.original_message,
+            "ai_summary": r.ai_summary,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r in records
+    ]
+
 @router.get("/{request_id}")
 async def get_request(
     request_id: str,
