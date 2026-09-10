@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import api from '@/lib/api';
@@ -17,13 +17,6 @@ interface User {
   created_at: string;
 }
 
-interface UsersResponse {
-  users: User[];
-  total: number;
-  page: number;
-  pages: number;
-}
-
 const fetcher = (url: string) => api.get(url).then((res) => res.data);
 
 export default function UsersPage() {
@@ -35,28 +28,69 @@ export default function UsersPage() {
   params.set('limit', '20');
   if (search) params.set('search', search);
 
-  const { data, mutate } = useSWR<UsersResponse>(
+  const { data, error, isLoading, mutate } = useSWR<any>(
     `/api/admin/users?${params.toString()}`,
     fetcher
   );
+
+  // Requirement 1: Log the raw API response using console.log('Fetched users payload:', data)
+  useEffect(() => {
+    if (data !== undefined) {
+      console.log('Fetched users payload:', data);
+    }
+  }, [data]);
 
   async function suspendUser(id: string) {
     if (!window.confirm('Suspend this account?')) return;
     try {
       await api.patch(`/api/admin/users/${id}`, { is_active: false });
       mutate();
-    } catch (error) {
-      console.error("Failed to suspend user:", error);
+    } catch (err: any) {
+      console.error('Failed to suspend user:', err);
+      alert(err.response?.data?.error || 'Failed to suspend user');
     }
   }
 
   async function resendOtp(id: string) {
     try {
       await api.post(`/api/admin/users/${id}/resend-otp`);
-    } catch (error) {
-      console.error("Failed to resend OTP:", error);
+      alert('OTP resent successfully');
+    } catch (err: any) {
+      console.error('Failed to resend OTP:', err);
+      alert(err.response?.data?.error || 'Failed to resend OTP');
     }
   }
+
+  // Requirement 1: Extraction handling for nested or flat payloads (data.users, data.data, or direct array data)
+  const rawUsers: any[] = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.users)
+    ? data.users
+    : Array.isArray(data?.data)
+    ? data.data
+    : [];
+
+  const usersList: User[] = rawUsers.map((u: any) => ({
+    user_id: String(u.user_id || u.id || ''),
+    full_name: u.full_name || u.name || 'Unnamed User',
+    email: u.email || '—',
+    phone_number: u.phone_number || u.phone || '—',
+    user_type: u.user_type || u.type || u.role || 'Citizen',
+    nic_number: u.nic_number || u.nic || '',
+    is_verified: Boolean(u.is_verified ?? u.verified),
+    created_at: u.created_at || u.joined || new Date().toISOString(),
+  }));
+
+  // Requirement 3: Ensure search input dynamically filters users across name, email, and phone
+  const filteredUsers = usersList.filter((user) => {
+    if (!search.trim()) return true;
+    const query = search.toLowerCase().trim();
+    return (
+      (user.full_name && user.full_name.toLowerCase().includes(query)) ||
+      (user.email && user.email.toLowerCase().includes(query)) ||
+      (user.phone_number && user.phone_number.toLowerCase().includes(query))
+    );
+  });
 
   const totalPages = data?.pages ?? 1;
 
@@ -68,8 +102,11 @@ export default function UsersPage() {
         <input
           type="text"
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          placeholder="Search by name or email..."
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          placeholder="Search by name, email, or phone..."
           id="user-search"
         />
       </div>
@@ -88,8 +125,26 @@ export default function UsersPage() {
           </tr>
         </thead>
         <tbody>
-          {data?.users && data.users.length > 0 ? (
-            data.users.map((user) => (
+          {/* Requirement 3: Loading state spinner */}
+          {isLoading || (!data && !error) ? (
+            <tr>
+              <td colSpan={8} style={{ textAlign: 'center', padding: '2rem' }}>
+                <div className={styles.loadingContainer}>
+                  <div className={styles.spinner} id="users-loading-spinner" />
+                  <span>Loading registered users...</span>
+                </div>
+              </td>
+            </tr>
+          ) : error ? (
+            /* Requirement 3: Display exact error message if API error occurs */
+            <tr>
+              <td colSpan={8} className={styles.errorCell}>
+                <strong>API Error:</strong>{' '}
+                {error.response?.data?.error || error.message || 'Failed to fetch users'}
+              </td>
+            </tr>
+          ) : filteredUsers.length > 0 ? (
+            filteredUsers.map((user) => (
               <tr key={user.user_id}>
                 <td>{user.user_id.slice(0, 8)}</td>
                 <td>{user.full_name}</td>
@@ -98,7 +153,7 @@ export default function UsersPage() {
                 <td>
                   {user.user_type === 'guest'
                     ? `Guest (NIC: ${user.nic_number || '—'})`
-                    : 'People'}
+                    : user.user_type}
                 </td>
                 <td>
                   {user.is_verified ? (
@@ -130,7 +185,9 @@ export default function UsersPage() {
             ))
           ) : (
             <tr>
-              <td colSpan={8}>No users found</td>
+              <td colSpan={8} style={{ textAlign: 'center' }}>
+                No users found
+              </td>
             </tr>
           )}
         </tbody>

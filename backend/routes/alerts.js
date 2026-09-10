@@ -6,22 +6,82 @@ const { sendBulkSMS, sendSMS } = require('../services/smsService');
 
 const router = express.Router();
 
+function mapEmergencyType(typeStr) {
+  if (!typeStr) return 'other';
+  const lower = String(typeStr).trim().toLowerCase();
+  const validTypes = [
+    'flood',
+    'landslide',
+    'tsunami',
+    'earthquake',
+    'fire',
+    'medical',
+    'search_and_rescue',
+    'infrastructure_damage',
+    'hazardous_material',
+    'other',
+  ];
+  if (validTypes.includes(lower)) return lower;
+  if (lower === 'accident') return 'search_and_rescue';
+  return 'other';
+}
+
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const {
-      disaster_type,
-      severity = 1,
-      zone_wkt,
-      work_plan,
-      expires_hours = 24,
-      is_draft = false,
-    } = req.body;
+    const raw_disaster_type = req.body.disaster_type || req.body.disasterType;
+    const zone_wkt = req.body.zone_wkt || req.body.affectedZone;
+    const work_plan = req.body.work_plan || req.body.workPlan;
+    const expires_hours = req.body.expires_hours || req.body.expiresIn || 24;
+    const severity = req.body.severity || 3;
+    const is_draft = req.body.is_draft || false;
 
-    if (!disaster_type) {
+    if (!raw_disaster_type) {
       return res.status(400).json({ error: 'disaster_type is required' });
     }
 
-    const adminId = req.user?.user_id || req.user?.sub || null;
+    const disaster_type = mapEmergencyType(raw_disaster_type);
+
+    // Resolve valid admin_id or fallback to existing admin ID if foreign key mismatch
+    let adminId = req.user?.user_id || req.user?.sub || null;
+    try {
+      if (adminId) {
+        const adminCheck = await req.app.locals.pool.query(
+          'SELECT admin_id FROM administrators WHERE admin_id = $1',
+          [adminId]
+        );
+        if (adminCheck.rows.length === 0) {
+          const firstAdmin = await req.app.locals.pool.query('SELECT admin_id FROM administrators LIMIT 1');
+          if (firstAdmin.rows.length > 0) {
+            adminId = firstAdmin.rows[0].admin_id;
+          } else {
+            const newAdmin = await req.app.locals.pool.query(
+              `INSERT INTO administrators (full_name, email, agency, district, password_hash)
+               VALUES ('System Admin', 'admin@resqai.lk', 'DMC', 'Colombo', 'hash')
+               ON CONFLICT (email) DO UPDATE SET updated_at = NOW()
+               RETURNING admin_id`
+            );
+            adminId = newAdmin.rows[0].admin_id;
+          }
+        }
+      } else {
+        const firstAdmin = await req.app.locals.pool.query('SELECT admin_id FROM administrators LIMIT 1');
+        if (firstAdmin.rows.length > 0) {
+          adminId = firstAdmin.rows[0].admin_id;
+        } else {
+          const newAdmin = await req.app.locals.pool.query(
+            `INSERT INTO administrators (full_name, email, agency, district, password_hash)
+             VALUES ('System Admin', 'admin@resqai.lk', 'DMC', 'Colombo', 'hash')
+             ON CONFLICT (email) DO UPDATE SET updated_at = NOW()
+             RETURNING admin_id`
+          );
+          adminId = newAdmin.rows[0].admin_id;
+        }
+      }
+    } catch (aErr) {
+      console.warn('Admin ID lookup failed:', aErr.message);
+      adminId = null;
+    }
+
     const status = is_draft ? 'draft' : 'active';
 
     let expiresAt = null;
@@ -29,26 +89,34 @@ router.post('/', requireAuth, async (req, res) => {
       expiresAt = new Date(Date.now() + Number(expires_hours) * 3600 * 1000);
     }
 
-    // Insert alert into PostgreSQL
-    let insertQuery = `
-      INSERT INTO emergency_alerts (
-        admin_id, disaster_type, severity, work_plan, status, expires_at, delivered_count
-        ${zone_wkt ? ', affected_zone' : ''}
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7 ${zone_wkt ? `, ST_GeomFromText($8, 4326)` : ''})
-      RETURNING alert_id, disaster_type, severity, work_plan, status, created_at, expires_at
-    `;
-    const insertParams = [
-      adminId,
-      disaster_type,
-      Number(severity),
-      work_plan || null,
-      status,
-      expiresAt,
-      0,
-    ];
-    if (zone_wkt) {
-      insertParams.push(zone_wkt);
+    // Check if zone_wkt is a valid WKT polygon
+    const cleanZone = zone_wkt && typeof zone_wkt === 'string' ? zone_wkt.trim() : '';
+    const isWktPolygon = Boolean(
+      cleanZone &&
+      (cleanZone.toUpperCase().startsWith('POLYGON') || cleanZone.toUpperCase().startsWith('MULTIPOLYGON'))
+    );
+
+    let insertQuery;
+    let insertParams;
+
+    if (isWktPolygon) {
+      insertQuery = `
+        INSERT INTO emergency_alerts (
+          admin_id, disaster_type, severity, work_plan, status, expires_at, delivered_count, affected_zone
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, ST_GeomFromText($8, 4326))
+        RETURNING alert_id, disaster_type, severity, work_plan, status, created_at, expires_at
+      `;
+      insertParams = [adminId, disaster_type, Number(severity) || 3, work_plan || null, status, expiresAt, 0, cleanZone];
+    } else {
+      insertQuery = `
+        INSERT INTO emergency_alerts (
+          admin_id, disaster_type, severity, work_plan, status, expires_at, delivered_count
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING alert_id, disaster_type, severity, work_plan, status, created_at, expires_at
+      `;
+      insertParams = [adminId, disaster_type, Number(severity) || 3, work_plan || null, status, expiresAt, 0];
     }
 
     const { rows: alertRows } = await req.app.locals.pool.query(insertQuery, insertParams);
@@ -57,22 +125,30 @@ router.post('/', requireAuth, async (req, res) => {
     let appCount = 0;
     let smsCount = 0;
 
-    // Only dispatch notifications if not a draft
+    // Dispatch notifications if not a draft
     if (!is_draft) {
-      // Find all active users with phone numbers
       let userQuery = 'SELECT user_id, phone_number FROM users';
-      if (zone_wkt) {
+      let userParams = [];
+
+      if (isWktPolygon) {
         userQuery = `
           SELECT user_id, phone_number FROM users
           WHERE gps_location IS NOT NULL
             AND ST_Within(gps_location, ST_GeomFromText($1, 4326))
         `;
+        userParams = [cleanZone];
       }
 
-      const { rows: users } = await req.app.locals.pool.query(
-        userQuery,
-        zone_wkt ? [zone_wkt] : []
-      );
+      let users = [];
+      try {
+        const { rows } = await req.app.locals.pool.query(userQuery, userParams);
+        users = rows;
+      } catch (qErr) {
+        console.warn('WKT Spatial Query failed, falling back to all users:', qErr.message);
+        const { rows } = await req.app.locals.pool.query('SELECT user_id, phone_number FROM users');
+        users = rows;
+      }
+
       appCount = users.length;
 
       const phoneContacts = users
@@ -80,16 +156,21 @@ router.post('/', requireAuth, async (req, res) => {
         .filter((p) => Boolean(p && String(p).trim()));
 
       if (phoneContacts.length > 0) {
-        const smsMsg = `[ResQAI ALERT] ${disaster_type.toUpperCase()} (Severity ${severity}/5). ${
+        const zoneText = cleanZone ? ` [Zone: ${cleanZone}]` : '';
+        const smsMsg = `[ResQAI ALERT] ${disaster_type.toUpperCase()}${zoneText}. ${
           work_plan || 'Emergency reported in your area. Follow civil defense instructions.'
         }`.slice(0, 1500);
 
-        if (phoneContacts.length === 1) {
-          const smsRes = await sendSMS(phoneContacts[0], smsMsg);
-          smsCount = smsRes.success ? 1 : 0;
-        } else {
-          const smsRes = await sendBulkSMS(phoneContacts, smsMsg);
-          smsCount = smsRes.delivered_count || (smsRes.success ? phoneContacts.length : 0);
+        try {
+          if (phoneContacts.length === 1) {
+            const smsRes = await sendSMS(phoneContacts[0], smsMsg);
+            smsCount = smsRes.success ? 1 : 0;
+          } else {
+            const smsRes = await sendBulkSMS(phoneContacts, smsMsg);
+            smsCount = smsRes.delivered_count || (smsRes.success ? phoneContacts.length : 0);
+          }
+        } catch (smsErr) {
+          console.warn('SMS delivery warning:', smsErr.message);
         }
       }
 
@@ -99,16 +180,26 @@ router.post('/', requireAuth, async (req, res) => {
         [appCount, alert.alert_id]
       );
 
-      // Broadcast alert via Socket.IO
+      // Broadcast alert to all clients via Socket.IO
       const io = req.app.locals.io;
       if (io) {
-        io.emit('emergency_alert', {
+        const broadcastPayload = {
           alert_id: alert.alert_id,
           disaster_type: alert.disaster_type,
-          severity: alert.severity,
+          affected_zone: cleanZone || null,
           work_plan: alert.work_plan,
           created_at: alert.created_at,
-        });
+          expires_at: alert.expires_at,
+          status: alert.status,
+        };
+        const { broadcastAlert } = require('../socket');
+        if (broadcastAlert) {
+          broadcastAlert(io, broadcastPayload);
+        } else {
+          io.to('role:people').emit('alert_received', broadcastPayload);
+          io.to('role:people').emit('emergency_alert', broadcastPayload);
+          io.emit('emergency_alert', broadcastPayload);
+        }
       }
     }
 

@@ -59,6 +59,9 @@ services:
     container_name: resqai_node_backend
     ports:
       - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
     environment:
       - DATABASE_URL=postgres://resqai_user:resqai_pass@postgres:5432/resqai
       - PORT=5000
