@@ -137,7 +137,7 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Red Top Header Band extending behind TopBar down to half of Flood Alert banner */}
-      <View style={styles.topHeaderBackground} pointerEvents="none" />
+      <View style={[styles.topHeaderBackground, { pointerEvents: 'none' }]} />
 
       {/* TopBar with Resqai.jpeg Logo and white 3-dot button */}
       <TopBar theme="dark" transparent />

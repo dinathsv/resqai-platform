@@ -7,7 +7,7 @@ import {
   Image,
   Modal,
   Platform,
-  TouchableWithoutFeedback,
+  Pressable,
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -159,10 +159,10 @@ export default function TopBar({
         animationType="fade"
         onRequestClose={() => setMenuVisible(false)}
       >
-        <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
+        <Pressable onPress={() => setMenuVisible(false)}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContentWrapper}>
-              <TouchableWithoutFeedback>
+              <Pressable>
                 <View style={styles.menuDropdown}>
                   {/* Menu Header */}
                   <View style={styles.menuHeader}>
@@ -292,10 +292,10 @@ export default function TopBar({
                   <Text style={styles.menuSignOutLabel}>Sign Out</Text>
                 </TouchableOpacity>
               </View>
-            </TouchableWithoutFeedback>
+            </Pressable>
           </View>
         </View>
-      </TouchableWithoutFeedback>
+      </Pressable>
     </Modal>
     </>
   );

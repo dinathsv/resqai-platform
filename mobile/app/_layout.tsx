@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Platform,
   Dimensions,
+  LogBox,
 } from 'react-native';
 import { Slot, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -147,6 +148,11 @@ function AppLayout() {
 
 export default function RootLayout() {
   useWebMobileFrame();
+  LogBox.ignoreLogs([
+    '"shadow*" style props are deprecated',
+    'props.pointerEvents is deprecated',
+    'TouchableWithoutFeedback is deprecated'
+  ]);
   return (
     <ThemeProvider>
       <AppLayout />
