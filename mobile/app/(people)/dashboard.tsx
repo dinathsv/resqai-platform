@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { connectSocket, disconnectSocket } from '../../config/socket';
 import { Colors, Fonts } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import BottomNav from '../../components/BottomNav';
 import TopBar from '../../components/TopBar';
 
@@ -29,6 +30,7 @@ interface AlertItem {
 }
 
 export default function DashboardScreen() {
+  const { theme } = useTheme();
   const router = useRouter();
   const [userName, setUserName] = useState<string>('');
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
@@ -133,7 +135,7 @@ export default function DashboardScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Red Top Header Band extending behind TopBar down to half of Flood Alert banner */}
       <View style={styles.topHeaderBackground} pointerEvents="none" />
 

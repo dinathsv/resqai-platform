@@ -38,10 +38,12 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { Colors, Fonts, Glass } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import BottomNav from '../../components/BottomNav';
 import TopBar from '../../components/TopBar';
 
 export default function HelpScreen() {
+  const { theme } = useTheme();
   const router = useRouter();
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [message, setMessage] = useState('');
@@ -167,7 +169,7 @@ export default function HelpScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <TopBar title="Help Center" showBack onBack={handleBack} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
 

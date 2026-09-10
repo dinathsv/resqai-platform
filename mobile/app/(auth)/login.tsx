@@ -1,9 +1,9 @@
-﻿/**
+/**
  * Flow 1: User Login (returning user)
  */
 import React, { useState, useMemo } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  View, Text, TextInput, TouchableOpacity, StyleSheet, Image,
   SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -53,14 +53,11 @@ export default function LoginScreen() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.logoSection}>
-            <View style={[styles.badgeWrapper, { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(22,79,67,0.08)', borderColor: theme.border }]}>
-              <View style={styles.brandIconCircle}><Text style={styles.brandIcon}>🛡️</Text></View>
-              <Text style={[styles.brandTag, { color: theme.textSecondary }]}>RESQAI NETWORK</Text>
-            </View>
-            <View style={styles.titleRow}>
-              <Text style={[styles.logoTextPrimary, { color: theme.textPrimary }]}>ResQ</Text>
-              <Text style={[styles.logoTextAccent, { color: theme.brandActive }]}>AI</Text>
-            </View>
+            <Image 
+              source={require('../../assets/resqai_logo.png')} 
+              style={{ width: 140, height: 140, marginBottom: 16 }} 
+              resizeMode="contain" 
+            />
             <Text style={[styles.tagline, { color: theme.textSecondary }]}>Rapid Triage & Emergency Response</Text>
           </View>
 

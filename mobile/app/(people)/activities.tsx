@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { Colors, Fonts } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 import BottomNav from '../../components/BottomNav';
 
 interface RescueItem {
@@ -42,6 +43,7 @@ interface AlertItem {
 }
 
 export default function ActivitiesScreen() {
+  const { theme } = useTheme();
   const router = useRouter();
   const [userName, setUserName] = useState<string>('Citizen');
   const [myRequests, setMyRequests] = useState<RescueItem[]>([]);
@@ -153,7 +155,7 @@ export default function ActivitiesScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -167,7 +169,7 @@ export default function ActivitiesScreen() {
               {/* 1. First: Logo */}
               <View style={styles.logoBadgeWrap}>
                 <Image
-                  source={require('../../assets/Resqai.jpeg')}
+                  source={require('../../assets/resqai_logo.png')}
                   style={styles.headerLogo}
                   resizeMode="contain"
                 />
