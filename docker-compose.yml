@@ -52,6 +52,16 @@ services:
       redis:
         condition: service_healthy
 
+  ml-models:
+    build:
+      context: ./ml-models
+      dockerfile: Dockerfile
+    container_name: resqai_ml_models
+    ports:
+      - "5005:5005"
+    volumes:
+      - ./ml-models:/app
+
   node-backend:
     build:
       context: ./backend
@@ -104,6 +114,7 @@ services:
       - WEB_HOST=0.0.0.0
     depends_on:
       - python-api
+      - ml-models
 
 volumes:
   pgdata:
