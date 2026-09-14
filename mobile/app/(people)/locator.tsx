@@ -470,7 +470,7 @@ export default function LocatorScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'ios' ? 8 : 16,
     paddingBottom: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   backButtonTouch: {
     paddingVertical: 6,
@@ -685,7 +685,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   mapMarker: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 10,

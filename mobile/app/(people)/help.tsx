@@ -322,7 +322,7 @@ const isMobileWeb = isWeb && screenWidth <= 480;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
     paddingBottom: 36,
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'ios' ? 8 : 16,
     paddingBottom: 8,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
   },
   backButtonTouch: {
     paddingVertical: 6,

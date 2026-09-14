@@ -385,7 +385,7 @@ export default function ActivitiesScreen() {
       </ScrollView>
 
       {/* Bottom Navigation with Profile Active */}
-      <BottomNav currentTab="profile" />
+      <BottomNav currentTab="activities" />
     </SafeAreaView>
   );
 }

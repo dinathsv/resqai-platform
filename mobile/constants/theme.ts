@@ -56,11 +56,11 @@ export type ThemeTokens = {
 // ---------------------------------------------
 export const darkTheme: ThemeTokens = {
   isDark: true,
-  background:      '#34383A',
-  backgroundDeep:  '#1A2624',
-  surface:         'rgba(22, 79, 67, 0.40)',
-  surfaceElevated: 'rgba(38, 116, 95, 0.22)',
-  surfaceSubtle:   'rgba(255, 255, 255, 0.05)',
+  background:      '#164F43', // Requested green color
+  backgroundDeep:  '#0E3530',
+  surface:         'rgba(38, 116, 95, 0.8)', // Lighter green for cards
+  surfaceElevated: 'rgba(38, 116, 95, 0.95)',
+  surfaceSubtle:   'rgba(255, 255, 255, 0.1)',
   textPrimary:     '#FFFFFF',
   textSecondary:   '#C7C9C9',
   textMuted:       'rgba(199, 201, 201, 0.65)',

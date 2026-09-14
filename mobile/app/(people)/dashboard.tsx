@@ -10,7 +10,9 @@ import {
   Linking,
   Dimensions,
   Image,
+  ActivityIndicator,
 } from 'react-native';
+import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
@@ -42,9 +44,28 @@ export default function DashboardScreen() {
     title: 'Flood Alert',
     description: 'Heavy rainfall and strong winds in western province',
   });
+  
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [loadingLocation, setLoadingLocation] = useState(false);
+
+  const fetchUserLocation = async () => {
+    setLoadingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      setUserLocation({ lat: location.coords.latitude, lng: location.coords.longitude });
+    } catch (err) {
+      console.error('Location error:', err);
+    } finally {
+      setLoadingLocation(false);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
+
+    fetchUserLocation();
 
     async function init() {
       try {
@@ -181,91 +202,107 @@ export default function DashboardScreen() {
           <Text style={styles.sectionTitle}>Quick Actions</Text>
         </View>
 
-        <View style={styles.quickActionsRow}>
-          {/* Card 1: SOS Emergency Request */}
-          <TouchableOpacity
-            style={styles.actionCard}
-            onPress={() => router.push('/(people)/help')}
-            activeOpacity={0.75}
-          >
-            <View style={styles.actionIconCardWrap}>
-              <Image
-                source={require('../../assets/SOS.png')}
-                style={styles.actionIconImage}
-                resizeMode="contain"
-              />
-            </View>
-            <Text style={styles.actionLabel}>Emergency{'\n'}Request</Text>
-          </TouchableOpacity>
+        <View style={styles.quickActionsGrid}>
+          <View style={styles.quickActionsRow}>
+            {/* Card 1: SOS Emergency Request */}
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => router.push('/(people)/help')}
+              activeOpacity={0.75}
+            >
+              <View style={styles.actionIconCardWrap}>
+                <Image
+                  source={require('../../assets/SOS.png')}
+                  style={styles.actionIconImage}
+                  resizeMode="contain"
+                />
+              </View>
+              <Text style={styles.actionLabel}>Emergency{'\n'}Request</Text>
+            </TouchableOpacity>
 
-          {/* Card 2: Nearest Hospitals */}
-          <TouchableOpacity
-            style={styles.actionCard}
-            onPress={() => router.push('/(people)/locator')}
-            activeOpacity={0.75}
-          >
-            <View style={styles.actionIconCardWrap}>
-              <Image
-                source={require('../../assets/Hospital.png')}
-                style={styles.actionIconImage}
-                resizeMode="contain"
-              />
-            </View>
-            <Text style={styles.actionLabel}>Nearest{'\n'}Hospitals</Text>
-          </TouchableOpacity>
+            {/* Card 2: Nearest Hospitals */}
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => router.push('/(people)/locator')}
+              activeOpacity={0.75}
+            >
+              <View style={styles.actionIconCardWrap}>
+                <Image
+                  source={require('../../assets/Hospital.png')}
+                  style={styles.actionIconImage}
+                  resizeMode="contain"
+                />
+              </View>
+              <Text style={styles.actionLabel}>Nearest{'\n'}Hospitals</Text>
+            </TouchableOpacity>
+          </View>
 
-          {/* Card 3: AI First Aid Assistant */}
-          <TouchableOpacity
-            style={styles.actionCard}
-            onPress={() => router.push('/(people)/chatbot')}
-            activeOpacity={0.75}
-          >
-            <View style={styles.actionIconCardWrap}>
-              <Image
-                source={require('../../assets/Chatbot.png')}
-                style={styles.actionIconImage}
-                resizeMode="contain"
-              />
-            </View>
-            <Text style={styles.actionLabel}>Ai First aid{'\n'}Assistant</Text>
-          </TouchableOpacity>
+          <View style={styles.quickActionsRow}>
+            {/* Card 3: AI First Aid Assistant */}
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => router.push('/(people)/chatbot')}
+              activeOpacity={0.75}
+            >
+              <View style={styles.actionIconCardWrap}>
+                <Image
+                  source={require('../../assets/Chatbot.png')}
+                  style={styles.actionIconImage}
+                  resizeMode="contain"
+                />
+              </View>
+              <Text style={styles.actionLabel}>Ai First aid{'\n'}Assistant</Text>
+            </TouchableOpacity>
+
+            {/* Card 4: AI Disaster Prediction */}
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => router.push('/(people)/prediction')}
+              activeOpacity={0.75}
+            >
+              <View style={styles.actionIconCardWrap}>
+                <Image
+                  source={require('../../assets/Map.png')}
+                  style={styles.actionIconImage}
+                  resizeMode="contain"
+                />
+              </View>
+              <Text style={styles.actionLabel}>Disaster{'\n'}Prediction</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Map Preview matching Image 3 */}
         <TouchableOpacity
-          style={styles.mapContainer}
+          style={[styles.mapContainer, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}
           onPress={() => router.push('/(people)/locator')}
           activeOpacity={0.9}
         >
-          {/* Stylized dark-mode road network background */}
-          <View style={styles.mapGridBackground}>
-            {/* Road lines simulation */}
-            <View style={styles.mapRoad1} />
-            <View style={styles.mapRoad2} />
-            <View style={styles.mapRoad3} />
-            <View style={styles.mapRoad4} />
-            <View style={styles.mapRoad5} />
-            <View style={styles.mapRoad6} />
-            <View style={styles.mapRoadCurve1} />
-            <View style={styles.mapRoadCurve2} />
-
-            {/* Glowing Red Location Pins matching Image 3 */}
-            <View style={[styles.mapPinWrap, { top: '22%', left: '26%' }]}>
-              <Text style={styles.mapPin}>📍</Text>
-            </View>
-            <View style={[styles.mapPinWrap, { top: '56%', left: '38%' }]}>
-              <Text style={styles.mapPin}>📍</Text>
-            </View>
-            <View style={[styles.mapPinWrap, { top: '57%', left: '53%' }]}>
-              <Text style={styles.mapPin}>📍</Text>
-            </View>
-            <View style={[styles.mapPinWrap, { top: '68%', left: '51%' }]}>
-              <Text style={styles.mapPin}>📍</Text>
-            </View>
-            <View style={[styles.mapPinWrap, { top: '55%', left: '64%' }]}>
-              <Text style={styles.mapPin}>📍</Text>
-            </View>
-          </View>
+          {loadingLocation ? (
+             <View style={styles.mapGridBackground}>
+                <ActivityIndicator size="large" color={theme.brandActive} />
+                <Text style={[styles.sectionTitle, { color: theme.textMuted, marginTop: 10 }]}>Detecting GPS...</Text>
+             </View>
+          ) : userLocation ? (
+            Platform.OS === 'web' ? (
+              <iframe
+                title="Live Dashboard Map"
+                src={process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ? `https://www.google.com/maps/embed/v1/place?key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${userLocation.lat},${userLocation.lng}&zoom=11` : `https://maps.google.com/maps?q=${userLocation.lat},${userLocation.lng}&hl=en&z=11&output=embed`}
+                style={{ width: '100%', height: '100%', border: 'none', borderRadius: 20 }}
+                loading="lazy"
+              />
+            ) : (
+              <View style={styles.mapGridBackground}>
+                <Text style={{ fontSize: 36, marginBottom: 6 }}>🗺️</Text>
+                <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Tap to open full map</Text>
+              </View>
+            )
+          ) : (
+             <View style={styles.mapGridBackground}>
+                <Text style={{ fontSize: 36, marginBottom: 6 }}>📍</Text>
+                <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Location unavailable</Text>
+             </View>
+          )}
         </TouchableOpacity>
 
         {/* Emergency Numbers Section */}
@@ -486,10 +523,13 @@ const styles = StyleSheet.create({
   },
 
   /* Quick Actions */
+  quickActionsGrid: {
+    marginBottom: 16,
+    gap: 10,
+  },
   quickActionsRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 16,
   },
   actionCard: {
     flex: 1,
