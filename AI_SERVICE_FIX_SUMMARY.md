@@ -55,7 +55,7 @@ export const AI_BASE = `http://${LOCALHOST}:8001`;
 **File**: `/home/SDinath/Projects/resqai/ai-service/.env`
 ```env
 # Old (GenAI SDK):
-API_KEY=AQ.Ab8RN6IqV2KS-llV92_G0TlbZyYUfX-OYA8b75sgwmRRTKwCfA
+API_KEY=<YOUR_API_KEY_HERE>
 LLM_MODEL=gemini-3.6-flash
 
 # New (Vertex AI):
