@@ -15,7 +15,7 @@ from sqlalchemy import desc, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.middleware.auth import get_current_user, require_role
+from app.middleware.auth import get_current_user, get_optional_user, require_role
 from app.models.help_request import HelpRequest
 
 logger = logging.getLogger("resqai.requests")
@@ -31,16 +31,16 @@ class SubmitRequest(BaseModel):
 class StatusUpdateRequest(BaseModel):
     status: str
 
-async def notify_critical_request(
+async def notify_new_request(
     request_id: str,
     emergency_type: str,
     urgency_level: int,
     ai_summary: str | None = None,
 ):
     """
-    Alert admins about critical emergency requests (urgency >= 4).
+    Alert admins and users about new emergency requests.
     Sends a real-time WebSocket event to the admin dashboard via the
-    Node.js backend, which broadcasts to all connected admin sockets.
+    Node.js backend.
     """
     payload = {
         "request_id": request_id,
@@ -48,33 +48,33 @@ async def notify_critical_request(
         "urgency_level": urgency_level,
         "ai_summary": ai_summary,
     }
-    logger.warning(
-        "CRITICAL ALERT: type=%s urgency=%d request=%s",
+    logger.info(
+        "NEW REQUEST ALERT: type=%s urgency=%d request=%s",
         emergency_type, urgency_level, request_id,
     )
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(
-                f"{NODE_BACKEND_URL}/api/requests/critical-alert",
+                f"{NODE_BACKEND_URL}/api/requests/new",
                 json=payload,
                 timeout=5.0,
             )
             if resp.status_code == 200:
-                logger.info("Critical alert delivered to admin dashboard")
+                logger.info("New request alert delivered to Node backend")
             else:
-                logger.error("Critical alert delivery failed: %s", resp.text)
+                logger.error("New request alert delivery failed: %s", resp.text)
     except Exception as exc:
-        logger.error("Failed to send critical alert to Node backend: %s", exc)
+        logger.error("Failed to send new request alert to Node backend: %s", exc)
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_request(
     req: SubmitRequest,
-    current_user: dict[str, Any] = Depends(get_current_user),
+    current_user: dict[str, Any] | None = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new help request (user or guest)."""
-    user_id = current_user.get("sub")
-    role = current_user.get("role")
+    user_id = current_user.get("sub") if current_user else None
+    role = current_user.get("role") if current_user else "guest"
 
     port = os.getenv("PORT", "8000")
     ai_url = f"http://localhost:{port}/api/ai/translate-report"
@@ -111,12 +111,11 @@ async def create_request(
 
     new_req.gps_location = f"SRID=4326;POINT({req.lng} {req.lat})"
 
-    # Alert admin BEFORE saving if critical (urgency >= 4)
-    # This ensures admin is notified even if database save fails
+    # Alert admin/users BEFORE saving
+    # This ensures backend is notified even if database save fails
     req_id = uuid.uuid4()  # Generate ID early for notification
     req_id_str = str(req_id)
-    if urgency_level >= 4:
-        await notify_critical_request(req_id_str, emergency_type, urgency_level, ai_summary)
+    await notify_new_request(req_id_str, emergency_type, urgency_level, ai_summary)
 
     # Now save to database
     new_req.request_id = req_id  # Use the same ID

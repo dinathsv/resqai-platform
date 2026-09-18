@@ -12,6 +12,7 @@ from jose import JWTError, jwt
 from app.config import settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -37,6 +38,27 @@ async def get_current_user(
         return payload
     except JWTError:
         raise credentials_exception
+
+async def get_optional_user(
+    token: str | None = Depends(oauth2_scheme_optional),
+) -> dict[str, Any] | None:
+    """
+    Decode the JWT if present. If missing or invalid, returns None without raising 401.
+    """
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+        )
+        sub: str | None = payload.get("sub")
+        if sub is None:
+            return None
+        return payload
+    except JWTError:
+        return None
 
 def require_role(*roles: str):
     """
