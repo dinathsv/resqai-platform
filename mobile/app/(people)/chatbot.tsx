@@ -164,13 +164,13 @@ export default function ChatbotScreen() {
         <View
           style={[
             styles.messageCard,
-            isUser ? styles.userMessageCard : styles.assistantMessageCard,
+            isUser ? styles.userMessageCard : { backgroundColor: theme.isDark ? theme.backgroundDeep : '#FFFFFF', borderColor: theme.border },
           ]}
         >
           <Text
             style={[
               styles.messageText,
-              isUser ? styles.userMessageText : styles.assistantMessageText,
+              isUser ? styles.userMessageText : { color: theme.textPrimary },
             ]}
           >
             {item.text}
@@ -195,11 +195,12 @@ export default function ChatbotScreen() {
         title="AI First-Aid Assistant"
         showBack
         onBack={handleBack}
-        theme="dark"
+        theme={theme.isDark ? 'dark' : 'light'}
+        transparent={true}
       />
 
-      {/* Curved Top White Sheet Container */}
-      <View style={styles.sheetContainer}>
+      {/* Curved Top Sheet Container */}
+      <View style={[styles.sheetContainer, { backgroundColor: theme.isDark ? theme.surface : '#FFFFFF' }]}>
         <KeyboardAvoidingView
           style={styles.chatArea}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -262,11 +263,11 @@ export default function ChatbotScreen() {
           <View style={styles.inputContainer}>
             <View style={styles.inputCapsule}>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { color: theme.textPrimary }]}
                 value={input}
                 onChangeText={setInput}
                 placeholder="Type your messages...."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.textMuted}
                 multiline={false}
                 returnKeyType="send"
                 onSubmitEditing={onSend}
@@ -287,6 +288,7 @@ export default function ChatbotScreen() {
               <TouchableOpacity
                 style={[
                   styles.sendButton,
+                  { backgroundColor: theme.brand },
                   (!input.trim() || loading) && styles.sendButtonMuted,
                 ]}
                 onPress={onSend}
@@ -299,9 +301,9 @@ export default function ChatbotScreen() {
           </View>
 
           {/* Bottom Medical Disclaimer Pill matching Image 1 */}
-          <View style={styles.disclaimerContainer}>
-            <View style={styles.disclaimerPill}>
-              <Text style={styles.disclaimerText}>
+          <View style={[styles.disclaimerContainer, { backgroundColor: theme.isDark ? theme.surface : '#FFFFFF' }]}>
+            <View style={[styles.disclaimerPill, { backgroundColor: theme.isDark ? theme.backgroundDeep : '#EFECE6' }]}>
+              <Text style={[styles.disclaimerText, { color: theme.isDark ? theme.textSecondary : '#4B4844' }]}>
                 Disclaimer: This AI provides general first-aid guidance only and
                 does not replace professional medical advice
               </Text>
@@ -531,12 +533,12 @@ const styles = StyleSheet.create({
   inputContainer: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
   },
   inputCapsule: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     borderRadius: 28,
     borderWidth: 1.2,
     borderColor: '#E2E8F0',

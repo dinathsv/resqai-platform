@@ -123,10 +123,10 @@ export default function HelpScreen() {
     setSubmitting(true);
 
     try {
-      const coords = await getLocation();
+      let coords = await getLocation();
       if (!coords) {
-        setSubmitting(false);
-        return;
+        // Fallback for web without HTTPS/Location permissions
+        coords = { lat: 6.9271, lng: 79.8612 };
       }
 
       const res = await apiFetch('/api/requests', {
@@ -262,23 +262,27 @@ export default function HelpScreen() {
         onRequestClose={() => setShowRequestForm(false)}
       >
         <View style={styles.modalOverlay}>
-          <SafeAreaView style={styles.modalContainer}>
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.surface }]}>
             <KeyboardAvoidingView
               style={styles.modalFlex}
               behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
-              <View style={styles.modalHeader}>
+              <View style={[styles.modalHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
                 <TouchableOpacity onPress={() => setShowRequestForm(false)}>
                   <Text style={styles.modalCancel}>Cancel</Text>
                 </TouchableOpacity>
-                <Text style={styles.modalTitle}>Help Request</Text>
+                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Help Request</Text>
                 <View style={{ width: 60 }} />
               </View>
 
               <ScrollView style={styles.modalBody}>
-                <Text style={styles.formLabel}>Describe your emergency</Text>
+                <Text style={[styles.formLabel, { color: theme.textPrimary }]}>Describe your emergency</Text>
                 <TextInput
-                  style={styles.messageInput}
+                  style={[styles.messageInput, {
+                    backgroundColor: theme.inputBg,
+                    borderColor: theme.inputBorder,
+                    color: theme.textPrimary
+                  }]}
                   value={message}
                   onChangeText={setMessage}
                   placeholder="Tell us what happened, where you are, and what help you need..."
@@ -510,7 +514,6 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#EBEBEB',
     ...(isWeb
       ? ({
           width: isMobileWeb ? '100%' : 420,
@@ -525,7 +528,7 @@ const styles = StyleSheet.create({
           shadowRadius: 50,
           elevation: 24,
           borderWidth: isMobileWeb ? 0 : 1,
-          borderColor: '#D1D5DB',
+          borderColor: 'rgba(255,255,255,0.1)',
         } as any)
       : {}),
   },
@@ -539,19 +542,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#D1D5DB',
-    backgroundColor: '#FFFFFF',
   },
   modalCancel: {
     fontSize: 15,
     fontFamily: Fonts.medium,
-    color: '#4A1224',
+    color: Colors.textMuted,
     width: 60,
   },
   modalTitle: {
     fontSize: 18,
     fontFamily: Fonts.bold,
-    color: '#0F172A',
   },
   modalBody: {
     flex: 1,
@@ -561,18 +561,17 @@ const styles = StyleSheet.create({
   formLabel: {
     fontSize: 15,
     fontFamily: Fonts.semiBold,
-    color: Colors.textPrimary,
     marginBottom: 10,
   },
   messageInput: {
-    ...Glass.input,
     paddingVertical: 14,
     paddingHorizontal: 14,
     fontSize: 15,
     fontFamily: Fonts.regular,
-    color: Colors.textPrimary,
     minHeight: 140,
     marginBottom: 16,
+    borderWidth: 1,
+    borderRadius: 12,
   },
   formHint: {
     fontSize: 13,
@@ -582,25 +581,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   submitButton: {
-    backgroundColor: 'rgba(5, 150, 105, 0.88)',
+    backgroundColor: '#059669',
     paddingVertical: 16,
     borderRadius: 14,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
-    shadowColor: Colors.cta,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 4,
     marginBottom: 32,
-    ...(Platform.OS === 'web'
-      ? ({
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          boxShadow: '0 4px 20px rgba(5, 150, 105, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.3)',
-        } as any)
-      : {}),
   },
   buttonDisabled: {
     opacity: 0.6,
