@@ -132,6 +132,8 @@ CREATE TABLE help_requests (
         (user_id IS NOT NULL AND guest_session_id IS NULL AND is_guest_request = FALSE)
         OR
         (user_id IS NULL AND guest_session_id IS NOT NULL AND is_guest_request = TRUE)
+        OR
+        (user_id IS NULL AND guest_session_id IS NULL AND is_guest_request = TRUE)
     )
 );
 
