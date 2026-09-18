@@ -397,6 +397,8 @@ export default function PredictionScreen() {
               src={embedUrl}
               style={{ width: '100%', height: 200, border: 'none', borderRadius: 14 }}
               loading="lazy"
+              allowFullScreen
+              referrerPolicy="strict-origin-when-cross-origin"
             />
           </View>
         ) : (

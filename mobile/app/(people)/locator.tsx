@@ -289,6 +289,8 @@ export default function LocatorScreen() {
                 borderRadius: 14,
               }}
               loading="lazy"
+              allowFullScreen
+              referrerPolicy="strict-origin-when-cross-origin"
             />
           </View>
         ) : null}

@@ -290,6 +290,8 @@ export default function DashboardScreen() {
                 src={process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ? `https://www.google.com/maps/embed/v1/place?key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${userLocation.lat},${userLocation.lng}&zoom=11` : `https://maps.google.com/maps?q=${userLocation.lat},${userLocation.lng}&hl=en&z=11&output=embed`}
                 style={{ width: '100%', height: '100%', border: 'none', borderRadius: 20 }}
                 loading="lazy"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
               />
             ) : (
               <View style={styles.mapGridBackground}>
