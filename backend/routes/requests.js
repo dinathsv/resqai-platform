@@ -2,18 +2,18 @@
 
 const express = require('express');
 const { optionalAuth } = require('../middleware/auth');
-const { notifyCriticalRequest } = require('../socket');
+const { notifyNewRequest } = require('../socket');
 
 const router = express.Router();
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
 
 /**
- * POST /critical-alert
- * Called by the Python API when a help request has urgency >= 4.
- * Broadcasts a real-time alert to all connected admin sockets.
+ * POST /new
+ * Called by the Python API when a new help request is created.
+ * Broadcasts a real-time alert to all connected sockets.
  */
-router.post('/critical-alert', async (req, res) => {
+router.post('/new', async (req, res) => {
   try {
     const { request_id, emergency_type, urgency_level, ai_summary } = req.body;
 
@@ -23,19 +23,19 @@ router.post('/critical-alert', async (req, res) => {
 
     const io = req.app.locals.io;
     if (io) {
-      notifyCriticalRequest(io, {
+      notifyNewRequest(io, {
         request_id,
         emergency_type,
-        urgency_level: urgency_level || 4,
+        urgency_level: urgency_level || 3,
         ai_summary: ai_summary || null,
         alerted_at: new Date().toISOString(),
       });
     }
 
-    console.log(`🚨 Critical alert broadcast: ${emergency_type} (urgency ${urgency_level}) — ${request_id}`);
-    return res.json({ success: true, message: 'Critical alert broadcast to admins' });
+    console.log(`📡 New request broadcast: ${emergency_type} (urgency ${urgency_level}) — ${request_id}`);
+    return res.json({ success: true, message: 'New request broadcast to clients' });
   } catch (err) {
-    console.error('POST /api/requests/critical-alert error:', err.message);
+    console.error('POST /api/requests/new error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

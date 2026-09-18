@@ -44,8 +44,18 @@ function broadcastAlert(io, alert) {
   io.emit('emergency_alert', alert);
 }
 
-function notifyCriticalRequest(io, request) {
-  io.to('role:admin').emit('critical_request', request);
+function notifyNewRequest(io, request) {
+  // Broadcast to admin dashboard
+  io.to('role:admin').emit('new_request', request);
+  
+  // If it's a critical request (urgency >= 4), broadcast emergency alert to all users
+  if (request.urgency_level >= 4) {
+    io.to('role:people').emit('emergency_alert', {
+      alert_id: request.request_id,
+      disaster_type: request.emergency_type,
+      description: request.ai_summary || 'Critical emergency reported in the area.',
+    });
+  }
 }
 
-module.exports = { initSocket, broadcastAlert, notifyCriticalRequest };
+module.exports = { initSocket, broadcastAlert, notifyNewRequest };
