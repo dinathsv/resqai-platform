@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import api from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import styles from './dashboard.module.css';
@@ -86,8 +86,17 @@ export default function DashboardPage() {
     socket.on('new_message', (msg: ChatMessage) => {
       setChatMessages((prev) => [...prev, msg]);
     });
+    
+    socket.on('new_request', (req: any) => {
+      // Re-fetch the requests list instantly
+      mutate('/api/requests?status=pending,ai_processing,verified,dispatched,in_progress&limit=20');
+      // Also mutate stats to update the counters instantly
+      mutate('/api/admin/dashboard/stats');
+    });
+
     return () => {
       socket.off('new_message');
+      socket.off('new_request');
     };
   }, []);
 
