@@ -46,6 +46,7 @@ services:
       - SMSLENZ_API_KEY=${SMSLENZ_API_KEY:-3ef7d7d9-1ae3-4615-b43c-b795f67375e7}
       - SMSLENZ_SENDER_ID=${SMSLENZ_SENDER_ID:-SMSlenzDEMO}
       - SMSLENZ_BASE_URL=${SMSLENZ_BASE_URL:-https://smslenz.lk/api}
+      - NODE_BACKEND_URL=http://node-backend:5000
     depends_on:
       postgres:
         condition: service_healthy
