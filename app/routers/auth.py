@@ -237,6 +237,7 @@ async def get_me(
                 "full_name": user.full_name,
                 "email": user.email,
                 "phone_number": user.phone_number,
+                "avatar_url": user.avatar_url,
                 "role": role or "people",
             }
     except Exception:
@@ -247,6 +248,53 @@ async def get_me(
         "full_name": current_user.get("name") or current_user.get("email", "Citizen"),
         "role": role or "people",
     }
+
+
+class UpdateProfileRequest(BaseModel):
+    full_name: str | None = None
+    avatar_url: str | None = None
+    phone_number: str | None = None
+
+
+@router.patch("/me")
+async def update_me(
+    req: UpdateProfileRequest,
+    db: AsyncSession = Depends(get_db),
+    token: str = Depends(oauth2_scheme),
+):
+    """Update citizen profile name, avatar, or phone number."""
+    from app.middleware.auth import get_current_user
+    current_user = await get_current_user(token)
+    sub = current_user.get("sub")
+    try:
+        user_uuid = uuid.UUID(sub)
+        result = await db.execute(select(User).where(User.user_id == user_uuid))
+        user = result.scalars().first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        if req.full_name is not None and req.full_name.strip():
+            user.full_name = req.full_name.strip()
+        if "avatar_url" in req.model_fields_set:
+            user.avatar_url = req.avatar_url
+        if req.phone_number is not None:
+            user.phone_number = req.phone_number
+
+        await db.commit()
+        await db.refresh(user)
+        return {
+            "user_id": str(user.user_id),
+            "full_name": user.full_name,
+            "email": user.email,
+            "phone_number": user.phone_number,
+            "avatar_url": user.avatar_url,
+            "role": current_user.get("role") or "people",
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
 
 @router.post("/admin/login")
 async def admin_login(
