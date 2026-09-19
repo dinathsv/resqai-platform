@@ -75,7 +75,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
   const handleTabPress = (tab: NavTab) => {
     if (tab === currentTab) return;
     if (tab === 'home') router.replace('/(people)/dashboard');
-    else if (tab === 'alerts') router.push('/(people)/dashboard');
+    else if (tab === 'alerts') router.replace('/(people)/alerts');
     else if (tab === 'activities') router.replace('/(people)/activities');
     else if (tab === 'profile') setProfileModalVisible(true);
   };

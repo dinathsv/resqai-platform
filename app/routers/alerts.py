@@ -22,7 +22,7 @@ from sqlalchemy import desc, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.middleware.auth import get_current_user, require_role
+from app.middleware.auth import get_current_user, get_optional_user, require_role
 from app.models.emergency_alert import EmergencyAlert
 from app.services.sms_service import sms_gateway
 
@@ -199,20 +199,25 @@ async def create_alert(
 @router.get("")
 async def list_alerts(
     status_filter: str | None = None,
-    current_user: dict[str, Any] = Depends(get_current_user),
+    status: str | None = None,
+    current_user: dict[str, Any] | None = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List alerts. People see active alerts; admins see all."""
-    role = current_user.get("role")
+    """List alerts. Returns active alerts, or all alerts (including past/old notifications) when status='all'."""
+    selected_status = status or status_filter
+    role = current_user.get("role") if current_user else None
 
     query = select(EmergencyAlert).order_by(desc(EmergencyAlert.created_at))
 
-    if role != "admin":
+    if selected_status == "all":
+        # Return all alerts (present and past/old)
+        pass
+    elif selected_status:
+        query = query.where(EmergencyAlert.status == selected_status)
+    elif role != "admin":
         query = query.where(EmergencyAlert.status == "active")
-    elif status_filter:
-        query = query.where(EmergencyAlert.status == status_filter)
 
-    query = query.limit(50)
+    query = query.limit(100)
     result = await db.execute(query)
     alerts = result.scalars().all()
 
@@ -236,7 +241,7 @@ async def list_alerts(
 @router.get("/{alert_id}")
 async def get_alert(
     alert_id: str,
-    current_user: dict[str, Any] = Depends(get_current_user),
+    current_user: dict[str, Any] | None = Depends(get_optional_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get single alert details."""

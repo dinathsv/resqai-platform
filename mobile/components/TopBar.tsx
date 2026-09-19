@@ -207,6 +207,25 @@ export default function TopBar({
                 <TouchableOpacity
                   style={[
                     styles.menuItem,
+                    pathname === '/(people)/alerts' && styles.menuItemActive,
+                  ]}
+                  onPress={() => handleNavigate('/(people)/alerts')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.menuItemIcon}>🔔</Text>
+                  <Text
+                    style={[
+                      styles.menuItemLabel,
+                      pathname === '/(people)/alerts' && styles.menuItemLabelActive,
+                    ]}
+                  >
+                    Alerts & Notifications
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.menuItem,
                     pathname === '/(people)/activities' && styles.menuItemActive,
                   ]}
                   onPress={() => handleNavigate('/(people)/activities')}
