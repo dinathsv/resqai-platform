@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String, func
+from sqlalchemy import Boolean, DateTime, String, Text, func
 from sqlalchemy.dialects.postgresql import ENUM, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from geoalchemy2 import Geometry
@@ -27,6 +27,7 @@ class User(Base):
     )
     gps_location = mapped_column(Geometry("POINT", srid=4326), nullable=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

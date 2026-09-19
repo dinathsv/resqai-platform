@@ -1,7 +1,7 @@
 
 
 const express = require('express');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, optionalAuth } = require('../middleware/auth');
 const { sendBulkSMS, sendSMS } = require('../services/smsService');
 
 const router = express.Router();
@@ -216,26 +216,23 @@ router.post('/', requireAuth, async (req, res) => {
   }
 });
 
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   try {
     const { status } = req.query;
     let query = `
       SELECT alert_id, disaster_type, severity,
              work_plan, status, created_at, expires_at, updated_at
       FROM emergency_alerts
-      WHERE status = 'active'
     `;
     const params = [];
 
-    if (status) {
+    if (status && status !== 'all') {
       params.push(status);
-      query = `
-        SELECT alert_id, disaster_type, severity,
-               work_plan, status, created_at, expires_at, updated_at
-        FROM emergency_alerts
-        WHERE status = $${params.length}
-      `;
+      query += ` WHERE status = $${params.length}`;
+    } else if (!status) {
+      query += ` WHERE status = 'active'`;
     }
+    // If status === 'all', return all alerts without status filter
 
     query += ' ORDER BY created_at DESC';
 
@@ -247,7 +244,7 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-router.get('/:id', requireAuth, async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { rows } = await req.app.locals.pool.query(
