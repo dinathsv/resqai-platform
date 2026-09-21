@@ -315,7 +315,7 @@ export default function DashboardScreen() {
             <Text style={[styles.emergencyNumber, { color: theme.textPrimary }]}>1990</Text>
             <Text style={[styles.emergencyName, { color: theme.textSecondary }]}>Suwa Seriya</Text>
             <View style={styles.emergencyIconWrap}>
-              <Text style={styles.ambulanceIcon}>⬡</Text>
+              <Image source={require('../../assets/1990_Suwa_Seriya.png')} style={{ width: 36, height: 36 }} resizeMode="contain" />
             </View>
           </TouchableOpacity>
 
@@ -328,7 +328,7 @@ export default function DashboardScreen() {
             <Text style={[styles.emergencyNumber, { color: theme.textPrimary }]}>110</Text>
             <Text style={[styles.emergencyName, { color: theme.textSecondary }]}>Fire Service</Text>
             <View style={styles.emergencyIconWrap}>
-              <Text style={styles.fireIcon}>⬡</Text>
+              <Image source={require('../../assets/110_Fire_Service.png')} style={{ width: 36, height: 36 }} resizeMode="contain" />
             </View>
           </TouchableOpacity>
 
@@ -341,7 +341,7 @@ export default function DashboardScreen() {
             <Text style={[styles.emergencyNumber, { color: theme.textPrimary }]}>119</Text>
             <Text style={[styles.emergencyName, { color: theme.textSecondary }]}>Police</Text>
             <View style={styles.emergencyIconWrap}>
-              <Text style={styles.policeIcon}>⬡</Text>
+              <Image source={require('../../assets/119_police.png')} style={{ width: 36, height: 36 }} resizeMode="contain" />
             </View>
           </TouchableOpacity>
         </View>
