@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
+import Image from 'next/image';
 import styles from './layout.module.css';
 
 const NAV_ITEMS = [
@@ -33,7 +34,7 @@ function Sidebar({ isOpen, onClose, theme, onToggleTheme }: { isOpen: boolean; o
       <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
         <div className={styles.sidebarHeader}>
           <div className={styles.logoGroup}>
-            <div className={styles.logoIcon}>RQ</div>
+            <Image src="/resqai_logo.png" alt="ResQAI Logo" width={32} height={32} className={styles.logoIcon} />
             <div>
               <div className={styles.sidebarTitle}>ResQAI</div>
               <div className={styles.sidebarSubtitle}>Admin Panel</div>
