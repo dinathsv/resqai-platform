@@ -309,7 +309,7 @@ export default function DashboardScreen() {
         <View style={styles.emergencyRow}>
           {/* 1990 Suwa Seriya */}
           <TouchableOpacity
-            style={[styles.emergencyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            style={[styles.emergencyCard, { backgroundColor: theme.surface }]}
             onPress={() => handleCall('1990')}
             activeOpacity={0.75}
           >
@@ -323,7 +323,7 @@ export default function DashboardScreen() {
 
           {/* 110 Fire Service */}
           <TouchableOpacity
-            style={[styles.emergencyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            style={[styles.emergencyCard, { backgroundColor: theme.surface }]}
             onPress={() => handleCall('110')}
             activeOpacity={0.75}
           >
@@ -337,7 +337,7 @@ export default function DashboardScreen() {
 
           {/* 119 Police */}
           <TouchableOpacity
-            style={[styles.emergencyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            style={[styles.emergencyCard, { backgroundColor: theme.surface }]}
             onPress={() => handleCall('119')}
             activeOpacity={0.75}
           >
@@ -615,7 +615,6 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 12,
     height: 120,
-    borderWidth: 1,
     overflow: 'hidden',
     position: 'relative',
   },
