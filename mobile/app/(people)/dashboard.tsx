@@ -323,46 +323,34 @@ export default function DashboardScreen() {
         <View style={styles.emergencyRow}>
           {/* 1990 Suwa Seriya */}
           <TouchableOpacity
-            style={[styles.emergencyCard, { backgroundColor: theme.surface }]}
+            style={styles.emergencyCard}
             onPress={() => handleCall('1990')}
             activeOpacity={0.75}
           >
-            <EmergencyGlow />
             <View style={styles.emergencyIconWrap}>
               <Image source={require('../../assets/1990_Suwa_Seriya.png')} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
-            </View>
-            <View style={styles.emergencyTextWrap}>
-              <Text style={[styles.emergencyNumber, { color: theme.textPrimary }]}>1990</Text>
             </View>
           </TouchableOpacity>
 
           {/* 110 Fire Service */}
           <TouchableOpacity
-            style={[styles.emergencyCard, { backgroundColor: theme.surface }]}
+            style={styles.emergencyCard}
             onPress={() => handleCall('110')}
             activeOpacity={0.75}
           >
-            <EmergencyGlow />
             <View style={styles.emergencyIconWrap}>
               <Image source={require('../../assets/110_Fire_Service.png')} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
-            </View>
-            <View style={styles.emergencyTextWrap}>
-              <Text style={[styles.emergencyNumber, { color: theme.textPrimary }]}>110</Text>
             </View>
           </TouchableOpacity>
 
           {/* 119 Police */}
           <TouchableOpacity
-            style={[styles.emergencyCard, { backgroundColor: theme.surface }]}
+            style={styles.emergencyCard}
             onPress={() => handleCall('119')}
             activeOpacity={0.75}
           >
-            <EmergencyGlow />
             <View style={styles.emergencyIconWrap}>
               <Image source={require('../../assets/119_police.png')} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
-            </View>
-            <View style={styles.emergencyTextWrap}>
-              <Text style={[styles.emergencyNumber, { color: theme.textPrimary }]}>119</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -649,25 +637,25 @@ const styles = StyleSheet.create({
   },
   glowOuter: {
     position: 'absolute',
-    backgroundColor: 'rgba(10, 132, 255, 0.06)',
+    backgroundColor: 'rgba(10, 132, 255, 0.03)',
   },
   glowMiddle: {
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: 'rgba(10, 132, 255, 0.11)',
+    backgroundColor: 'rgba(10, 132, 255, 0.05)',
   },
   glowInner: {
     width: 110,
     height: 110,
     borderRadius: 55,
-    backgroundColor: 'rgba(10, 132, 255, 0.18)',
+    backgroundColor: 'rgba(10, 132, 255, 0.08)',
   },
   glowCore: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: 'rgba(10, 132, 255, 0.32)',
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: 'rgba(10, 132, 255, 0.12)',
   },
   emergencyNumber: {
     fontSize: 16,
@@ -683,10 +671,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    top: 4,
-    bottom: 24,
+    top: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 16,
   },
   emergencyTextWrap: {
     position: 'absolute',
