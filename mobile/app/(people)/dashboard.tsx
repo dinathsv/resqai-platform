@@ -32,6 +32,20 @@ interface AlertItem {
   description?: string;
 }
 
+function EmergencyGlow() {
+  return (
+    <View style={styles.emergencyGlow} pointerEvents="none">
+      <View style={[styles.glowCircle, styles.glowOuter]}>
+        <View style={[styles.glowCircle, styles.glowMiddle]}>
+          <View style={[styles.glowCircle, styles.glowInner]}>
+            <View style={[styles.glowCircle, styles.glowCore]} />
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export default function DashboardScreen() {
   const { theme } = useTheme();
   const router = useRouter();
@@ -313,6 +327,7 @@ export default function DashboardScreen() {
             onPress={() => handleCall('1990')}
             activeOpacity={0.75}
           >
+            <EmergencyGlow />
             <View style={styles.emergencyIconWrap}>
               <Image source={require('../../assets/1990_Suwa_Seriya.png')} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
             </View>
@@ -327,6 +342,7 @@ export default function DashboardScreen() {
             onPress={() => handleCall('110')}
             activeOpacity={0.75}
           >
+            <EmergencyGlow />
             <View style={styles.emergencyIconWrap}>
               <Image source={require('../../assets/110_Fire_Service.png')} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
             </View>
@@ -341,6 +357,7 @@ export default function DashboardScreen() {
             onPress={() => handleCall('119')}
             activeOpacity={0.75}
           >
+            <EmergencyGlow />
             <View style={styles.emergencyIconWrap}>
               <Image source={require('../../assets/119_police.png')} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
             </View>
@@ -617,6 +634,40 @@ const styles = StyleSheet.create({
     height: 120,
     overflow: 'hidden',
     position: 'relative',
+  },
+  emergencyGlow: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glowCircle: {
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glowOuter: {
+    position: 'absolute',
+    backgroundColor: 'rgba(10, 132, 255, 0.06)',
+  },
+  glowMiddle: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(10, 132, 255, 0.11)',
+  },
+  glowInner: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: 'rgba(10, 132, 255, 0.18)',
+  },
+  glowCore: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: 'rgba(10, 132, 255, 0.32)',
   },
   emergencyNumber: {
     fontSize: 16,

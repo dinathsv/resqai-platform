@@ -17,6 +17,7 @@ import { Fonts } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
 import AppearanceSettings from './AppearanceSettings';
 import { apiFetch } from '../config/api';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export type NavTab = 'home' | 'alerts' | 'activities' | 'profile';
 
@@ -625,14 +626,25 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
             </View>
 
             <TouchableOpacity
-              style={[styles.closeBtn, { backgroundColor: theme.emergency, borderColor: theme.emergency }]}
+              style={[styles.closeBtn, {
+                shadowColor: theme.emergency,
+              }]}
               onPress={() => {
                 setProfileModalVisible(false);
                 setIsEditingName(false);
               }}
               activeOpacity={0.8}
             >
-              <Text style={[styles.closeBtnText, { color: theme.white }]}>Close</Text>
+              <LinearGradient
+                colors={['#7F0000', '#C40000', '#F51F26']}
+                locations={[0, 0.48, 1]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={styles.closeBtnGradient}
+              >
+                <View style={styles.closeBtnHighlight} pointerEvents="none" />
+                <Text style={[styles.closeBtnText, { color: theme.white }]}>Close</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -1013,7 +1025,26 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 14,
     alignItems: 'center',
-    borderWidth: 1,
+    shadowOpacity: 0.22,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 3,
+  },
+  closeBtnGradient: {
+    width: '100%',
+    paddingVertical: 12,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  closeBtnHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.72)',
   },
   closeBtnText: {
     fontSize: 14,
