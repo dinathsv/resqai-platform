@@ -180,8 +180,8 @@ export default function ActivitiesScreen() {
 
         {/* Floating ResQ-Quiz Card overlapping banner */}
         <View style={styles.quizCardWrapper}>
-          <TouchableOpacity style={styles.quizCard} onPress={() => router.push('/(people)/quiz')} activeOpacity={0.8}>
-            <View style={[styles.robotIconCircle, { backgroundColor: theme.brandActive }]}>
+          <TouchableOpacity style={[styles.quizCard, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => router.push('/(people)/quiz')} activeOpacity={0.8}>
+            <View style={[styles.robotIconCircle, { backgroundColor: theme.emergency }]}>
               <Text style={styles.robotEmoji}>⬡</Text>
             </View>
             <Text style={[styles.quizTitle, { color: theme.textPrimary }]}>ResQ-Quiz</Text>

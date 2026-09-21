@@ -284,6 +284,52 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
     );
   };
 
+  // Render small profile avatar for bottom nav tab
+  const renderNavProfileIcon = () => {
+    const size = 24;
+    if (profileAvatar) {
+      if (profileAvatar.startsWith('preset:')) {
+        const presetId = profileAvatar.replace('preset:', '');
+        const found = AVATAR_PRESETS.find((p) => p.id === presetId);
+        if (found) {
+          return (
+            <View
+              style={{
+                width: size,
+                height: size,
+                borderRadius: size / 2,
+                backgroundColor: found.bg,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 2,
+                borderWidth: currentTab === 'profile' ? 2 : 1.5,
+                borderColor: currentTab === 'profile' ? activeColor : inactiveColor,
+              }}
+            >
+              <Text style={{ fontSize: size * 0.45 }}>{found.emoji}</Text>
+            </View>
+          );
+        }
+      } else {
+        return (
+          <Image
+            source={{ uri: profileAvatar }}
+            style={{
+              width: size,
+              height: size,
+              borderRadius: size / 2,
+              marginBottom: 2,
+              borderWidth: currentTab === 'profile' ? 2 : 1.5,
+              borderColor: currentTab === 'profile' ? activeColor : inactiveColor,
+            }}
+            resizeMode="cover"
+          />
+        );
+      }
+    }
+    return <ProfileIcon active={currentTab === 'profile'} color={currentTab === 'profile' ? activeColor : inactiveColor} />;
+  };
+
   const tabs: { id: NavTab; label: string; icon: React.ReactNode }[] = [
     {
       id: 'home',
@@ -303,7 +349,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
     {
       id: 'profile',
       label: 'Profile',
-      icon: <ProfileIcon active={currentTab === 'profile'} color={currentTab === 'profile' ? activeColor : inactiveColor} />,
+      icon: renderNavProfileIcon(),
     },
   ];
 
