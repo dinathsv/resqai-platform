@@ -70,8 +70,9 @@ export default function DashboardScreen() {
       if (status !== 'granted') return;
       const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       setUserLocation({ lat: location.coords.latitude, lng: location.coords.longitude });
-    } catch (err) {
-      console.error('Location error:', err);
+    } catch (err: any) {
+      console.warn('Location fetch failed:', err?.message || 'Permission denied or unavailable');
+      setUserLocation({ lat: 6.9271, lng: 79.8612 }); // Fallback to Colombo
     } finally {
       setLoadingLocation(false);
     }
@@ -675,7 +676,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
+    padding: 0,
   },
   emergencyTextWrap: {
     position: 'absolute',
