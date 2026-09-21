@@ -238,7 +238,7 @@ export default function ActivitiesScreen() {
               in danger, request immediate relief.
             </Text>
             <TouchableOpacity
-              style={[styles.emptyActionBtn, { backgroundColor: theme.brandActive }]}
+              style={[styles.emptyActionBtn, { backgroundColor: theme.emergency }]}
               onPress={() => router.push('/(people)/help')}
               activeOpacity={0.8}
             >
@@ -292,7 +292,7 @@ export default function ActivitiesScreen() {
               victims across Sri Lanka.
             </Text>
             <TouchableOpacity
-              style={[styles.emptyActionBtn, { backgroundColor: theme.brandActive }]}
+              style={[styles.emptyActionBtn, { backgroundColor: theme.emergency }]}
               onPress={() => router.push('/(people)/donate')}
               activeOpacity={0.8}
             >
@@ -344,11 +344,11 @@ export default function ActivitiesScreen() {
         {/* Account Sign Out Button */}
         <View style={styles.signOutWrapper}>
           <TouchableOpacity
-            style={styles.signOutBtn}
+            style={[styles.signOutBtn, { backgroundColor: theme.emergency, borderColor: theme.emergency }]}
             onPress={handleSignOut}
             activeOpacity={0.8}
           >
-            <Text style={styles.signOutBtnText}>🚪 Sign Out</Text>
+            <Text style={[styles.signOutBtnText, { color: theme.white }]}>Sign Out</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -362,11 +362,9 @@ export default function ActivitiesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   scroll: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
     paddingBottom: 24,
@@ -410,7 +408,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   quizCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 20,
@@ -418,7 +415,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
     borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   robotIconCircle: {
     width: 32,
@@ -689,15 +685,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   signOutBtn: {
-    backgroundColor: '#F1F5F9',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   signOutBtnText: {
-    color: '#0F172A',
     fontSize: 14,
     fontFamily: Fonts.bold,
   },

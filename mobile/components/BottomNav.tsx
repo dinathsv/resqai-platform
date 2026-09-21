@@ -98,7 +98,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
   const [savingName, setSavingName] = useState(false);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
 
-  const activeColor = theme.brandActive;
+  const activeColor = theme.emergency;
   const inactiveColor = theme.textMuted;
 
   // Load user profile details on mount and whenever modal becomes visible
@@ -625,14 +625,14 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
             </View>
 
             <TouchableOpacity
-              style={[styles.closeBtn, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}
+              style={[styles.closeBtn, { backgroundColor: theme.emergency, borderColor: theme.emergency }]}
               onPress={() => {
                 setProfileModalVisible(false);
                 setIsEditingName(false);
               }}
               activeOpacity={0.8}
             >
-              <Text style={[styles.closeBtnText, { color: theme.textPrimary }]}>Close</Text>
+              <Text style={[styles.closeBtnText, { color: theme.white }]}>Close</Text>
             </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
