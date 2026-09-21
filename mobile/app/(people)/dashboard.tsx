@@ -21,6 +21,7 @@ import { Colors, Fonts } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import BottomNav from '../../components/BottomNav';
 import TopBar from '../../components/TopBar';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface AlertItem {
   alert_id: string;
@@ -312,10 +313,13 @@ export default function DashboardScreen() {
             onPress={() => handleCall('1990')}
             activeOpacity={0.75}
           >
-            <Text style={[styles.emergencyNumber, { color: theme.textPrimary }]}>1990</Text>
-            <Text style={[styles.emergencyName, { color: theme.textSecondary }]}>Suwa Seriya</Text>
             <View style={styles.emergencyIconWrap}>
-              <Image source={require('../../assets/1990_Suwa_Seriya.png')} style={{ width: 36, height: 36 }} resizeMode="contain" />
+              <Image source={require('../../assets/1990_Suwa_Seriya.png')} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+            </View>
+            <LinearGradient colors={['transparent', theme.surface]} locations={[0.2, 0.9]} style={StyleSheet.absoluteFill} />
+            <View style={styles.emergencyTextWrap}>
+              <Text style={[styles.emergencyNumber, { color: theme.textPrimary }]}>1990</Text>
+              <Text style={[styles.emergencyName, { color: theme.textSecondary }]}>Suwa Seriya</Text>
             </View>
           </TouchableOpacity>
 
@@ -325,10 +329,13 @@ export default function DashboardScreen() {
             onPress={() => handleCall('110')}
             activeOpacity={0.75}
           >
-            <Text style={[styles.emergencyNumber, { color: theme.textPrimary }]}>110</Text>
-            <Text style={[styles.emergencyName, { color: theme.textSecondary }]}>Fire Service</Text>
             <View style={styles.emergencyIconWrap}>
-              <Image source={require('../../assets/110_Fire_Service.png')} style={{ width: 36, height: 36 }} resizeMode="contain" />
+              <Image source={require('../../assets/110_Fire_Service.png')} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+            </View>
+            <LinearGradient colors={['transparent', theme.surface]} locations={[0.2, 0.9]} style={StyleSheet.absoluteFill} />
+            <View style={styles.emergencyTextWrap}>
+              <Text style={[styles.emergencyNumber, { color: theme.textPrimary }]}>110</Text>
+              <Text style={[styles.emergencyName, { color: theme.textSecondary }]}>Fire Service</Text>
             </View>
           </TouchableOpacity>
 
@@ -338,10 +345,13 @@ export default function DashboardScreen() {
             onPress={() => handleCall('119')}
             activeOpacity={0.75}
           >
-            <Text style={[styles.emergencyNumber, { color: theme.textPrimary }]}>119</Text>
-            <Text style={[styles.emergencyName, { color: theme.textSecondary }]}>Police</Text>
             <View style={styles.emergencyIconWrap}>
-              <Image source={require('../../assets/119_police.png')} style={{ width: 36, height: 36 }} resizeMode="contain" />
+              <Image source={require('../../assets/119_police.png')} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+            </View>
+            <LinearGradient colors={['transparent', theme.surface]} locations={[0.2, 0.9]} style={StyleSheet.absoluteFill} />
+            <View style={styles.emergencyTextWrap}>
+              <Text style={[styles.emergencyNumber, { color: theme.textPrimary }]}>119</Text>
+              <Text style={[styles.emergencyName, { color: theme.textSecondary }]}>Police</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -612,28 +622,36 @@ const styles = StyleSheet.create({
   emergencyCard: {
     flex: 1,
     borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    height: 120,
     borderWidth: 1,
+    overflow: 'hidden',
+    position: 'relative',
   },
   emergencyNumber: {
     fontSize: 16,
     fontFamily: Fonts.bold,
-    marginBottom: 2,
+    marginBottom: 0,
   },
   emergencyName: {
     fontSize: 12,
     fontFamily: Fonts.regular,
-    marginBottom: 10,
     textAlign: 'center',
   },
   emergencyIconWrap: {
-    width: 42,
-    height: 42,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
+  emergencyTextWrap: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 12,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
   },
   ambulanceIcon: {
     fontSize: 24,
