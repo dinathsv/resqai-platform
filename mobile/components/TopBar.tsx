@@ -12,6 +12,7 @@ import {
 import { useRouter, usePathname } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Fonts } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 interface TopBarProps {
   title?: string;
@@ -35,6 +36,7 @@ export default function TopBar({
   const router = useRouter();
   const pathname = usePathname();
   const [menuVisible, setMenuVisible] = useState(false);
+  const { theme: appTheme } = useTheme();
   const isDark = theme === 'dark' || theme === 'red';
 
   const handleDefaultBack = () => {
@@ -66,6 +68,10 @@ export default function TopBar({
       <View
         style={[
           styles.headerBar,
+          {
+            backgroundColor: appTheme.navBar,
+            borderBottomColor: appTheme.navBarBorder,
+          },
           isDark && styles.headerBarDark,
           transparent && styles.headerBarTransparent,
         ]}
@@ -91,7 +97,7 @@ export default function TopBar({
             <TouchableOpacity
               onPress={() => router.replace('/(people)/dashboard')}
               activeOpacity={0.8}
-              style={[styles.logoTouch, styles.logoBadge]}
+              style={[styles.logoTouch, styles.logoBadge, { backgroundColor: appTheme.surface, borderColor: appTheme.border }]}
             >
               <Image
                 source={require('../assets/resqai_logo.png')}
@@ -133,6 +139,7 @@ export default function TopBar({
             <TouchableOpacity
               style={[
                 styles.dotsButton,
+                { backgroundColor: appTheme.surface, borderColor: appTheme.border },
                 isDark && styles.dotsButtonDark,
               ]}
               onPress={() => setMenuVisible(true)}
@@ -142,6 +149,7 @@ export default function TopBar({
               <Text
                 style={[
                   styles.dotsIcon,
+                  { color: appTheme.textPrimary },
                   isDark && styles.dotsIconDark,
                 ]}
               >

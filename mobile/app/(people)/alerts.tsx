@@ -492,8 +492,8 @@ export default function AlertsScreen() {
               style={[
                 styles.typePill,
                 {
-                  backgroundColor: typeFilter === 'all' ? theme.brandActive : theme.surface,
-                  borderColor: typeFilter === 'all' ? theme.brandActive : theme.borderSubtle,
+                  backgroundColor: typeFilter === 'all' ? theme.emergency : theme.surface,
+                  borderColor: typeFilter === 'all' ? theme.emergency : theme.borderSubtle,
                 },
               ]}
               onPress={() => setTypeFilter('all')}
@@ -518,8 +518,8 @@ export default function AlertsScreen() {
                   style={[
                     styles.typePill,
                     {
-                      backgroundColor: isSelected ? theme.brandActive : theme.surface,
-                      borderColor: isSelected ? theme.brandActive : theme.borderSubtle,
+                      backgroundColor: isSelected ? theme.emergency : theme.surface,
+                      borderColor: isSelected ? theme.emergency : theme.borderSubtle,
                     },
                   ]}
                   onPress={() => setTypeFilter(isSelected ? 'all' : t)}

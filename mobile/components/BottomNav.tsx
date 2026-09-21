@@ -17,6 +17,7 @@ import { Fonts } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
 import AppearanceSettings from './AppearanceSettings';
 import { apiFetch } from '../config/api';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export type NavTab = 'home' | 'alerts' | 'activities' | 'profile';
 
@@ -98,7 +99,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
   const [savingName, setSavingName] = useState(false);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
 
-  const activeColor = theme.brandActive;
+  const activeColor = theme.emergency;
   const inactiveColor = theme.textMuted;
 
   // Load user profile details on mount and whenever modal becomes visible
@@ -284,6 +285,52 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
     );
   };
 
+  // Render small profile avatar for bottom nav tab
+  const renderNavProfileIcon = () => {
+    const size = 24;
+    if (profileAvatar) {
+      if (profileAvatar.startsWith('preset:')) {
+        const presetId = profileAvatar.replace('preset:', '');
+        const found = AVATAR_PRESETS.find((p) => p.id === presetId);
+        if (found) {
+          return (
+            <View
+              style={{
+                width: size,
+                height: size,
+                borderRadius: size / 2,
+                backgroundColor: found.bg,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 2,
+                borderWidth: currentTab === 'profile' ? 2 : 1.5,
+                borderColor: currentTab === 'profile' ? activeColor : inactiveColor,
+              }}
+            >
+              <Text style={{ fontSize: size * 0.45 }}>{found.emoji}</Text>
+            </View>
+          );
+        }
+      } else {
+        return (
+          <Image
+            source={{ uri: profileAvatar }}
+            style={{
+              width: size,
+              height: size,
+              borderRadius: size / 2,
+              marginBottom: 2,
+              borderWidth: currentTab === 'profile' ? 2 : 1.5,
+              borderColor: currentTab === 'profile' ? activeColor : inactiveColor,
+            }}
+            resizeMode="cover"
+          />
+        );
+      }
+    }
+    return <ProfileIcon active={currentTab === 'profile'} color={currentTab === 'profile' ? activeColor : inactiveColor} />;
+  };
+
   const tabs: { id: NavTab; label: string; icon: React.ReactNode }[] = [
     {
       id: 'home',
@@ -303,7 +350,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
     {
       id: 'profile',
       label: 'Profile',
-      icon: <ProfileIcon active={currentTab === 'profile'} color={currentTab === 'profile' ? activeColor : inactiveColor} />,
+      icon: renderNavProfileIcon(),
     },
   ];
 
@@ -579,14 +626,25 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
             </View>
 
             <TouchableOpacity
-              style={[styles.closeBtn, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}
+              style={[styles.closeBtn, {
+                shadowColor: theme.emergency,
+              }]}
               onPress={() => {
                 setProfileModalVisible(false);
                 setIsEditingName(false);
               }}
               activeOpacity={0.8}
             >
-              <Text style={[styles.closeBtnText, { color: theme.textPrimary }]}>Close</Text>
+              <LinearGradient
+                colors={['#7F0000', '#C40000', '#F51F26']}
+                locations={[0, 0.48, 1]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={styles.closeBtnGradient}
+              >
+                <View style={styles.closeBtnHighlight} pointerEvents="none" />
+                <Text style={[styles.closeBtnText, { color: theme.white }]}>Close</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -967,7 +1025,26 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 14,
     alignItems: 'center',
-    borderWidth: 1,
+    shadowOpacity: 0.22,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 3,
+  },
+  closeBtnGradient: {
+    width: '100%',
+    paddingVertical: 12,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  closeBtnHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.72)',
   },
   closeBtnText: {
     fontSize: 14,

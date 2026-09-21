@@ -21,7 +21,7 @@ import { Colors, Fonts } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import BottomNav from '../../components/BottomNav';
 import TopBar from '../../components/TopBar';
-import { LinearGradient } from 'expo-linear-gradient';
+
 
 interface AlertItem {
   alert_id: string;
@@ -30,6 +30,20 @@ interface AlertItem {
   district: string;
   created_at: string;
   description?: string;
+}
+
+function EmergencyGlow() {
+  return (
+    <View style={styles.emergencyGlow} pointerEvents="none">
+      <View style={[styles.glowCircle, styles.glowOuter]}>
+        <View style={[styles.glowCircle, styles.glowMiddle]}>
+          <View style={[styles.glowCircle, styles.glowInner]}>
+            <View style={[styles.glowCircle, styles.glowCore]} />
+          </View>
+        </View>
+      </View>
+    </View>
+  );
 }
 
 export default function DashboardScreen() {
@@ -309,49 +323,46 @@ export default function DashboardScreen() {
         <View style={styles.emergencyRow}>
           {/* 1990 Suwa Seriya */}
           <TouchableOpacity
-            style={[styles.emergencyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            style={[styles.emergencyCard, { backgroundColor: theme.surface }]}
             onPress={() => handleCall('1990')}
             activeOpacity={0.75}
           >
+            <EmergencyGlow />
             <View style={styles.emergencyIconWrap}>
-              <Image source={require('../../assets/1990_Suwa_Seriya.png')} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              <Image source={require('../../assets/1990_Suwa_Seriya.png')} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
             </View>
-            <LinearGradient colors={['transparent', theme.surface]} locations={[0.2, 0.9]} style={StyleSheet.absoluteFill} />
             <View style={styles.emergencyTextWrap}>
               <Text style={[styles.emergencyNumber, { color: theme.textPrimary }]}>1990</Text>
-              <Text style={[styles.emergencyName, { color: theme.textSecondary }]}>Suwa Seriya</Text>
             </View>
           </TouchableOpacity>
 
           {/* 110 Fire Service */}
           <TouchableOpacity
-            style={[styles.emergencyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            style={[styles.emergencyCard, { backgroundColor: theme.surface }]}
             onPress={() => handleCall('110')}
             activeOpacity={0.75}
           >
+            <EmergencyGlow />
             <View style={styles.emergencyIconWrap}>
-              <Image source={require('../../assets/110_Fire_Service.png')} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              <Image source={require('../../assets/110_Fire_Service.png')} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
             </View>
-            <LinearGradient colors={['transparent', theme.surface]} locations={[0.2, 0.9]} style={StyleSheet.absoluteFill} />
             <View style={styles.emergencyTextWrap}>
               <Text style={[styles.emergencyNumber, { color: theme.textPrimary }]}>110</Text>
-              <Text style={[styles.emergencyName, { color: theme.textSecondary }]}>Fire Service</Text>
             </View>
           </TouchableOpacity>
 
           {/* 119 Police */}
           <TouchableOpacity
-            style={[styles.emergencyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            style={[styles.emergencyCard, { backgroundColor: theme.surface }]}
             onPress={() => handleCall('119')}
             activeOpacity={0.75}
           >
+            <EmergencyGlow />
             <View style={styles.emergencyIconWrap}>
-              <Image source={require('../../assets/119_police.png')} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+              <Image source={require('../../assets/119_police.png')} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
             </View>
-            <LinearGradient colors={['transparent', theme.surface]} locations={[0.2, 0.9]} style={StyleSheet.absoluteFill} />
             <View style={styles.emergencyTextWrap}>
               <Text style={[styles.emergencyNumber, { color: theme.textPrimary }]}>119</Text>
-              <Text style={[styles.emergencyName, { color: theme.textSecondary }]}>Police</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -366,7 +377,6 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   topHeader: {
     flexDirection: 'row',
@@ -375,7 +385,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'ios' ? 8 : 14,
     paddingBottom: 8,
-    backgroundColor: '#FFFFFF',
   },
   headerIconButton: {
     width: 36,
@@ -623,9 +632,42 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 12,
     height: 120,
-    borderWidth: 1,
     overflow: 'hidden',
     position: 'relative',
+  },
+  emergencyGlow: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glowCircle: {
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glowOuter: {
+    position: 'absolute',
+    backgroundColor: 'rgba(10, 132, 255, 0.06)',
+  },
+  glowMiddle: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(10, 132, 255, 0.11)',
+  },
+  glowInner: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: 'rgba(10, 132, 255, 0.18)',
+  },
+  glowCore: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: 'rgba(10, 132, 255, 0.32)',
   },
   emergencyNumber: {
     fontSize: 16,
@@ -641,8 +683,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    top: 0,
-    bottom: 0,
+    top: 4,
+    bottom: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emergencyTextWrap: {
     position: 'absolute',
