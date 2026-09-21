@@ -136,14 +136,14 @@ export default function DashboardPage() {
     if (level === 5) {
       return (
         <span className={`${styles.urgencyPill} ${styles.urgency5}`}>
-          ● Critical ({level})
+          Critical ({level})
         </span>
       );
     }
     if (level === 4) {
       return (
         <span className={`${styles.urgencyPill} ${styles.urgency4}`}>
-          ▲ High ({level})
+          High ({level})
         </span>
       );
     }
@@ -181,7 +181,7 @@ export default function DashboardPage() {
         <div className={styles.statBox}>
           <div className={styles.statTop}>
             <span className={styles.statLabel}>Active Requests</span>
-            <div className={styles.statIcon}>🆘</div>
+            <div className={styles.statIcon}>R</div>
           </div>
           <div className={styles.statNumber}>{stats?.active_requests ?? '—'}</div>
         </div>
@@ -189,7 +189,7 @@ export default function DashboardPage() {
         <div className={`${styles.statBox} ${styles.statBoxCritical}`}>
           <div className={styles.statTop}>
             <span className={styles.statLabel}>Critical Triage</span>
-            <div className={styles.statIcon}>🚨</div>
+            <div className={styles.statIcon}>C</div>
           </div>
           <div className={styles.statNumber}>{stats?.critical_count ?? '—'}</div>
         </div>
@@ -197,7 +197,7 @@ export default function DashboardPage() {
         <div className={`${styles.statBox} ${styles.statBoxWarning}`}>
           <div className={styles.statTop}>
             <span className={styles.statLabel}>Active Alerts</span>
-            <div className={styles.statIcon}>📢</div>
+            <div className={styles.statIcon}>A</div>
           </div>
           <div className={styles.statNumber}>{stats?.active_alerts ?? '—'}</div>
         </div>
@@ -205,7 +205,7 @@ export default function DashboardPage() {
         <div className={`${styles.statBox} ${styles.statBoxSuccess}`}>
           <div className={styles.statTop}>
             <span className={styles.statLabel}>Relief Donations</span>
-            <div className={styles.statIcon}>🤝</div>
+            <div className={styles.statIcon}>D</div>
           </div>
           <div className={styles.statNumber}>
             {stats ? formatCurrency(stats.total_donations) : '—'}
@@ -248,7 +248,7 @@ export default function DashboardPage() {
               {report.zones && report.zones.length > 0 && (
                 <div className={styles.zonesList}>
                   {report.zones.map((zone, idx) => (
-                    <span key={idx} className={styles.zoneChip}>📍 {zone}</span>
+                    <span key={idx} className={styles.zoneChip}>{zone}</span>
                   ))}
                 </div>
               )}

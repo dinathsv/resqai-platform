@@ -12,7 +12,7 @@
   left: 0;
   top: 0;
   bottom: 0;
-  width: 240px;
+  width: 260px;
   border-right: 1px solid var(--border-default);
   background: var(--bg-surface);
   display: flex;
@@ -22,7 +22,7 @@
 }
 
 .sidebarHeader {
-  padding: 16px 16px 12px;
+  padding: 24px 24px 16px;
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
@@ -56,8 +56,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 12px 12px 4px;
-  padding: 4px 10px;
+  margin: 16px 24px 8px;
+  padding: 6px 12px;
   background: var(--status-success-bg);
   border: 1px solid var(--status-success-border);
   border-radius: var(--radius-sm);
@@ -97,8 +97,8 @@
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  padding: 8px 8px;
+  gap: 4px;
+  padding: 12px 16px;
   flex: 1;
   overflow-y: auto;
 }
@@ -106,8 +106,8 @@
 .navLink {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 10px;
+  padding: 10px 14px;
   text-decoration: none;
   color: var(--text-secondary);
   font-size: 13px;
@@ -126,8 +126,8 @@
 .navLinkActive {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 10px;
+  padding: 10px 14px;
   text-decoration: none;
   color: var(--accent);
   background: var(--accent-subtle);
@@ -153,9 +153,8 @@
   display: none;
 }
 
-/* ── Footer ── */
 .sidebarFooter {
-  padding: 12px 12px 16px;
+  padding: 16px 24px 24px;
   border-top: 1px solid var(--border-subtle);
   transition: var(--transition-theme);
 }
@@ -168,8 +167,8 @@
 }
 
 .adminAvatar {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: var(--accent);
   color: #ffffff;
@@ -194,8 +193,8 @@
 
 .logoutBtn {
   width: 100%;
-  padding: 6px 12px;
-  font-size: 12px;
+  padding: 8px 16px;
+  font-size: 13px;
 }
 
 /* ── Theme Toggle ── */
@@ -224,7 +223,7 @@
 
 /* ── Main Content ── */
 .main {
-  margin-left: 240px;
+  margin-left: 260px;
   flex: 1;
   min-height: 100vh;
   transition: var(--transition-theme);

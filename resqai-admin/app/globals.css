@@ -18,9 +18,9 @@
   --text-muted: #A1A1AA;
 
   /* Accent */
-  --accent: #0A84FF;
-  --accent-hover: #0070E0;
-  --accent-subtle: rgba(10, 132, 255, 0.08);
+  --accent: #2563EB;
+  --accent-hover: #1D4ED8;
+  --accent-subtle: rgba(37, 99, 235, 0.08);
 
   /* Semantic */
   --status-success: #22C55E;
@@ -42,7 +42,7 @@
   /* Shape */
   --radius-sm: 6px;
   --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-lg: 8px;
 
   /* Shadows */
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -55,19 +55,19 @@
 
 /* ── Dark Mode ── */
 [data-theme="dark"] {
-  --bg-canvas: #0F0F10;
-  --bg-surface: #18181B;
-  --bg-surface-elevated: #212124;
-  --bg-surface-subtle: #141415;
+  --bg-canvas: #111111;
+  --bg-surface: #1A1A1A;
+  --bg-surface-elevated: #262626;
+  --bg-surface-subtle: #161616;
 
-  --border-default: #27272A;
-  --border-subtle: #1E1E21;
+  --border-default: #1E293B;
+  --border-subtle: #334155;
 
   --text-primary: #FAFAFA;
   --text-secondary: #A1A1AA;
-  --text-muted: #52525B;
+  --text-muted: #64748B;
 
-  --accent-subtle: rgba(10, 132, 255, 0.12);
+  --accent-subtle: rgba(37, 99, 235, 0.12);
 
   --status-success-bg: rgba(34, 197, 94, 0.12);
   --status-success-border: rgba(34, 197, 94, 0.25);
@@ -75,11 +75,11 @@
   --status-warning-border: rgba(245, 158, 11, 0.25);
   --status-critical-bg: rgba(239, 68, 68, 0.12);
   --status-critical-border: rgba(239, 68, 68, 0.25);
-  --status-info-bg: rgba(10, 132, 255, 0.12);
-  --status-info-border: rgba(10, 132, 255, 0.25);
+  --status-info-bg: rgba(37, 99, 235, 0.12);
+  --status-info-border: rgba(37, 99, 235, 0.25);
 
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.2);
-  --shadow-elevated: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* ── Reset ── */
@@ -93,9 +93,9 @@ body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background-color: var(--bg-canvas);
   color: var(--text-primary);
-  font-size: 14px;
-  line-height: 1.5;
-  letter-spacing: -0.006em;
+  font-size: 16px;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: var(--transition-theme);
@@ -119,23 +119,23 @@ body {
 
 /* ── Headings ── */
 h1 {
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.02em;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 h2 {
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.01em;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 h3 {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--text-secondary);
 }
@@ -146,8 +146,8 @@ button {
   border: 1px solid transparent;
   background: var(--accent);
   color: #ffffff;
-  padding: 8px 16px;
-  font-size: 13px;
+  padding: 12px 24px;
+  font-size: 15px;
   font-weight: 500;
   font-family: inherit;
   border-radius: var(--radius-md);
@@ -160,6 +160,7 @@ button {
 
 button:hover {
   background: var(--accent-hover);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 
 button:active {
@@ -190,8 +191,8 @@ button.danger:hover {
 /* ── Inputs ── */
 input, select, textarea {
   border: 1px solid var(--border-default);
-  padding: 8px 12px;
-  font-size: 13px;
+  padding: 10px 14px;
+  font-size: 15px;
   width: 100%;
   border-radius: var(--radius-md);
   outline: none;
@@ -228,16 +229,16 @@ table {
 }
 
 th, td {
-  padding: 10px 16px;
+  padding: 12px 20px;
   text-align: left;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-default);
 }
 
 th {
   background: var(--bg-surface-elevated);
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   border-bottom: 1px solid var(--border-default);
@@ -253,9 +254,9 @@ tr:hover td {
 
 /* ── Page Layout ── */
 .page {
-  padding: 24px 32px;
-  max-width: 1280px;
-  margin: 0 auto;
+  padding: 16px 24px;
+  max-width: 100%;
+  margin: 0;
 }
 
 .section {

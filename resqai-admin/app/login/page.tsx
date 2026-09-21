@@ -40,7 +40,7 @@ export default function LoginPage() {
   return (
     <div className={styles.wrapper}>
       <form className={styles.form} onSubmit={handleSubmit}>
-        <div className={styles.brandIcon}>⬡</div>
+        <div className={styles.brandIcon}>RQ</div>
         <div className={styles.title}>ResQAI Admin</div>
         <div className={styles.subtitle}>Admin Access</div>
 

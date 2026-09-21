@@ -33,7 +33,7 @@ function Sidebar({ isOpen, onClose, theme, onToggleTheme }: { isOpen: boolean; o
       <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
         <div className={styles.sidebarHeader}>
           <div className={styles.logoGroup}>
-            <div className={styles.logoIcon}>⬡</div>
+            <div className={styles.logoIcon}>RQ</div>
             <div>
               <div className={styles.sidebarTitle}>ResQAI</div>
               <div className={styles.sidebarSubtitle}>Admin Panel</div>
@@ -41,10 +41,10 @@ function Sidebar({ isOpen, onClose, theme, onToggleTheme }: { isOpen: boolean; o
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <button className={styles.themeToggle} onClick={onToggleTheme} aria-label="Toggle theme">
-              {theme === 'dark' ? '☀️' : '🌙'}
+              {theme === 'dark' ? 'Light' : 'Dark'}
             </button>
             <button className={styles.closeBtn} onClick={onClose} aria-label="Close menu">
-              ✕
+              Close
             </button>
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function RootLayout({
               onClick={() => setSidebarOpen(true)}
               aria-label="Open menu"
             >
-              ☰
+              Menu
             </button>
           )}
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} theme={theme} onToggleTheme={toggleTheme} />
