@@ -274,7 +274,10 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   itemCard: {
-    ...Glass.card,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,

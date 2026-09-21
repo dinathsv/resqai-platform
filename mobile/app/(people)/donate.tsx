@@ -295,7 +295,10 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   missionCard: {
-    ...Glass.card,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
@@ -379,11 +382,6 @@ const styles = StyleSheet.create({
           maxHeight: isMobileWeb ? '100%' : 840,
           borderRadius: isMobileWeb ? 0 : 28,
           overflow: 'hidden',
-          shadowColor: '#000000',
-          shadowOffset: { width: 0, height: 25 },
-          shadowOpacity: 0.5,
-          shadowRadius: 50,
-          elevation: 24,
           borderWidth: isMobileWeb ? 0 : 1,
           borderColor: 'rgba(255, 255, 255, 0.1)',
         } as any)

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react'
+import React, { useState } from 'react'
 import { View, Text, TextInput, StyleSheet, KeyboardTypeOptions } from 'react-native'
 import { Fonts } from '../constants/theme'
 import { useTheme } from '../context/ThemeContext'
@@ -69,11 +69,11 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   input: {
-    paddingVertical: 13,
-    paddingHorizontal: 16,
-    fontSize: 15,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    fontSize: 14,
     fontFamily: Fonts.regular,
-    borderRadius: 14,
-    borderWidth: 1.5,
+    borderRadius: 8,
+    borderWidth: 1,
   },
 })

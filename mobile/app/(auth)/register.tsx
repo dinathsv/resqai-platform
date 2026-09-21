@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Flow 2: Registration (new account)
  */
 import React, { useState, useMemo } from 'react';
@@ -97,13 +97,13 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 32 },
   headerTitle: { fontSize: 28, fontFamily: Fonts.bold, marginBottom: 6 },
   subtitle: { fontSize: 14, fontFamily: Fonts.regular, marginBottom: 24 },
-  card: { padding: 24, marginBottom: 20 },
-  errorBox: { borderRadius: 10, padding: 12, marginBottom: 16, borderWidth: 1 },
+  card: { padding: 24, marginBottom: 20, borderRadius: 12 },
+  errorBox: { borderRadius: 8, padding: 12, marginBottom: 16, borderWidth: 1 },
   errorText: { fontSize: 13, fontFamily: Fonts.medium, textAlign: 'center' },
   inputGroup: { marginBottom: 14 },
   label: { fontSize: 13, fontFamily: Fonts.medium, marginBottom: 6 },
-  input: { paddingVertical: 12, paddingHorizontal: 14, fontSize: 16, fontFamily: Fonts.regular, borderRadius: 14, borderWidth: 1.5 },
-  registerButton: { paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 8, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  input: { paddingVertical: 12, paddingHorizontal: 14, fontSize: 14, fontFamily: Fonts.regular, borderRadius: 8, borderWidth: 1 },
+  registerButton: { paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 8 },
   buttonDisabled: { opacity: 0.6 },
   registerButtonText: { color: '#FFFFFF', fontSize: 16, fontFamily: Fonts.bold },
   linkButton: { alignItems: 'center', paddingVertical: 8 },

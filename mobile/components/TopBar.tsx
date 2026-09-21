@@ -193,7 +193,7 @@ export default function TopBar({
                   onPress={() => handleNavigate('/(people)/dashboard')}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.menuItemIcon}>🏠</Text>
+                  <Text style={styles.menuItemIcon}>⬡</Text>
                   <Text
                     style={[
                       styles.menuItemLabel,
@@ -212,7 +212,7 @@ export default function TopBar({
                   onPress={() => handleNavigate('/(people)/alerts')}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.menuItemIcon}>🔔</Text>
+                  <Text style={styles.menuItemIcon}>⬡</Text>
                   <Text
                     style={[
                       styles.menuItemLabel,
@@ -231,7 +231,7 @@ export default function TopBar({
                   onPress={() => handleNavigate('/(people)/activities')}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.menuItemIcon}>👤</Text>
+                  <Text style={styles.menuItemIcon}>⬡</Text>
                   <Text
                     style={[
                       styles.menuItemLabel,
@@ -250,7 +250,7 @@ export default function TopBar({
                   onPress={() => handleNavigate('/(people)/help')}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.menuItemIcon}>🚨</Text>
+                  <Text style={styles.menuItemIcon}>⬡</Text>
                   <Text
                     style={[
                       styles.menuItemLabel,
@@ -269,7 +269,7 @@ export default function TopBar({
                   onPress={() => handleNavigate('/(people)/locator')}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.menuItemIcon}>🏥</Text>
+                  <Text style={styles.menuItemIcon}>⬡</Text>
                   <Text
                     style={[
                       styles.menuItemLabel,
@@ -288,7 +288,7 @@ export default function TopBar({
                   onPress={() => handleNavigate('/(people)/chatbot')}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.menuItemIcon}>🤖</Text>
+                  <Text style={styles.menuItemIcon}>⬡</Text>
                   <Text
                     style={[
                       styles.menuItemLabel,
@@ -307,7 +307,7 @@ export default function TopBar({
                   onPress={handleSignOut}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.menuItemIcon}>🚪</Text>
+                  <Text style={styles.menuItemIcon}>⬡</Text>
                   <Text style={styles.menuSignOutLabel}>Sign Out</Text>
                 </TouchableOpacity>
               </View>
@@ -342,15 +342,10 @@ const styles = StyleSheet.create({
   },
   logoBadge: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
+    borderRadius: 8,
     padding: 3,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    elevation: 3,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E4E4E7',
   },
   logoBadgeSmall: {
     backgroundColor: '#FFFFFF',
@@ -399,24 +394,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dotsButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 8,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E4E4E7',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.05)',
-        } as any)
-      : {}),
   },
   dotsIcon: {
     fontSize: 20,
@@ -461,21 +446,11 @@ const styles = StyleSheet.create({
   menuDropdown: {
     width: 250,
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E4E4E7',
     paddingVertical: 12,
     paddingHorizontal: 12,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 10,
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 12px 32px rgba(15, 23, 42, 0.16)',
-        } as any)
-      : {}),
   },
   menuHeader: {
     flexDirection: 'row',

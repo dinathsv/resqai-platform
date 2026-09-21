@@ -318,23 +318,17 @@ export default function ChatbotScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#160B3F',
+    backgroundColor: '#FFFFFF',
   },
-  /* Top Deep Indigo Header */
+  /* Top Deep Indigo Header - Replaced with minimal standard header */
   topHeader: {
-    backgroundColor: '#160B3F',
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'ios' ? 8 : 14,
     paddingBottom: 20,
-    ...(Platform.OS === 'web'
-      ? ({
-          backgroundImage:
-            'linear-gradient(180deg, #10062C 0%, #1A0D48 100%)',
-        } as any)
-      : {}),
   },
   headerIconButton: {
     width: 40,
@@ -344,7 +338,7 @@ const styles = StyleSheet.create({
   },
   backArrow: {
     fontSize: 22,
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontWeight: '700',
   },
   headerTitleGroup: {
@@ -354,18 +348,18 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: Fonts.bold,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: '#0F172A',
     letterSpacing: -0.3,
   },
   headerSub: {
     fontSize: 13,
     fontFamily: Fonts.medium,
-    color: '#C4B5FD',
+    color: '#64748B',
     marginTop: 2,
   },
   headerDots: {
     fontSize: 22,
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontWeight: '700',
   },
 
@@ -373,8 +367,8 @@ const styles = StyleSheet.create({
   sheetContainer: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 36,
-    borderTopRightRadius: 36,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     overflow: 'hidden',
   },
   chatArea: {
@@ -403,41 +397,19 @@ const styles = StyleSheet.create({
 
   /* Message Cards */
   messageCard: {
-    borderRadius: 22,
+    borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
   assistantMessageCard: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    elevation: 3,
-    borderTopLeftRadius: 6,
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 4px 20px rgba(15, 23, 42, 0.08)',
-        } as any)
-      : {}),
+    borderColor: '#E2E8F0',
+    borderTopLeftRadius: 4,
   },
   userMessageCard: {
-    backgroundColor: '#160B3F',
-    borderBottomRightRadius: 6,
-    shadowColor: '#160B3F',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 3,
-    ...(Platform.OS === 'web'
-      ? ({
-          backgroundImage:
-            'linear-gradient(135deg, #160B3F 0%, #2A1468 100%)',
-          boxShadow: '0 4px 16px rgba(22, 11, 63, 0.30)',
-        } as any)
-      : {}),
+    backgroundColor: '#2563EB',
+    borderBottomRightRadius: 4,
   },
   messageText: {
     fontSize: 15,
@@ -510,23 +482,17 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   suggestionPill: {
-    borderWidth: 1.5,
-    borderColor: '#241458',
-    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
     paddingHorizontal: 16,
-    paddingVertical: 7,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    paddingVertical: 8,
+    backgroundColor: '#F8FAFC',
   },
   suggestionText: {
     fontSize: 13,
-    fontFamily: Fonts.bold,
-    fontWeight: '700',
-    color: '#160B3F',
+    fontFamily: Fonts.medium,
+    color: '#0F172A',
   },
 
   /* Floating Input Capsule matching Image 1 */
@@ -538,22 +504,12 @@ const styles = StyleSheet.create({
   inputCapsule: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'transparent',
-    borderRadius: 28,
-    borderWidth: 1.2,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
     borderColor: '#E2E8F0',
     paddingHorizontal: 16,
     paddingVertical: 4,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 4px 16px rgba(15, 23, 42, 0.06)',
-        } as any)
-      : {}),
   },
   textInput: {
     flex: 1,
@@ -580,9 +536,9 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   sendArrow: {
-    color: '#160B3F',
-    fontSize: 20,
-    fontWeight: '900',
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
   },
 
   /* Bottom Medical Disclaimer */
@@ -593,8 +549,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   disclaimerPill: {
-    backgroundColor: '#EFECE6',
-    borderRadius: 18,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 14,
     alignItems: 'center',
@@ -603,7 +559,7 @@ const styles = StyleSheet.create({
   disclaimerText: {
     fontSize: 11,
     fontFamily: Fonts.medium,
-    color: '#4B4844',
+    color: '#64748B',
     textAlign: 'center',
     lineHeight: 15,
   },

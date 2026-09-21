@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Flow 2: Registration — OTP Verification
  */
 import React, { useState, useRef, useMemo } from 'react';
@@ -56,7 +56,7 @@ export default function VerifyOtpScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.content}>
         <View style={[styles.iconCircle, { backgroundColor: theme.successLight }]}>
-          <Text style={styles.iconText}>📱</Text>
+          <Text style={styles.iconText}>⬡</Text>
         </View>
 
         <Text style={[styles.title, { color: theme.textPrimary }]}>Verify Your Account</Text>
@@ -117,13 +117,13 @@ const styles = StyleSheet.create({
   iconText: { fontSize: 36 },
   title: { fontSize: 24, fontFamily: Fonts.bold, marginBottom: 8 },
   subtitle: { fontSize: 14, fontFamily: Fonts.regular, textAlign: 'center', lineHeight: 20, marginBottom: 28 },
-  card: { padding: 28, width: '100%' },
-  errorBox: { borderRadius: 10, padding: 12, marginBottom: 16, borderWidth: 1 },
+  card: { padding: 24, width: '100%', borderRadius: 12 },
+  errorBox: { borderRadius: 8, padding: 12, marginBottom: 16, borderWidth: 1 },
   errorText: { fontSize: 13, fontFamily: Fonts.medium, textAlign: 'center' },
-  successBox: { borderRadius: 10, padding: 12, marginBottom: 16, borderWidth: 1 },
+  successBox: { borderRadius: 8, padding: 12, marginBottom: 16, borderWidth: 1 },
   successText: { fontSize: 13, fontFamily: Fonts.medium, textAlign: 'center' },
-  otpInput: { paddingVertical: 16, paddingHorizontal: 20, fontSize: 28, fontFamily: Fonts.bold, letterSpacing: 8, marginBottom: 20, borderRadius: 14, borderWidth: 1.5 },
-  verifyButton: { paddingVertical: 14, borderRadius: 12, alignItems: 'center', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  otpInput: { paddingVertical: 12, paddingHorizontal: 16, fontSize: 24, fontFamily: Fonts.bold, letterSpacing: 6, marginBottom: 20, borderRadius: 8, borderWidth: 1 },
+  verifyButton: { paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
   buttonDisabled: { opacity: 0.6 },
   verifyButtonText: { color: '#FFFFFF', fontSize: 16, fontFamily: Fonts.bold },
   resendRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 24, gap: 6 },

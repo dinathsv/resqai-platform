@@ -16,76 +16,12 @@ import {
   registerForPushNotifications,
   setupNotificationListeners,
 } from '../services/notificationService';
-import {
-  useFonts,
-  Montserrat_400Regular,
-  Montserrat_500Medium,
-  Montserrat_600SemiBold,
-  Montserrat_700Bold,
-} from '@expo-google-fonts/montserrat';
-import { Fonts } from '../constants/theme';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 
 const isWeb = Platform.OS === 'web';
 
 function useWebMobileFrame() {
-  useEffect(() => {
-    if (!isWeb) return;
-    const fontLink = document.createElement('link');
-    fontLink.rel = 'stylesheet';
-    fontLink.href = 'https://fonts.cdnfonts.com/css/sf-pro-display';
-    document.head.appendChild(fontLink);
-    const style = document.createElement('style');
-    style.textContent = `
-      * {
-        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", system-ui, sans-serif !important;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        scrollbar-width: none !important;
-        -ms-overflow-style: none !important;
-      }
-      *::-webkit-scrollbar {
-        width: 0 !important;
-        height: 0 !important;
-        display: none !important;
-      }
-      html, body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        width: 100%;
-        background-color: #1A2624;
-        overflow: hidden;
-        scrollbar-width: none !important;
-        -ms-overflow-style: none !important;
-      }
-      #root {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        height: 100% !important;
-        width: 100% !important;
-        background-color: #1A2624;
-      }
-      #root > div {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 100% !important;
-        height: 100% !important;
-      }
-      @media (max-width: 480px) {
-        html, body, #root {
-          background-color: #34383A;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-      if (fontLink.parentNode) fontLink.parentNode.removeChild(fontLink);
-    };
-  }, []);
+  // Web frame styling removed for minimal design
 }
 
 // Inner layout that can read theme from context
@@ -94,12 +30,7 @@ function AppLayout() {
   const router = useRouter();
   const { theme } = useTheme();
 
-  const [fontsLoaded] = useFonts({
-    Montserrat_400Regular,
-    Montserrat_500Medium,
-    Montserrat_600SemiBold,
-    Montserrat_700Bold,
-  });
+
 
   useEffect(() => {
     initDB();
@@ -108,13 +39,7 @@ function AppLayout() {
     return cleanup;
   }, []);
 
-  if (!fontsLoaded) {
-    return (
-      <View style={[styles.loadingRoot, isWeb && styles.webFrame, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color={theme.brandActive} />
-      </View>
-    );
-  }
+
 
   const appContent = (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
@@ -179,29 +104,17 @@ const styles = StyleSheet.create({
   },
   offlineText: {
     fontSize: 12,
-    fontFamily: Fonts.medium,
     textAlign: 'center',
   },
   ...(isWeb
     ? {
         webFrame: {
-          width: isMobileWeb ? '100%' : 420,
-          maxWidth: isMobileWeb ? '100%' : 420,
+          width: '100%',
+          maxWidth: 480,
+          marginHorizontal: 'auto',
           height: '100vh',
-          maxHeight: isMobileWeb ? '100vh' : 900,
           overflow: 'hidden',
-          borderRadius: isMobileWeb ? 0 : 36,
-          ...(isMobileWeb
-            ? {}
-            : {
-                shadowColor: '#000000',
-                shadowOffset: { width: 0, height: 25 },
-                shadowOpacity: 0.40,
-                shadowRadius: 50,
-                elevation: 20,
-                borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.12)',
-              }),
+          backgroundColor: 'transparent',
         } as any,
       }
     : {}),

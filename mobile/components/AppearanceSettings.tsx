@@ -90,16 +90,13 @@ export default function AppearanceSettings({ visible, onClose }: AppearanceSetti
                   key={opt.mode}
                   style={[
                     styles.segment,
-                    isActive && [
-                      styles.segmentActive,
-                      {
-                        backgroundColor: theme.brandActive,
-                        shadowColor: theme.brandActive,
-                      },
-                      Platform.OS === 'web' && ({
-                        boxShadow: `0 2px 12px rgba(38,116,95,0.35)`,
-                      } as any),
-                    ],
+                      isActive && [
+                        styles.segmentActive,
+                        {
+                          backgroundColor: theme.brandActive,
+                          borderColor: theme.brandActive,
+                        },
+                      ],
                     idx === 0 && styles.segmentFirst,
                     idx === OPTIONS.length - 1 && styles.segmentLast,
                   ]}
@@ -164,8 +161,8 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 420,
     alignSelf: 'center',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     borderTopWidth: 1,
     paddingHorizontal: 24,
     paddingTop: 12,
@@ -214,10 +211,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 12,
   },
   segmentActive: {
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.30,
-    shadowRadius: 8,
-    elevation: 4,
   },
   segmentIcon: {
     fontSize: 15,
@@ -246,8 +239,8 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     width: '100%',
-    paddingVertical: 14,
-    borderRadius: 14,
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: 'center',
     borderWidth: 1,
   },

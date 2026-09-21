@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Flow 4: Guest user asking for help
  */
 import React, { useState, useMemo } from 'react';
@@ -56,7 +56,7 @@ export default function GuestScreen() {
           </TouchableOpacity>
 
           <View style={[styles.iconCircle, { backgroundColor: theme.successLight }]}>
-            <Text style={styles.iconText}>🪪</Text>
+            <Text style={styles.iconText}>⬡</Text>
           </View>
 
           <Text style={[styles.title, { color: theme.textPrimary }]}>Guest Access</Text>
@@ -105,13 +105,13 @@ const styles = StyleSheet.create({
   iconText: { fontSize: 36 },
   title: { fontSize: 24, fontFamily: Fonts.bold, marginBottom: 8 },
   subtitle: { fontSize: 14, fontFamily: Fonts.regular, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
-  card: { padding: 24, width: '100%' },
-  errorBox: { borderRadius: 10, padding: 12, marginBottom: 16, borderWidth: 1 },
+  card: { padding: 24, width: '100%', borderRadius: 12 },
+  errorBox: { borderRadius: 8, padding: 12, marginBottom: 16, borderWidth: 1 },
   errorText: { fontSize: 13, fontFamily: Fonts.medium, textAlign: 'center' },
   inputGroup: { marginBottom: 20 },
   label: { fontSize: 13, fontFamily: Fonts.medium, marginBottom: 6 },
-  input: { paddingVertical: 14, paddingHorizontal: 14, fontSize: 18, fontFamily: Fonts.medium, letterSpacing: 1, textAlign: 'center', borderRadius: 14, borderWidth: 1.5 },
-  verifyButton: { paddingVertical: 14, borderRadius: 12, alignItems: 'center', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
+  input: { paddingVertical: 12, paddingHorizontal: 14, fontSize: 16, fontFamily: Fonts.medium, letterSpacing: 1, textAlign: 'center', borderRadius: 8, borderWidth: 1 },
+  verifyButton: { paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
   buttonDisabled: { opacity: 0.6 },
   verifyButtonText: { color: '#FFFFFF', fontSize: 16, fontFamily: Fonts.bold },
   disclaimer: { fontSize: 12, fontFamily: Fonts.regular, textAlign: 'center', marginTop: 20, lineHeight: 18 },

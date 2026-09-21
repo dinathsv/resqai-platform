@@ -1,16 +1,25 @@
 import { Platform } from 'react-native';
 
 // ---------------------------------------------
-//  ResQAI Brand Palette (immutable constants)
+//  ResQAI Minimal Design System
+//  Inspired by Linear / Stripe / Vercel
 // ---------------------------------------------
-export const Brand = {
-  darkGreen:      '#164F43',
-  emeraldGreen:   '#26745F',
-  crimsonRed:     '#B51F2A',
-  brightRed:      '#D52D35',
-  silver:         '#C7C9C9',
-  darkGray:       '#34383A',
-  white:          '#FFFFFF',
+
+// Primary accent: a vibrant, accessible blue
+export const Accent = {
+  blue:       '#0A84FF',
+  blueHover:  '#0070E0',
+  blueSubtle: 'rgba(10, 132, 255, 0.08)',
+} as const;
+
+// Semantic status colors — used sparingly
+export const Status = {
+  success:       '#22C55E',
+  successSubtle: 'rgba(34, 197, 94, 0.08)',
+  warning:       '#F59E0B',
+  warningSubtle: 'rgba(245, 158, 11, 0.08)',
+  error:         '#EF4444',
+  errorSubtle:   'rgba(239, 68, 68, 0.08)',
 } as const;
 
 // ---------------------------------------------
@@ -18,75 +27,52 @@ export const Brand = {
 // ---------------------------------------------
 export type ThemeTokens = {
   isDark: boolean;
+  // Canvas & surfaces
   background:      string;
   backgroundDeep:  string;
   surface:         string;
   surfaceElevated: string;
   surfaceSubtle:   string;
+  // Text hierarchy
   textPrimary:     string;
   textSecondary:   string;
   textMuted:       string;
+  // Accent
+  accent:          string;
+  accentHover:     string;
+  accentSubtle:    string;
+  // Semantic
+  success:         string;
+  successSubtle:   string;
+  warning:         string;
+  warningSubtle:   string;
+  error:           string;
+  errorSubtle:     string;
+  // Borders
+  border:          string;
+  borderSubtle:    string;
+  // Navigation
+  navBar:          string;
+  navBarBorder:    string;
+  // Inputs
+  inputBg:         string;
+  inputBorder:     string;
+  // Overlay
+  overlay:         string;
+  // Legacy compat aliases
   brand:           string;
   brandActive:     string;
   emergency:       string;
   emergencySevere: string;
   emergencyLight:  string;
-  border:          string;
-  borderSubtle:    string;
-  navBar:          string;
-  navBarBorder:    string;
-  inputBg:         string;
-  inputBorder:     string;
-  overlay:         string;
   white:           string;
   silver:          string;
-  success:         string;
-  successLight:    string;
-  warning:         string;
-  warningLight:    string;
-  accent:          string;
   accentLight:     string;
   accentDark:      string;
   primary:         string;
   textSecondaryOld:string;
-};
-
-// ---------------------------------------------
-//  DARK THEME
-// ---------------------------------------------
-export const darkTheme: ThemeTokens = {
-  isDark: true,
-  background:      '#164F43', // Requested green color
-  backgroundDeep:  '#0E3530',
-  surface:         'rgba(38, 116, 95, 0.8)', // Lighter green for cards
-  surfaceElevated: 'rgba(38, 116, 95, 0.95)',
-  surfaceSubtle:   'rgba(255, 255, 255, 0.1)',
-  textPrimary:     '#FFFFFF',
-  textSecondary:   '#C7C9C9',
-  textMuted:       'rgba(199, 201, 201, 0.65)',
-  brand:           '#164F43',
-  brandActive:     '#26745F',
-  emergency:       '#D52D35',
-  emergencySevere: '#B51F2A',
-  emergencyLight:  'rgba(213, 45, 53, 0.18)',
-  border:          'rgba(38, 116, 95, 0.40)',
-  borderSubtle:    'rgba(255, 255, 255, 0.10)',
-  navBar:          'rgba(26, 38, 36, 0.97)',
-  navBarBorder:    'rgba(38, 116, 95, 0.35)',
-  inputBg:         'rgba(22, 79, 67, 0.30)',
-  inputBorder:     'rgba(38, 116, 95, 0.50)',
-  overlay:         'rgba(0, 0, 0, 0.65)',
-  white:           '#FFFFFF',
-  silver:          '#C7C9C9',
-  success:         '#26745F',
-  successLight:    'rgba(38, 116, 95, 0.20)',
-  warning:         '#E59835',
-  warningLight:    'rgba(229, 152, 53, 0.18)',
-  accent:          '#26745F',
-  accentLight:     'rgba(38, 116, 95, 0.20)',
-  accentDark:      '#164F43',
-  primary:         '#FFFFFF',
-  textSecondaryOld:'#C7C9C9',
+  successLight:    string;
+  warningLight:    string;
 };
 
 // ---------------------------------------------
@@ -94,176 +80,194 @@ export const darkTheme: ThemeTokens = {
 // ---------------------------------------------
 export const lightTheme: ThemeTokens = {
   isDark: false,
-  background:      '#FFFFFF',
-  backgroundDeep:  '#F0F5F3',
+  background:      '#FAFAFA',
+  backgroundDeep:  '#F4F4F5',
   surface:         '#FFFFFF',
-  surfaceElevated: '#F0F5F3',
-  surfaceSubtle:   '#F8FAF9',
-  textPrimary:     '#34383A',
-  textSecondary:   '#164F43',
-  textMuted:       '#6B7E79',
-  brand:           '#164F43',
-  brandActive:     '#26745F',
-  emergency:       '#D52D35',
-  emergencySevere: '#B51F2A',
-  emergencyLight:  'rgba(213, 45, 53, 0.08)',
-  border:          '#C7C9C9',
-  borderSubtle:    'rgba(22, 79, 67, 0.15)',
+  surfaceElevated: '#F4F4F5',
+  surfaceSubtle:   '#FAFAFA',
+  textPrimary:     '#09090B',
+  textSecondary:   '#71717A',
+  textMuted:       '#A1A1AA',
+  accent:          Accent.blue,
+  accentHover:     Accent.blueHover,
+  accentSubtle:    Accent.blueSubtle,
+  success:         Status.success,
+  successSubtle:   Status.successSubtle,
+  warning:         Status.warning,
+  warningSubtle:   Status.warningSubtle,
+  error:           Status.error,
+  errorSubtle:     Status.errorSubtle,
+  border:          '#E4E4E7',
+  borderSubtle:    '#F4F4F5',
   navBar:          '#FFFFFF',
-  navBarBorder:    '#E8ECEB',
+  navBarBorder:    '#E4E4E7',
   inputBg:         '#FFFFFF',
-  inputBorder:     '#C7C9C9',
-  overlay:         'rgba(52, 56, 58, 0.50)',
+  inputBorder:     '#E4E4E7',
+  overlay:         'rgba(9, 9, 11, 0.50)',
+  // Legacy aliases
+  brand:           Accent.blue,
+  brandActive:     Accent.blue,
+  emergency:       Status.error,
+  emergencySevere: '#DC2626',
+  emergencyLight:  Status.errorSubtle,
   white:           '#FFFFFF',
-  silver:          '#C7C9C9',
-  success:         '#26745F',
-  successLight:    'rgba(38, 116, 95, 0.10)',
-  warning:         '#C07A28',
-  warningLight:    'rgba(192, 122, 40, 0.10)',
-  accent:          '#26745F',
-  accentLight:     'rgba(38, 116, 95, 0.10)',
-  accentDark:      '#164F43',
-  primary:         '#34383A',
-  textSecondaryOld:'#164F43',
+  silver:          '#A1A1AA',
+  accentLight:     Accent.blueSubtle,
+  accentDark:      Accent.blueHover,
+  primary:         '#09090B',
+  textSecondaryOld:'#71717A',
+  successLight:    Status.successSubtle,
+  warningLight:    Status.warningSubtle,
 };
 
 // ---------------------------------------------
-//  Backward-compat Colors export
+//  DARK THEME
+// ---------------------------------------------
+export const darkTheme: ThemeTokens = {
+  isDark: true,
+  background:      '#0F0F10',
+  backgroundDeep:  '#09090A',
+  surface:         '#18181B',
+  surfaceElevated: '#212124',
+  surfaceSubtle:   '#141415',
+  textPrimary:     '#FAFAFA',
+  textSecondary:   '#A1A1AA',
+  textMuted:       '#52525B',
+  accent:          Accent.blue,
+  accentHover:     '#3B9EFF',
+  accentSubtle:    'rgba(10, 132, 255, 0.12)',
+  success:         Status.success,
+  successSubtle:   'rgba(34, 197, 94, 0.12)',
+  warning:         Status.warning,
+  warningSubtle:   'rgba(245, 158, 11, 0.12)',
+  error:           Status.error,
+  errorSubtle:     'rgba(239, 68, 68, 0.12)',
+  border:          '#27272A',
+  borderSubtle:    '#1E1E21',
+  navBar:          '#18181B',
+  navBarBorder:    '#27272A',
+  inputBg:         '#18181B',
+  inputBorder:     '#27272A',
+  overlay:         'rgba(0, 0, 0, 0.65)',
+  // Legacy aliases
+  brand:           Accent.blue,
+  brandActive:     Accent.blue,
+  emergency:       Status.error,
+  emergencySevere: '#DC2626',
+  emergencyLight:  'rgba(239, 68, 68, 0.12)',
+  white:           '#FFFFFF',
+  silver:          '#A1A1AA',
+  accentLight:     'rgba(10, 132, 255, 0.12)',
+  accentDark:      Accent.blueHover,
+  primary:         '#FAFAFA',
+  textSecondaryOld:'#A1A1AA',
+  successLight:    'rgba(34, 197, 94, 0.12)',
+  warningLight:    'rgba(245, 158, 11, 0.12)',
+};
+
+// ---------------------------------------------
+//  Backward-compat Colors export (dark theme defaults)
 // ---------------------------------------------
 export const Colors = {
   background:      darkTheme.background,
-  surface:         '#26745F',
+  surface:         darkTheme.surface,
   surfaceLight:    darkTheme.surfaceSubtle,
   surfaceSubtle:   darkTheme.surfaceSubtle,
   surfaceElevated: darkTheme.surfaceElevated,
   primary:         darkTheme.textPrimary,
   primaryLight:    darkTheme.textSecondary,
   slateMuted:      darkTheme.textMuted,
-  brandRed:        '#D52D35',
-  brandRedDark:    '#B51F2A',
-  brandRedLight:   'rgba(213, 45, 53, 0.18)',
-  brandRedGlow:    'rgba(213, 45, 53, 0.25)',
-  accent:          '#26745F',
-  accentDark:      '#164F43',
-  accentLight:     'rgba(38, 116, 95, 0.20)',
-  accentGlow:      'rgba(38, 116, 95, 0.30)',
-  navy:            '#164F43',
-  navyDark:        '#0E3530',
-  navyLight:       '#26745F',
-  navyBubble:      '#164F43',
-  cta:             '#D52D35',
-  ctaDark:         '#B51F2A',
-  ctaLight:        'rgba(213, 45, 53, 0.18)',
-  amberWarning:    '#E59835',
-  amberLight:      'rgba(229, 152, 53, 0.18)',
-  infoBlue:        '#2563EB',
-  infoLight:       'rgba(37, 99, 235, 0.15)',
+  brandRed:        Status.error,
+  brandRedDark:    '#DC2626',
+  brandRedLight:   Status.errorSubtle,
+  brandRedGlow:    'rgba(239, 68, 68, 0.25)',
+  accent:          Accent.blue,
+  accentDark:      Accent.blueHover,
+  accentLight:     darkTheme.accentSubtle,
+  accentGlow:      'rgba(10, 132, 255, 0.30)',
+  navy:            '#18181B',
+  navyDark:        '#0F0F10',
+  navyLight:       '#212124',
+  navyBubble:      '#18181B',
+  cta:             Accent.blue,
+  ctaDark:         Accent.blueHover,
+  ctaLight:        Accent.blueSubtle,
+  amberWarning:    Status.warning,
+  amberLight:      Status.warningSubtle,
+  infoBlue:        Accent.blue,
+  infoLight:       Accent.blueSubtle,
   textPrimary:     darkTheme.textPrimary,
   textSecondary:   darkTheme.textSecondary,
   textMuted:       darkTheme.textMuted,
   border:          darkTheme.border,
   borderLight:     darkTheme.borderSubtle,
-  borderDark:      'rgba(38, 116, 95, 0.60)',
+  borderDark:      '#3F3F46',
   white:           '#FFFFFF',
   black:           '#000000',
   overlay:         darkTheme.overlay,
-  error:           '#D52D35',
-  errorLight:      'rgba(213, 45, 53, 0.18)',
-  success:         '#26745F',
-  successLight:    'rgba(38, 116, 95, 0.20)',
-  warning:         '#E59835',
-  warningLight:    'rgba(229, 152, 53, 0.18)',
-  info:            '#2563EB',
+  error:           Status.error,
+  errorLight:      Status.errorSubtle,
+  success:         Status.success,
+  successLight:    Status.successSubtle,
+  warning:         Status.warning,
+  warningLight:    Status.warningSubtle,
+  info:            Accent.blue,
 } as const;
 
 // ---------------------------------------------
 //  Typography
 // ---------------------------------------------
-const SF_PRO_FAMILY = Platform.select({
+const SYSTEM_FONT = Platform.select({
   ios:     'System',
-  web:     '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", system-ui, sans-serif',
+  web:     'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
   default: 'System',
 }) as string;
 
 export const Fonts = {
-  regular:  SF_PRO_FAMILY,
-  medium:   SF_PRO_FAMILY,
-  semiBold: SF_PRO_FAMILY,
-  bold:     SF_PRO_FAMILY,
+  regular:  SYSTEM_FONT,
+  medium:   SYSTEM_FONT,
+  semiBold: SYSTEM_FONT,
+  bold:     SYSTEM_FONT,
 } as const;
 
 // ---------------------------------------------
-//  Glassmorphism helpers (theme-aware)
+//  Minimal card styles (replaces old glassmorphism)
 // ---------------------------------------------
-export function makeGlass(theme: ThemeTokens) {
-  const blur = Platform.OS === 'web';
+export function makeCardStyles(theme: ThemeTokens) {
   return {
     card: {
       backgroundColor: theme.surface,
       borderWidth: 1,
       borderColor: theme.border,
-      borderRadius: 20,
-      shadowColor: theme.isDark ? '#000000' : '#164F43',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: theme.isDark ? 0.35 : 0.06,
-      shadowRadius: 14,
-      elevation: 3,
-      ...(blur ? ({
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        boxShadow: theme.isDark
-          ? '0 4px 20px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.08)'
-          : '0 4px 18px rgba(22,79,67,0.08), 0 1px 3px rgba(22,79,67,0.04)',
-      } as any) : {}),
+      borderRadius: 12,
     },
     cardElevated: {
-      backgroundColor: theme.surfaceElevated,
+      backgroundColor: theme.surface,
       borderWidth: 1,
       borderColor: theme.border,
-      borderRadius: 22,
-      shadowColor: theme.isDark ? '#000000' : '#164F43',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: theme.isDark ? 0.40 : 0.10,
-      shadowRadius: 20,
-      elevation: 5,
-      ...(blur ? ({
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        boxShadow: theme.isDark
-          ? '0 8px 28px rgba(0,0,0,0.45), inset 0 1px 1px rgba(255,255,255,0.08)'
-          : '0 8px 24px rgba(22,79,67,0.10), 0 2px 6px rgba(22,79,67,0.05)',
-      } as any) : {}),
-    },
-    cardUrgent: {
-      backgroundColor: theme.emergency,
-      borderWidth: 0,
-      borderRadius: 22,
-      shadowColor: theme.emergency,
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.35,
-      shadowRadius: 18,
-      elevation: 5,
-      ...(blur ? ({
-        backgroundImage: 'linear-gradient(135deg, #B51F2A 0%, #D52D35 100%)',
-        boxShadow: '0 8px 24px rgba(213,45,53,0.35)',
-      } as any) : {}),
+      borderRadius: 12,
+      ...(Platform.OS === 'web' ? ({
+        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+      } as any) : {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+      }),
     },
     input: {
       backgroundColor: theme.inputBg,
-      borderWidth: 1.5,
+      borderWidth: 1,
       borderColor: theme.inputBorder,
-      borderRadius: 24,
+      borderRadius: 8,
       color: theme.textPrimary,
-      ...(blur ? ({
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        boxShadow: theme.isDark
-          ? '0 2px 8px rgba(0,0,0,0.25)'
-          : '0 2px 8px rgba(22,79,67,0.04)',
-      } as any) : {}),
     },
   };
 }
 
-// Backward-compat static Glass (dark theme values)
-export const Glass = makeGlass(darkTheme);
+// Backward compat: makeGlass alias
+export const makeGlass = makeCardStyles;
+
+// Static Glass (dark theme) for backward compat
+export const Glass = makeCardStyles(darkTheme);

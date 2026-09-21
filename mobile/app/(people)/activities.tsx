@@ -8,7 +8,6 @@ import {
   ScrollView,
   Platform,
   Image,
-  ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -16,6 +15,7 @@ import { apiFetch } from '../../config/api';
 import { Colors, Fonts } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import BottomNav from '../../components/BottomNav';
+import TopBar from '../../components/TopBar';
 
 interface RescueItem {
   request_id: string;
@@ -161,78 +161,47 @@ export default function ActivitiesScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Red Header Banner */}
-        <View style={styles.headerBanner}>
-          {/* Top Bar with Logo on top, Back button underneath, no 3-dot button */}
-          <View style={styles.bannerTopBar}>
-            <View style={styles.bannerHeaderLeft}>
-              {/* 1. First: Logo */}
-              <View style={styles.logoBadgeWrap}>
-                <Image
-                  source={require('../../assets/resqai_logo.png')}
-                  style={styles.headerLogo}
-                  resizeMode="contain"
-                />
-              </View>
-
-              {/* 2. Under Logo: Back Button */}
-              <TouchableOpacity
-                style={styles.backUnderLogoBtn}
-                onPress={() => router.replace('/(people)/dashboard')}
-                activeOpacity={0.75}
-              >
-                <View style={styles.backCircle}>
-                  <Text style={styles.backArrow}>←</Text>
-                </View>
-                <Text style={styles.backBtnLabel}>Back</Text>
-              </TouchableOpacity>
-            </View>
+        {/* Standard TopBar */}
+        <TopBar transparent={false} />
+        {/* Avatar and User Info */}
+        <View style={styles.bannerUserRow}>
+          <View style={[styles.avatarCircle, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Text style={styles.avatarSilhouette}>⬡</Text>
           </View>
-
-          {/* Avatar and Real User Name Greeting */}
-          <View style={styles.bannerUserRow}>
-            <View style={styles.avatarCircle}>
-              <Text style={styles.avatarSilhouette}>👤</Text>
-            </View>
-            <View style={styles.greetingWrap}>
-              <Text style={styles.greetingText}>
-                Hello, {userName || 'Citizen'}!
-              </Text>
-              <Text style={styles.greetingSubText}>
-                Sri Lanka Disaster Relief Network
-              </Text>
-            </View>
+          <View style={styles.greetingWrap}>
+            <Text style={[styles.greetingText, { color: theme.textPrimary }]}>
+              Hello, {userName || 'Citizen'}!
+            </Text>
+            <Text style={[styles.greetingSubText, { color: theme.textSecondary }]}>
+              Sri Lanka Disaster Relief Network
+            </Text>
           </View>
         </View>
 
         {/* Floating ResQ-Quiz Card overlapping banner */}
         <View style={styles.quizCardWrapper}>
-          <TouchableOpacity
-            style={styles.quizCard}
-            onPress={() => router.push('/(people)/quiz')}
-            activeOpacity={0.8}
-          >
-            <View style={styles.robotIconCircle}>
-              <Text style={styles.robotEmoji}>🤖</Text>
+          <TouchableOpacity style={styles.quizCard} onPress={() => router.push('/(people)/quiz')} activeOpacity={0.8}>
+            <View style={[styles.robotIconCircle, { backgroundColor: theme.brandActive }]}>
+              <Text style={styles.robotEmoji}>⬡</Text>
             </View>
-            <Text style={styles.quizTitle}>ResQ-Quiz</Text>
+            <Text style={[styles.quizTitle, { color: theme.textPrimary }]}>ResQ-Quiz</Text>
           </TouchableOpacity>
         </View>
 
         {/* My Rescue Section */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionHeading}>My Rescue</Text>
+          <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>My Rescue</Text>
           <TouchableOpacity
             onPress={() => router.push('/(people)/help')}
             activeOpacity={0.7}
           >
-            <Text style={styles.viewAllRed}>View All</Text>
+            <Text style={[styles.viewAllRed, { color: theme.brandActive }]}>View All</Text>
           </TouchableOpacity>
         </View>
 
         {myRequests.length > 0 ? (
           myRequests.map((item) => (
-            <View key={item.request_id} style={styles.rescueCard}>
+            <View key={item.request_id} style={[styles.rescueCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               <View style={styles.badgeRow}>
                 <View style={styles.activeBadge}>
                   <Text style={styles.activeBadgeText}>
@@ -243,11 +212,11 @@ export default function ActivitiesScreen() {
               <Text style={styles.rescueTitle}>{item.title}</Text>
               <View style={styles.locationRow}>
                 <View style={styles.locItem}>
-                  <Text style={styles.locIcon}>📍</Text>
-                  <Text style={styles.locText}>{item.location}</Text>
+                  <Text style={styles.locIcon}>⬡</Text>
+                  <Text style={[styles.locText, { color: theme.textSecondary }]}>{item.location}</Text>
                 </View>
                 <TouchableOpacity
-                  style={styles.arrowSquareBtn}
+                  style={[styles.arrowSquareBtn, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}
                   onPress={() => router.push('/(people)/help')}
                   activeOpacity={0.7}
                 >
@@ -255,21 +224,21 @@ export default function ActivitiesScreen() {
                 </TouchableOpacity>
               </View>
               <View style={styles.calendarRow}>
-                <Text style={styles.calIcon}>📅</Text>
-                <Text style={styles.calText}>{item.date}</Text>
+                <Text style={styles.calIcon}>⬡</Text>
+                <Text style={[styles.calText, { color: theme.textMuted }]}>{item.date}</Text>
               </View>
             </View>
           ))
         ) : (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyEmoji}>🛟</Text>
-            <Text style={styles.emptyTitle}>No Active Rescue Requests</Text>
-            <Text style={styles.emptySub}>
+          <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Text style={styles.emptyEmoji}>⬡</Text>
+            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>No Active Rescue Requests</Text>
+            <Text style={[styles.emptySub, { color: theme.textSecondary }]}>
               You have no active emergency requests. If you or someone nearby is
               in danger, request immediate relief.
             </Text>
             <TouchableOpacity
-              style={styles.emptyActionBtn}
+              style={[styles.emptyActionBtn, { backgroundColor: theme.brandActive }]}
               onPress={() => router.push('/(people)/help')}
               activeOpacity={0.8}
             >
@@ -282,24 +251,24 @@ export default function ActivitiesScreen() {
 
         {/* My Donations Section */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionHeading}>My Donations</Text>
+          <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>My Donations</Text>
           <TouchableOpacity
             onPress={() => router.push('/(people)/donate')}
             activeOpacity={0.7}
           >
-            <Text style={styles.viewAllRed}>View All</Text>
+            <Text style={[styles.viewAllRed, { color: theme.brandActive }]}>View All</Text>
           </TouchableOpacity>
         </View>
 
         {myDonations.length > 0 ? (
           myDonations.map((don) => (
-            <View key={don.donation_id} style={styles.donationCard}>
+            <View key={don.donation_id} style={[styles.donationCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               <View style={styles.donationTopRow}>
-                <Text style={styles.donationId}>
+                <Text style={[styles.donationId, { color: theme.textMuted }]}>
                   Donation ID: {don.donation_id}
                 </Text>
                 <TouchableOpacity
-                  style={styles.arrowSquareBtn}
+                  style={[styles.arrowSquareBtn, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}
                   onPress={() => router.push('/(people)/donate')}
                   activeOpacity={0.7}
                 >
@@ -315,15 +284,15 @@ export default function ActivitiesScreen() {
             </View>
           ))
         ) : (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyEmoji}>🤝</Text>
-            <Text style={styles.emptyTitle}>No Donations Yet</Text>
-            <Text style={styles.emptySub}>
+          <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Text style={styles.emptyEmoji}>⬡</Text>
+            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>No Donations Yet</Text>
+            <Text style={[styles.emptySub, { color: theme.textSecondary }]}>
               Contribute essential relief supplies and funds to flood and disaster
               victims across Sri Lanka.
             </Text>
             <TouchableOpacity
-              style={styles.emptyActionBtn}
+              style={[styles.emptyActionBtn, { backgroundColor: theme.brandActive }]}
               onPress={() => router.push('/(people)/donate')}
               activeOpacity={0.8}
             >
@@ -341,12 +310,12 @@ export default function ActivitiesScreen() {
 
         {recentAlerts.length > 0 ? (
           recentAlerts.map((alert) => (
-            <View key={alert.alert_id} style={styles.recentAlertCard}>
-              <View style={styles.hazardSquare}>
-                <Text style={styles.hazardTriangle}>⚠️</Text>
+            <View key={alert.alert_id} style={[styles.recentAlertCard, { backgroundColor: theme.emergencyLight, borderColor: theme.emergency }]}>
+              <View style={[styles.hazardSquare, { backgroundColor: theme.emergency }]}>
+                <Text style={styles.hazardTriangle}>⬡</Text>
               </View>
               <View style={styles.alertContentTextWrap}>
-                <Text style={styles.recentAlertTitle}>
+                <Text style={[styles.recentAlertTitle, { color: theme.emergency }]}>
                   {alert.disaster_type.toUpperCase()} Alert
                   {alert.district ? ` in ${alert.district}` : ''}
                 </Text>
@@ -358,13 +327,13 @@ export default function ActivitiesScreen() {
             </View>
           ))
         ) : (
-          <View style={styles.safeAlertCard}>
-            <View style={styles.safeShieldSquare}>
-              <Text style={styles.safeShieldEmoji}>🛡️</Text>
+          <View style={[styles.safeAlertCard, { backgroundColor: theme.successLight, borderColor: theme.success }]}>
+            <View style={[styles.safeShieldSquare, { backgroundColor: theme.success }]}>
+              <Text style={styles.safeShieldEmoji}>⬡</Text>
             </View>
             <View style={styles.alertContentTextWrap}>
-              <Text style={styles.safeAlertTitle}>No Active Emergency Alerts</Text>
-              <Text style={styles.safeAlertSub}>
+              <Text style={[styles.safeAlertTitle, { color: theme.success }]}>No Active Emergency Alerts</Text>
+              <Text style={[styles.safeAlertSub, { color: theme.textSecondary }]}>
                 All monitored zones are reporting normal conditions. We will notify
                 you immediately if an alert is issued.
               </Text>
@@ -403,170 +372,69 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
 
-  /* Red Header Banner */
-  headerBanner: {
-    backgroundColor: '#DC2626',
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    paddingTop: Platform.OS === 'ios' ? 8 : 14,
-    paddingBottom: 48,
-    paddingHorizontal: 20,
-    ...(Platform.OS === 'web'
-      ? ({
-          backgroundImage: 'linear-gradient(180deg, #D41C2C 0%, #B91C1C 100%)',
-        } as any)
-      : {}),
-  },
-  bannerTopBar: {
-    marginBottom: 16,
-  },
-  bannerHeaderLeft: {
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  logoBadgeWrap: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 3,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  headerLogo: {
-    width: 36,
-    height: 36,
-    borderRadius: 6,
-  },
-  backUnderLogoBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 4,
-    paddingHorizontal: 2,
-  },
-  backCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backArrow: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  backBtnLabel: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontFamily: Fonts.bold,
-    fontWeight: '700',
-  },
-  signOutWrapper: {
-    paddingHorizontal: 20,
-    marginTop: 16,
-    marginBottom: 24,
-  },
-  signOutBtn: {
-    backgroundColor: '#FEE2E2',
-    borderRadius: 14,
-    paddingVertical: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-  signOutBtnText: {
-    color: '#DC2626',
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-    fontWeight: '700',
-  },
   bannerUserRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-    marginTop: 4,
+    paddingHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 20,
   },
   avatarCircle: {
-    width: 66,
-    height: 66,
-    borderRadius: 33,
-    backgroundColor: '#FFFFFF',
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 3,
   },
   avatarSilhouette: {
-    fontSize: 34,
+    fontSize: 28,
   },
   greetingWrap: {
     flex: 1,
   },
   greetingText: {
-    fontSize: 24,
+    fontSize: 22,
     fontFamily: Fonts.bold,
-    fontWeight: '800',
-    color: '#FFFFFF',
     letterSpacing: -0.3,
   },
   greetingSubText: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: Fonts.medium,
-    color: 'rgba(255, 255, 255, 0.85)',
-    marginTop: 2,
+    marginTop: 4,
   },
 
-  /* ResQ-Quiz Floating Card */
   quizCardWrapper: {
     paddingHorizontal: 20,
-    marginTop: -28,
     marginBottom: 16,
   },
   quizCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    paddingVertical: 18,
+    borderRadius: 12,
+    paddingVertical: 14,
     paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 3,
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)',
-        } as any)
-      : {}),
+    borderColor: '#E4E4E7',
   },
   robotIconCircle: {
-    width: 44,
-    height: 44,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
+    marginRight: 10,
   },
   robotEmoji: {
-    fontSize: 32,
+    fontSize: 16,
+    color: '#FFFFFF',
   },
   quizTitle: {
     fontSize: 15,
     fontFamily: Fonts.bold,
-    fontWeight: '800',
-    color: '#0F172A',
   },
 
   /* Section Header Rows */
@@ -592,25 +460,12 @@ const styles = StyleSheet.create({
     color: '#DC2626',
   },
 
-  /* My Rescue Card */
   rescueCard: {
     marginHorizontal: 20,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
     marginBottom: 16,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    elevation: 2,
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 4px 18px rgba(15, 23, 42, 0.06)',
-        } as any)
-      : {}),
   },
   badgeRow: {
     flexDirection: 'row',
@@ -658,12 +513,12 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#64748B',
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   arrowIcon: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -681,25 +536,12 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
 
-  /* My Donations Card */
   donationCard: {
     marginHorizontal: 20,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
     marginBottom: 16,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    elevation: 2,
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 4px 18px rgba(15, 23, 42, 0.06)',
-        } as any)
-      : {}),
   },
   donationTopRow: {
     flexDirection: 'row',
@@ -725,26 +567,13 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
 
-  /* Empty State Cards */
   emptyCard: {
     marginHorizontal: 20,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 12,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     marginBottom: 16,
     alignItems: 'center',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    elevation: 2,
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 4px 14px rgba(15, 23, 42, 0.04)',
-        } as any)
-      : {}),
   },
   emptyEmoji: {
     fontSize: 36,
@@ -779,16 +608,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  /* Recent Alerts Card */
   recentAlertCard: {
     marginHorizontal: 20,
-    backgroundColor: '#FDE8E8',
-    borderRadius: 20,
+    borderRadius: 12,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FCA5A5',
     marginBottom: 10,
   },
   hazardSquare: {
@@ -856,5 +682,23 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.medium,
     color: '#475569',
     lineHeight: 16,
+  },
+  signOutWrapper: {
+    paddingHorizontal: 20,
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  signOutBtn: {
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  signOutBtnText: {
+    color: '#0F172A',
+    fontSize: 14,
+    fontFamily: Fonts.bold,
   },
 });

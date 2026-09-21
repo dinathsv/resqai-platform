@@ -715,11 +715,7 @@ const s = StyleSheet.create({
   // Hero
   heroCard: {
     alignItems: 'center', paddingVertical: 22, paddingHorizontal: 20, marginBottom: 14,
-    backgroundColor: C.white, borderRadius: 20, borderWidth: 1, borderColor: C.border,
-    ...Platform.select({
-      web: { boxShadow: '0 2px 12px rgba(15,23,42,0.05)' } as any,
-      default: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2 },
-    }),
+    backgroundColor: C.white, borderRadius: 12, borderWidth: 1, borderColor: C.border,
   },
   heroEmoji: { fontSize: 40, marginBottom: 8 },
   heroTitle: { fontSize: 20, fontFamily: Fonts.bold, fontWeight: '800', textAlign: 'center', marginBottom: 6, color: C.textDark },
@@ -727,19 +723,11 @@ const s = StyleSheet.create({
 
   // Card (shared)
   card: {
-    backgroundColor: C.white, borderRadius: 20, borderWidth: 1, borderColor: C.border,
+    backgroundColor: C.white, borderRadius: 12, borderWidth: 1, borderColor: C.border,
     padding: 18, marginBottom: 14,
-    ...Platform.select({
-      web: { boxShadow: '0 2px 12px rgba(15,23,42,0.05)' } as any,
-      default: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2 },
-    }),
   },
   urgentCard: {
-    backgroundColor: C.red, borderRadius: 20, padding: 18, marginBottom: 14,
-    ...Platform.select({
-      web: { boxShadow: '0 6px 20px rgba(220,38,38,0.25)' } as any,
-      default: { shadowColor: C.red, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.25, shadowRadius: 14, elevation: 5 },
-    }),
+    backgroundColor: C.red, borderRadius: 12, padding: 18, marginBottom: 14,
   },
   cardTitle: { fontSize: 16, fontFamily: Fonts.bold, fontWeight: '700', marginBottom: 12, color: C.textDark },
 
@@ -756,13 +744,9 @@ const s = StyleSheet.create({
   pickerText: { fontSize: 14, fontFamily: Fonts.medium, flex: 1, color: C.textDark },
   pickerChevron: { fontSize: 12, marginLeft: 8, color: C.textLight },
   dropdownList: {
-    borderWidth: 1, borderColor: C.borderMed, borderRadius: 16, marginTop: 6,
+    borderWidth: 1, borderColor: C.borderMed, borderRadius: 12, marginTop: 6,
     maxHeight: 220, overflow: 'hidden', backgroundColor: C.white,
     zIndex: 100,
-    ...Platform.select({
-      web: { boxShadow: '0 8px 24px rgba(15,23,42,0.10)', position: 'absolute', top: '100%', left: 0, right: 0 } as any,
-      default: { shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 5 },
-    }),
   },
   dropdownScroll: { maxHeight: 220 },
   dropdownItem: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: C.border },
@@ -797,12 +781,8 @@ const s = StyleSheet.create({
 
   // Predict
   predictButton: {
-    marginTop: 18, paddingVertical: 15, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: C.red,
-    ...Platform.select({
-      web: { boxShadow: '0 6px 20px rgba(220,38,38,0.25)' } as any,
-      default: { shadowColor: C.red, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 4 },
-    }),
+    marginTop: 18, paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: C.textDark,
   },
   predictButtonText: { fontSize: 16, fontFamily: Fonts.bold, fontWeight: '700', color: C.white },
 

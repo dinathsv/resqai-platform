@@ -157,56 +157,49 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Red Top Header Band extending behind TopBar down to half of Flood Alert banner */}
-      <View style={[styles.topHeaderBackground, { pointerEvents: 'none' }]} />
-
-      {/* TopBar with Resqai.jpeg Logo and white 3-dot button */}
-      <TopBar theme="dark" transparent />
+      <TopBar transparent={false} />
 
       <ScrollView
         style={styles.scrollContent}
         contentContainerStyle={styles.scrollInner}
         showsVerticalScrollIndicator={false}
       >
-        {/* Disaster Alert Banner overlapping header band halfway */}
-        <View style={styles.alertBanner}>
+        {/* Disaster Alert Banner */}
+        <View style={[styles.alertBanner, { backgroundColor: theme.emergencyLight, borderColor: theme.emergency }]}>
           <View style={styles.alertBannerRow}>
-            {/* Warning triangle in glowing circular container */}
-            <View style={styles.alertIconCircle}>
+            <View style={[styles.alertIconCircle, { backgroundColor: theme.emergency }]}>
               <View style={styles.warningTriangleOuter}>
-                <Text style={styles.warningExclamation}>⚠️</Text>
+                <Text style={styles.warningExclamation}>⬡</Text>
               </View>
             </View>
 
-            {/* Alert Texts */}
             <View style={styles.alertTextWrap}>
-              <Text style={styles.alertHeading}>{topAlert.title}</Text>
-              <Text style={styles.alertBody}>{topAlert.description}</Text>
+              <Text style={[styles.alertHeading, { color: theme.emergency }]}>{topAlert.title}</Text>
+              <Text style={[styles.alertBody, { color: theme.textSecondary }]}>{topAlert.description}</Text>
             </View>
           </View>
 
-          {/* View Button */}
           <View style={styles.alertActionRow}>
             <TouchableOpacity
-              style={styles.viewAlertPill}
+              style={[styles.viewAlertPill, { backgroundColor: theme.emergency }]}
               onPress={handleViewAlert}
               activeOpacity={0.85}
             >
-              <Text style={styles.viewAlertText}>View</Text>
+              <Text style={[styles.viewAlertText, { color: '#FFFFFF' }]}>View Details</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Quick Actions Section */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Quick Actions</Text>
         </View>
 
         <View style={styles.quickActionsGrid}>
           <View style={styles.quickActionsRow}>
             {/* Card 1: SOS Emergency Request */}
             <TouchableOpacity
-              style={styles.actionCard}
+              style={[styles.actionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
               onPress={() => router.push('/(people)/help')}
               activeOpacity={0.75}
             >
@@ -217,12 +210,12 @@ export default function DashboardScreen() {
                   resizeMode="contain"
                 />
               </View>
-              <Text style={styles.actionLabel}>Emergency{'\n'}Request</Text>
+              <Text style={[styles.actionLabel, { color: theme.textPrimary }]}>Emergency{'\n'}Request</Text>
             </TouchableOpacity>
 
             {/* Card 2: Nearest Hospitals */}
             <TouchableOpacity
-              style={styles.actionCard}
+              style={[styles.actionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
               onPress={() => router.push('/(people)/locator')}
               activeOpacity={0.75}
             >
@@ -233,14 +226,14 @@ export default function DashboardScreen() {
                   resizeMode="contain"
                 />
               </View>
-              <Text style={styles.actionLabel}>Nearest{'\n'}Hospitals</Text>
+              <Text style={[styles.actionLabel, { color: theme.textPrimary }]}>Nearest{'\n'}Hospitals</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.quickActionsRow}>
             {/* Card 3: AI First Aid Assistant */}
             <TouchableOpacity
-              style={styles.actionCard}
+              style={[styles.actionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
               onPress={() => router.push('/(people)/chatbot')}
               activeOpacity={0.75}
             >
@@ -251,12 +244,12 @@ export default function DashboardScreen() {
                   resizeMode="contain"
                 />
               </View>
-              <Text style={styles.actionLabel}>Ai First aid{'\n'}Assistant</Text>
+              <Text style={[styles.actionLabel, { color: theme.textPrimary }]}>AI First Aid{'\n'}Assistant</Text>
             </TouchableOpacity>
 
             {/* Card 4: AI Disaster Prediction */}
             <TouchableOpacity
-              style={styles.actionCard}
+              style={[styles.actionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
               onPress={() => router.push('/(people)/prediction')}
               activeOpacity={0.75}
             >
@@ -267,7 +260,7 @@ export default function DashboardScreen() {
                   resizeMode="contain"
                 />
               </View>
-              <Text style={styles.actionLabel}>Disaster{'\n'}Prediction</Text>
+              <Text style={[styles.actionLabel, { color: theme.textPrimary }]}>Disaster{'\n'}Prediction</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -309,46 +302,46 @@ export default function DashboardScreen() {
 
         {/* Emergency Numbers Section */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Emergency Numbers</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Emergency Numbers</Text>
         </View>
 
         <View style={styles.emergencyRow}>
           {/* 1990 Suwa Seriya */}
           <TouchableOpacity
-            style={styles.emergencyCard}
+            style={[styles.emergencyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
             onPress={() => handleCall('1990')}
             activeOpacity={0.75}
           >
-            <Text style={styles.emergencyNumber}>1990</Text>
-            <Text style={styles.emergencyName}>Suwa Seriya</Text>
+            <Text style={[styles.emergencyNumber, { color: theme.textPrimary }]}>1990</Text>
+            <Text style={[styles.emergencyName, { color: theme.textSecondary }]}>Suwa Seriya</Text>
             <View style={styles.emergencyIconWrap}>
-              <Text style={styles.ambulanceIcon}>🚑</Text>
+              <Text style={styles.ambulanceIcon}>⬡</Text>
             </View>
           </TouchableOpacity>
 
           {/* 110 Fire Service */}
           <TouchableOpacity
-            style={styles.emergencyCard}
+            style={[styles.emergencyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
             onPress={() => handleCall('110')}
             activeOpacity={0.75}
           >
-            <Text style={styles.emergencyNumber}>110</Text>
-            <Text style={styles.emergencyName}>Fire Service</Text>
+            <Text style={[styles.emergencyNumber, { color: theme.textPrimary }]}>110</Text>
+            <Text style={[styles.emergencyName, { color: theme.textSecondary }]}>Fire Service</Text>
             <View style={styles.emergencyIconWrap}>
-              <Text style={styles.fireIcon}>🔥</Text>
+              <Text style={styles.fireIcon}>⬡</Text>
             </View>
           </TouchableOpacity>
 
           {/* 119 Police */}
           <TouchableOpacity
-            style={styles.emergencyCard}
+            style={[styles.emergencyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
             onPress={() => handleCall('119')}
             activeOpacity={0.75}
           >
-            <Text style={styles.emergencyNumber}>119</Text>
-            <Text style={styles.emergencyName}>Police</Text>
+            <Text style={[styles.emergencyNumber, { color: theme.textPrimary }]}>119</Text>
+            <Text style={[styles.emergencyName, { color: theme.textSecondary }]}>Police</Text>
             <View style={styles.emergencyIconWrap}>
-              <Text style={styles.policeIcon}>👮</Text>
+              <Text style={styles.policeIcon}>⬡</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -404,26 +397,8 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 36,
   },
-  topHeaderBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 145,
-    backgroundColor: '#DC2626',
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    zIndex: 0,
-    ...(Platform.OS === 'web'
-      ? ({
-          backgroundImage: 'linear-gradient(180deg, #D41C2C 0%, #B91C1C 100%)',
-        } as any)
-      : {}),
-  },
   scrollContent: {
     flex: 1,
-    backgroundColor: 'transparent',
-    zIndex: 1,
   },
   scrollInner: {
     paddingHorizontal: 16,
@@ -431,37 +406,22 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
 
-  /* Alert Banner */
   alertBanner: {
-    backgroundColor: '#DC2626',
-    borderRadius: 22,
+    borderRadius: 12,
     paddingHorizontal: 18,
     paddingTop: 18,
     paddingBottom: 14,
     marginBottom: 18,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.40)',
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.30,
-    shadowRadius: 18,
-    elevation: 5,
-    ...(Platform.OS === 'web'
-      ? ({
-          backgroundImage: 'linear-gradient(135deg, #E22735 0%, #B91C1C 100%)',
-          boxShadow: '0 8px 24px rgba(220, 38, 38, 0.28)',
-        } as any)
-      : {}),
+    borderWidth: 1,
   },
   alertBannerRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   alertIconCircle: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    width: 44,
+    height: 44,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -471,44 +431,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   warningExclamation: {
-    fontSize: 32,
+    fontSize: 24,
+    color: '#FFFFFF',
   },
   alertTextWrap: {
     flex: 1,
   },
   alertHeading: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: Fonts.bold,
-    fontWeight: '800',
-    color: '#FFFFFF',
     marginBottom: 4,
   },
   alertBody: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontFamily: Fonts.medium,
-    color: '#FFE4E6',
-    lineHeight: 17,
+    lineHeight: 18,
   },
   alertActionRow: {
     alignItems: 'flex-end',
     marginTop: 8,
   },
   viewAlertPill: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 6,
-    paddingHorizontal: 22,
-    borderRadius: 20,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 2,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 8,
   },
   viewAlertText: {
     fontSize: 13,
     fontFamily: Fonts.bold,
-    fontWeight: '700',
-    color: '#0F172A',
   },
 
   /* Section Header */
@@ -517,11 +467,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontFamily: Fonts.bold,
-    fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: -0.3,
+    fontSize: 15,
+    fontFamily: Fonts.semiBold,
+    letterSpacing: -0.2,
   },
 
   /* Quick Actions */
@@ -535,24 +483,12 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    paddingVertical: 18,
+    borderRadius: 12,
+    paddingVertical: 16,
     paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 2,
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 4px 16px rgba(15, 23, 42, 0.06)',
-        } as any)
-      : {}),
   },
   actionIconCardWrap: {
     width: 52,
@@ -566,28 +502,19 @@ const styles = StyleSheet.create({
     height: 48,
   },
   actionLabel: {
-    fontSize: 12,
-    fontFamily: Fonts.bold,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontSize: 13,
+    fontFamily: Fonts.medium,
     textAlign: 'center',
-    lineHeight: 16,
+    lineHeight: 18,
   },
 
   /* Dark Map Preview */
   mapContainer: {
     height: 175,
-    borderRadius: 22,
+    borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#111827',
     marginBottom: 18,
     borderWidth: 1,
-    borderColor: '#1F2937',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 3,
   },
   mapGridBackground: {
     flex: 1,
@@ -684,36 +611,21 @@ const styles = StyleSheet.create({
   },
   emergencyCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 2,
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 4px 16px rgba(15, 23, 42, 0.06)',
-        } as any)
-      : {}),
   },
   emergencyNumber: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: Fonts.bold,
-    fontWeight: '800',
-    color: '#0F172A',
     marginBottom: 2,
   },
   emergencyName: {
-    fontSize: 11,
-    fontFamily: Fonts.medium,
-    color: '#475569',
+    fontSize: 12,
+    fontFamily: Fonts.regular,
     marginBottom: 10,
     textAlign: 'center',
   },
@@ -724,12 +636,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ambulanceIcon: {
-    fontSize: 28,
+    fontSize: 24,
   },
   fireIcon: {
-    fontSize: 28,
+    fontSize: 24,
   },
   policeIcon: {
-    fontSize: 28,
+    fontSize: 24,
   },
 });

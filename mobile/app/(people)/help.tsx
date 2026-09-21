@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   },
   optionCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     flexDirection: 'row',
@@ -379,31 +379,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 14,
     padding: 16,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    elevation: 2,
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 4px 16px rgba(15, 23, 42, 0.06)',
-        } as any)
-      : {}),
   },
   emergencyCard: {
     backgroundColor: '#DC2626',
     borderColor: '#DC2626',
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.28,
-    shadowRadius: 20,
-    elevation: 6,
-    ...(Platform.OS === 'web'
-      ? ({
-          backgroundImage: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-          boxShadow: '0 8px 24px rgba(220, 38, 38, 0.28)',
-        } as any)
-      : {}),
   },
   badgeCritical: {
     backgroundColor: 'rgba(255, 255, 255, 0.22)',
@@ -420,9 +399,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   optionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 8,
     backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
@@ -463,9 +442,9 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   emergencyChevronWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.22)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -480,7 +459,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 20,
     padding: 16,
-    borderRadius: 18,
+    borderRadius: 12,
     backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: '#E2E8F0',

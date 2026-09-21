@@ -317,9 +317,8 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
             borderTopColor: theme.navBarBorder,
           },
           Platform.OS === 'web' && ({
-            boxShadow: theme.isDark
-              ? '0 -2px 16px rgba(0,0,0,0.40)'
-              : '0 -2px 10px rgba(22,79,67,0.06)',
+            borderTopWidth: 1,
+            borderTopColor: theme.navBarBorder,
           } as any),
         ]}
       >
@@ -376,9 +375,8 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 borderTopColor: theme.border,
               },
               Platform.OS === 'web' && ({
-                boxShadow: theme.isDark
-                  ? '0 -10px 30px rgba(0,0,0,0.50)'
-                  : '0 -10px 30px rgba(22,79,67,0.12)',
+                borderTopWidth: 1,
+                borderTopColor: theme.border,
               } as any),
             ]}
           >
@@ -434,7 +432,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
               >
                 {renderAvatarContent(76)}
                 <View style={[styles.cameraBadge, { backgroundColor: theme.brandActive, borderColor: theme.navBar }]}>
-                  <Text style={styles.cameraBadgeIcon}>📷</Text>
+                  <Text style={styles.cameraBadgeIcon}>⬡</Text>
                 </View>
               </TouchableOpacity>
             </View>
@@ -493,7 +491,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   accessibilityLabel="Edit Profile Name"
                 >
-                  <Text style={styles.editPencilIcon}>✏️</Text>
+                  <Text style={styles.editPencilIcon}>⬡</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -529,7 +527,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 onPress={() => setAppearanceVisible(true)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.profileMenuEmoji}>🎨</Text>
+                <Text style={styles.profileMenuEmoji}>⬡</Text>
                 <View style={styles.menuTextCol}>
                   <Text style={[styles.profileMenuText, { color: theme.textPrimary }]}>Appearance & Theme</Text>
                   <Text style={[styles.profileMenuDesc, { color: theme.textMuted }]}>
@@ -545,7 +543,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 onPress={() => { setProfileModalVisible(false); router.push('/(people)/quiz'); }}
                 activeOpacity={0.7}
               >
-                <Text style={styles.profileMenuEmoji}>🎮</Text>
+                <Text style={styles.profileMenuEmoji}>⬡</Text>
                 <View style={styles.menuTextCol}>
                   <Text style={[styles.profileMenuText, { color: theme.textPrimary }]}>Disaster Preparedness Quiz</Text>
                   <Text style={[styles.profileMenuDesc, { color: theme.textMuted }]}>Earn emergency readiness score</Text>
@@ -558,7 +556,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 onPress={() => { setProfileModalVisible(false); router.push('/(people)/donate'); }}
                 activeOpacity={0.7}
               >
-                <Text style={styles.profileMenuEmoji}>❤️</Text>
+                <Text style={styles.profileMenuEmoji}>⬡</Text>
                 <View style={styles.menuTextCol}>
                   <Text style={[styles.profileMenuText, { color: theme.textPrimary }]}>Relief Fund Donations</Text>
                   <Text style={[styles.profileMenuDesc, { color: theme.textMuted }]}>Support flood & disaster victims</Text>
@@ -571,7 +569,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 onPress={handleSignOut}
                 activeOpacity={0.7}
               >
-                <Text style={styles.profileMenuEmoji}>🚪</Text>
+                <Text style={styles.profileMenuEmoji}>⬡</Text>
                 <View style={styles.menuTextCol}>
                   <Text style={[styles.signOutText, { color: theme.emergency }]}>Sign Out</Text>
                   <Text style={[styles.profileMenuDesc, { color: theme.textMuted }]}>Disconnect this session</Text>
@@ -634,7 +632,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
               onPress={handlePickFile}
               activeOpacity={0.8}
             >
-              <Text style={styles.uploadButtonIcon}>📁</Text>
+              <Text style={styles.uploadButtonIcon}>⬡</Text>
               <Text style={styles.uploadButtonText}>Upload Photo from Device</Text>
             </TouchableOpacity>
 
@@ -746,8 +744,8 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 440,
     alignSelf: 'center',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     borderTopWidth: 1,
     paddingHorizontal: 22,
     paddingTop: 16,

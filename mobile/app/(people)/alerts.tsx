@@ -596,17 +596,16 @@ export default function AlertsScreen() {
               const isAcked = acknowledgedIds.has(alert.alert_id);
 
               return (
-                <View
+                  <View
                   key={alert.alert_id}
                   style={[
                     styles.alertCard,
                     {
                       backgroundColor: theme.surface,
                       borderColor: isPresent ? meta.color : theme.borderSubtle,
-                      borderLeftColor: isPresent ? meta.color : theme.textMuted,
-                      borderLeftWidth: 5,
+                      borderLeftColor: isPresent ? meta.color : theme.borderSubtle,
+                      borderLeftWidth: 4,
                     },
-                    isPresent && styles.alertCardPresent,
                   ]}
                 >
                   {/* Card Top Row: Meta Badge & Status */}
@@ -800,29 +799,29 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   totalBadge: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   totalBadgeCount: {
     fontFamily: Fonts.bold,
-    fontSize: 18,
-    lineHeight: 22,
+    fontSize: 16,
   },
   totalBadgeLabel: {
     fontFamily: Fonts.medium,
-    fontSize: 10,
+    fontSize: 11,
+    marginTop: 2,
     textTransform: 'uppercase',
   },
   quickBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
     borderWidth: 1,
   },
   quickBarText: {
@@ -830,9 +829,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   callBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
   callBtnText: {
     color: '#FFFFFF',
@@ -842,11 +841,11 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 14,
     borderRadius: 12,
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
-    marginBottom: 12,
+    marginBottom: 20,
+    height: 48,
   },
   searchIcon: {
     fontSize: 14,
@@ -864,17 +863,17 @@ const styles = StyleSheet.create({
   },
   segmentedTabsWrap: {
     flexDirection: 'row',
+    padding: 4,
     borderRadius: 12,
     borderWidth: 1,
-    padding: 4,
-    marginBottom: 12,
+    marginBottom: 24,
   },
   segmentTab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 8,
     gap: 6,
   },
@@ -911,8 +910,8 @@ const styles = StyleSheet.create({
   },
   countPill: {
     paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 10,
+    paddingVertical: 2,
+    borderRadius: 8,
     minWidth: 18,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1012,20 +1011,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   alertCard: {
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
+    marginBottom: 16,
   },
   alertCardPresent: {
     borderWidth: 1.5,
@@ -1068,10 +1057,10 @@ const styles = StyleSheet.create({
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 6,
   },
   statusLiveDot: {
     width: 6,
@@ -1090,8 +1079,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   severityChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 6,
   },
   severityChipText: {
@@ -1099,8 +1088,8 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   expiresChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 6,
   },
   expiresChipText: {
@@ -1121,19 +1110,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   ackButton: {
-    flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 12,
   },
   ackButtonText: {
     fontFamily: Fonts.bold,
-    fontSize: 12,
+    fontSize: 13,
   },
   detailsButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
     alignItems: 'center',

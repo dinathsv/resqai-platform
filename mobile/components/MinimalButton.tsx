@@ -1,4 +1,4 @@
-﻿import React from 'react'
+import React from 'react'
 import {
   TouchableOpacity,
   Text,
@@ -54,9 +54,7 @@ export default function MinimalButton({
         {
           backgroundColor: bgColor,
           borderColor,
-          borderWidth: isOutline ? 1.5 : 1,
-          shadowColor,
-          shadowOpacity: isOutline ? 0.04 : 0.28,
+          borderWidth: 1,
         },
         small && styles.small,
         disabled && styles.disabled,
@@ -79,20 +77,17 @@ export default function MinimalButton({
 
 const styles = StyleSheet.create({
   base: {
-    paddingVertical: 14,
-    paddingHorizontal: 22,
-    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 4,
   },
   small: {
-    paddingVertical: 9,
-    paddingHorizontal: 16,
-    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 6,
   },
   disabled: {
     opacity: 0.45,
