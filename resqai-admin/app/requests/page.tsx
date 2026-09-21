@@ -121,13 +121,30 @@ export default function RequestsPage() {
           {data?.requests && data.requests.length > 0 ? (
             data.requests.map((req) => (
               <tr key={req.request_id} className={req.status === 'flagged' ? styles.flaggedRow : undefined}>
-                <td>{req.request_id.slice(0, 8)}</td>
+                <td><code>{req.request_id.slice(0, 8)}</code></td>
                 <td>{req.emergency_type}</td>
-                <td className={urgencyClass(req.urgency_level, req.status)}>{req.urgency_level}</td>
+                <td>
+                  <span className={`statusBadge ${
+                    req.urgency_level === 5 ? 'statusCritical' :
+                    req.urgency_level === 4 ? 'statusWarning' :
+                    'statusInfo'
+                  }`}>
+                    {req.urgency_level}
+                  </span>
+                </td>
                 <td>{req.original_message.slice(0, 50)}{req.original_message.length > 50 ? '...' : ''}</td>
                 <td>{new Date(req.created_at).toLocaleString()}</td>
                 <td>{req.source || 'App'}</td>
-                <td>{req.status}</td>
+                <td>
+                  <span className={`statusBadge ${
+                    req.status === 'verified' || req.status === 'resolved' ? 'statusSuccess' :
+                    req.status === 'flagged' ? 'statusCritical' :
+                    req.status === 'pending' || req.status === 'in_progress' ? 'statusWarning' :
+                    'statusInfo'
+                  }`}>
+                    {req.status}
+                  </span>
+                </td>
                 <td>
                   <div className={styles.actions}>
                     <Link href={`/requests/${req.request_id}`} className={styles.viewLink}>

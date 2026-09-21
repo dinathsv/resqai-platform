@@ -1,7 +1,7 @@
 .filterRow {
   display: flex;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
   flex-wrap: wrap;
 }
 
@@ -13,36 +13,36 @@
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-top: 16px;
+  margin-top: 24px;
   font-size: 13px;
   flex-wrap: wrap;
 }
 
 .pagination button {
-  padding: 4px 12px;
+  padding: 6px 12px;
   font-size: 12px;
 }
 
 .pageNum {
-  padding: 4px 8px;
-  font-weight: bold;
+  padding: 4px 10px;
+  font-weight: 500;
   color: var(--text-muted);
   cursor: pointer;
   border-radius: var(--radius-sm);
-  transition: color 0.15s ease;
+  transition: color var(--transition-fast);
 }
 
 .pageNum:hover {
-  color: var(--text-main);
+  color: var(--text-primary);
 }
 
 .pageNumActive {
-  padding: 4px 8px;
-  font-weight: bold;
-  background: var(--accent-primary);
-  color: #fff;
+  padding: 4px 10px;
+  font-weight: 600;
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
   border-radius: var(--radius-sm);
-  box-shadow: 0 2px 6px var(--accent-glow);
+  border: 1px solid var(--border-default);
 }
 
 .cancelBtn {
@@ -50,32 +50,31 @@
   border: none;
   color: var(--status-critical);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   padding: 0;
-  text-decoration: underline;
-  box-shadow: none;
+  text-decoration: none;
+  font-weight: 500;
 }
 
 .cancelBtn:hover {
-  text-decoration: none;
-  color: #ff6b6d;
-  box-shadow: none;
-  transform: none;
+  color: var(--status-critical);
+  text-decoration: underline;
+  background: none;
 }
 
 .statsLink {
-  font-size: 13px;
+  font-size: 12px;
   margin-right: 8px;
 }
 
 .actions {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   align-items: center;
 }
 
 .newAlertBtn {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 @media (max-width: 768px) {

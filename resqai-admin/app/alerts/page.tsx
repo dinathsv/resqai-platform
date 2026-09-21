@@ -101,9 +101,17 @@ export default function AlertsPage() {
           {data?.alerts && data.alerts.length > 0 ? (
             data.alerts.map((alert) => (
               <tr key={alert.alert_id}>
-                <td>{alert.alert_id.slice(0, 8)}</td>
+                <td><code>{alert.alert_id.slice(0, 8)}</code></td>
                 <td>{alert.disaster_type}</td>
-                <td>{alert.status}</td>
+                <td>
+                  <span className={`statusBadge ${
+                    alert.status === 'active' ? 'statusSuccess' :
+                    alert.status === 'cancelled' ? 'statusWarning' :
+                    'statusInfo'
+                  }`}>
+                    {alert.status}
+                  </span>
+                </td>
                 <td>{new Date(alert.created_at).toLocaleString()}</td>
                 <td>{new Date(alert.expires_at).toLocaleString()}</td>
                 <td>

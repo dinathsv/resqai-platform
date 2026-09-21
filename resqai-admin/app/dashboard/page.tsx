@@ -173,10 +173,7 @@ export default function DashboardPage() {
     <div className="page">
       <div className={styles.sectionHeader}>
         <div>
-          <h1>Disaster Operations Deck</h1>
-          <p className={styles.sectionMeta}>
-            National Disaster Management Center · Sri Lanka Multi-Agency Command
-          </p>
+          <h1>Dashboard</h1>
         </div>
       </div>
 
@@ -218,7 +215,7 @@ export default function DashboardPage() {
 
       <div className="section">
         <div className={styles.sectionHeader}>
-          <h2>🤖 AI Situational Telemetry Report</h2>
+          <h2>AI Summary Report</h2>
           <div>
             {reportTime && (
               <span className={styles.sectionMeta} style={{ marginRight: '12px' }}>
@@ -230,13 +227,13 @@ export default function DashboardPage() {
               onClick={generateReport}
               disabled={reportLoading}
             >
-              {reportLoading ? 'Analyzing...' : 'Generate New Intel'}
+              {reportLoading ? 'Generating...' : 'Generate Report'}
             </button>
           </div>
         </div>
         <div className={styles.reportBox}>
           {reportLoading ? (
-            <p className={styles.loadingText}>Synthesizing multi-modal disaster reports with Gemini AI...</p>
+            <p className={styles.loadingText}>Generating summary from active requests...</p>
           ) : report ? (
             <>
               <div className={styles.reportStats}>
@@ -258,7 +255,7 @@ export default function DashboardPage() {
             </>
           ) : (
             <p className={styles.loadingText}>
-              Click &quot;Generate New Intel&quot; to synthesize pending incident reports across Sri Lanka districts.
+              Click &quot;Generate Report&quot; to create a summary from active incident data.
             </p>
           )}
         </div>
@@ -266,7 +263,7 @@ export default function DashboardPage() {
 
       <div className="section">
         <div className={styles.sectionHeader}>
-          <h2>Live Citizen Triage Feed</h2>
+          <h2>Active Requests</h2>
         </div>
         <div className="tableWrap">
           <table>
@@ -274,10 +271,10 @@ export default function DashboardPage() {
               <tr>
                 <th>ID</th>
                 <th>Type</th>
-                <th>Triage Urgency</th>
-                <th>Citizen Message</th>
+                <th>Urgency</th>
+                <th>Message</th>
                 <th>Timestamp</th>
-                <th>Channel</th>
+                <th>Source</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -311,7 +308,7 @@ export default function DashboardPage() {
               ) : (
                 <tr>
                   <td colSpan={8} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
-                    No active emergency requests requiring immediate triage.
+                    No active requests.
                   </td>
                 </tr>
               )}
@@ -322,13 +319,13 @@ export default function DashboardPage() {
 
       <div className={styles.chatSection}>
         <div className={styles.sectionHeader}>
-          <h2>🛡️ Inter-Agency Field Communications</h2>
+          <h2>Team Chat</h2>
         </div>
         <div className={styles.chatBox}>
           <div className={styles.chatMessages}>
             {chatMessages.length === 0 ? (
-              <p className={styles.loadingText} style={{ padding: '20px', textAlign: 'center' }}>
-                Secure telemetry channel connected. Messages from Army, Police, and DMC will appear in real time.
+              <p className={styles.loadingText} style={{ padding: '16px', textAlign: 'center' }}>
+                Messages will appear here in real time.
               </p>
             ) : (
               chatMessages.map((msg, i) => (
@@ -349,10 +346,10 @@ export default function DashboardPage() {
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendChat()}
-              placeholder="Broadcast message to active rescue coordinators..."
+              placeholder="Send a message..."
               id="chat-input"
             />
-            <button onClick={sendChat}>Transmit</button>
+            <button onClick={sendChat}>Send</button>
           </div>
         </div>
       </div>

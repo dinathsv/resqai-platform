@@ -105,7 +105,7 @@ export default function RequestDetailPage({ params }: { params: { id: string } }
             </a>
           </div>
         ) : (
-          <div>Location not provided</div>
+          <div className={styles.metaText}>Location not provided</div>
         )}
       </div>
 
@@ -132,7 +132,7 @@ export default function RequestDetailPage({ params }: { params: { id: string } }
 
       {request.status !== 'resolved' && request.status !== 'flagged' && request.status !== 'cancelled' && (
         <div className={styles.section}>
-          <h2>Assign to Mission</h2>
+          <h2>Assign Mission</h2>
           <div className={styles.assignRow}>
             <select
               value={selectedMission}

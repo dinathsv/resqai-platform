@@ -1,5 +1,5 @@
 .searchRow {
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .searchRow input {
@@ -11,15 +11,16 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  color: #9ca3af;
-  font-size: 14px;
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 32px 0;
 }
 
 .spinner {
-  width: 28px;
-  height: 28px;
-  border: 3px solid rgba(255, 255, 255, 0.15);
-  border-top-color: #3b82f6;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border-default);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -31,60 +32,69 @@
 }
 
 .errorCell {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
-  padding: 1rem !important;
+  color: var(--status-critical);
+  background: var(--status-critical-bg);
+  padding: 16px;
   text-align: center;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--status-critical-border);
 }
 
 .pagination {
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-top: 16px;
+  margin-top: 24px;
   font-size: 13px;
   flex-wrap: wrap;
 }
 
 .pagination button {
-  padding: 4px 12px;
+  padding: 6px 12px;
   font-size: 12px;
 }
 
 .pageNum {
-  padding: 4px 8px;
+  padding: 4px 10px;
   cursor: pointer;
-  color: #9ca3af;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.pageNum:hover {
+  color: var(--text-primary);
 }
 
 .pageNumActive {
-  padding: 4px 8px;
+  padding: 4px 10px;
   cursor: pointer;
-  font-weight: bold;
-  background: #3b82f6;
-  color: #fff;
-  border-radius: 4px;
+  font-weight: 600;
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
 }
 
 .resendBtn {
-  padding: 2px 8px;
+  padding: 4px 8px;
   font-size: 11px;
 }
 
 .suspendBtn {
-  padding: 2px 8px;
+  padding: 4px 8px;
   font-size: 11px;
 }
 
 .viewLink {
-  font-size: 13px;
+  font-size: 12px;
   margin-right: 8px;
 }
 
 .actions {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   align-items: center;
 }
 

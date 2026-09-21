@@ -1,33 +1,45 @@
 .definitionList {
   display: grid;
-  grid-template-columns: 150px 1fr;
+  grid-template-columns: 140px 1fr;
   gap: 12px;
   margin-bottom: 32px;
-  font-size: 14px;
-}
-
-@media (max-width: 480px) {
-  .definitionList {
-    grid-template-columns: 1fr;
-    gap: 4px;
-  }
+  background: var(--bg-surface-elevated);
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-default);
 }
 
 .label {
-  font-weight: bold;
-  color: #9ca3af;
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 
 .value {
-  color: #e1e3e8;
+  color: var(--text-primary);
+  font-size: 13px;
 }
 
 .section {
   margin-bottom: 32px;
 }
 
+.section h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+.emptyState {
+  text-align: center;
+  padding: 24px !important;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
 .suspendContainer {
-  margin-top: 48px;
+  margin-top: 40px;
   padding-top: 24px;
-  border-top: 1px solid #2d3039;
+  border-top: 1px solid var(--border-default);
 }

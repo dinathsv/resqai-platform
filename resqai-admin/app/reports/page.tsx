@@ -1,11 +1,9 @@
 export default function ReportsPage() {
   return (
-    <div className="page" style={{ padding: '2rem' }}>
-      <header className="page-header">
-        <h1>Reports</h1>
-      </header>
-      <div className="content">
-        <p>The Reports page is currently under construction. Check back soon for updates!</p>
+    <div className="page">
+      <h1>Situational Intel</h1>
+      <div style={{ marginTop: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <p>The Situational Intel module is currently in development.</p>
       </div>
     </div>
   );

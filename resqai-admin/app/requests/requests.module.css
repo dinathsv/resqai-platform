@@ -1,7 +1,7 @@
 .filterRow {
   display: flex;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -15,51 +15,52 @@
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-top: 16px;
+  margin-top: 24px;
   font-size: 13px;
   flex-wrap: wrap;
 }
 
 .pagination button {
-  padding: 4px 12px;
+  padding: 6px 12px;
   font-size: 12px;
 }
 
 .pageNum {
-  padding: 4px 8px;
+  padding: 4px 10px;
   cursor: pointer;
+  font-weight: 500;
   color: var(--text-muted);
   border-radius: var(--radius-sm);
-  transition: color 0.15s ease;
+  transition: color var(--transition-fast);
 }
 
 .pageNum:hover {
-  color: var(--text-main);
+  color: var(--text-primary);
 }
 
 .pageNumActive {
-  padding: 4px 8px;
+  padding: 4px 10px;
   cursor: pointer;
-  font-weight: bold;
-  background: var(--accent-primary);
-  color: #fff;
+  font-weight: 600;
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
   border-radius: var(--radius-sm);
-  box-shadow: 0 2px 6px var(--accent-glow);
+  border: 1px solid var(--border-default);
 }
 
 .flagBtn {
-  padding: 2px 8px;
+  padding: 4px 8px;
   font-size: 11px;
 }
 
 .viewLink {
-  font-size: 13px;
+  font-size: 12px;
   margin-right: 8px;
 }
 
 .actions {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   align-items: center;
 }
 
@@ -67,10 +68,9 @@
   text-decoration: line-through;
   color: var(--text-muted);
 }
-
-.urgency5 { color: var(--status-critical); font-weight: bold; }
-.urgency4 { color: var(--status-warning); font-weight: bold; }
-.urgencyNormal { color: inherit; }
+.flaggedRow td {
+  opacity: 0.6;
+}
 
 @media (max-width: 768px) {
   .filterRow select,

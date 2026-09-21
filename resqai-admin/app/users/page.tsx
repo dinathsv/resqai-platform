@@ -128,7 +128,7 @@ export default function UsersPage() {
           {/* Requirement 3: Loading state spinner */}
           {isLoading || (!data && !error) ? (
             <tr>
-              <td colSpan={8} style={{ textAlign: 'center', padding: '2rem' }}>
+              <td colSpan={8}>
                 <div className={styles.loadingContainer}>
                   <div className={styles.spinner} id="users-loading-spinner" />
                   <span>Loading registered users...</span>
@@ -138,9 +138,11 @@ export default function UsersPage() {
           ) : error ? (
             /* Requirement 3: Display exact error message if API error occurs */
             <tr>
-              <td colSpan={8} className={styles.errorCell}>
-                <strong>API Error:</strong>{' '}
-                {error.response?.data?.error || error.message || 'Failed to fetch users'}
+              <td colSpan={8}>
+                <div className={styles.errorCell}>
+                  <strong>API Error:</strong>{' '}
+                  {error.response?.data?.error || error.message || 'Failed to fetch users'}
+                </div>
               </td>
             </tr>
           ) : filteredUsers.length > 0 ? (

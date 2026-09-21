@@ -8,12 +8,12 @@ import Cookies from 'js-cookie';
 import styles from './layout.module.css';
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Command Center' },
-  { href: '/alerts', label: 'Disaster Alerts' },
-  { href: '/requests', label: 'Live Triage' },
-  { href: '/missions', label: 'Rescue Missions' },
-  { href: '/users', label: 'Personnel & Volunteers' },
-  { href: '/reports', label: 'Situational Intel' },
+  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/alerts', label: 'Alerts' },
+  { href: '/requests', label: 'Requests' },
+  { href: '/missions', label: 'Missions' },
+  { href: '/users', label: 'Users' },
+  { href: '/reports', label: 'Reports' },
 ];
 
 function Sidebar({ isOpen, onClose, theme, onToggleTheme }: { isOpen: boolean; onClose: () => void; theme: string; onToggleTheme: () => void }) {
@@ -33,10 +33,10 @@ function Sidebar({ isOpen, onClose, theme, onToggleTheme }: { isOpen: boolean; o
       <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
         <div className={styles.sidebarHeader}>
           <div className={styles.logoGroup}>
-            <div className={styles.logoIcon}>🛡️</div>
+            <div className={styles.logoIcon}>⬡</div>
             <div>
-              <div className={styles.sidebarTitle}>ResQAI Ops</div>
-              <div className={styles.sidebarSubtitle}>Disaster Response Sri Lanka</div>
+              <div className={styles.sidebarTitle}>ResQAI</div>
+              <div className={styles.sidebarSubtitle}>Admin Panel</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -64,7 +64,6 @@ function Sidebar({ isOpen, onClose, theme, onToggleTheme }: { isOpen: boolean; o
                 className={isActive ? styles.navLinkActive : styles.navLink}
                 onClick={onClose}
               >
-                <span className={styles.navIcon}>{item.icon}</span>
                 <span className={styles.navLabel}>{item.label}</span>
                 {isActive && <span className={styles.activePill} />}
               </Link>
@@ -74,10 +73,10 @@ function Sidebar({ isOpen, onClose, theme, onToggleTheme }: { isOpen: boolean; o
 
         <div className={styles.sidebarFooter}>
           <div className={styles.adminBadge}>
-            <div className={styles.adminAvatar}>HQ</div>
+            <div className={styles.adminAvatar}>A</div>
             <div className={styles.adminInfo}>
-              <div className={styles.adminName}>DMC Coordinator</div>
-              <div className={styles.adminRole}>Level 5 Clearance</div>
+              <div className={styles.adminName}>Admin</div>
+              <div className={styles.adminRole}>Coordinator</div>
             </div>
           </div>
           <button onClick={handleLogout} className={`outline ${styles.logoutBtn}`}>
@@ -135,8 +134,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <title>ResQAI Admin Dashboard</title>
-        <meta name="description" content="ResQAI Emergency Relief Administration Dashboard for Sri Lanka" />
+        <title>ResQAI Admin</title>
+        <meta name="description" content="ResQAI Emergency Relief Administration Panel" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body>

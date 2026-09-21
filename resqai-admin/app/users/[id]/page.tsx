@@ -110,7 +110,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
               ))
             ) : (
               <tr>
-                <td colSpan={5}>No requests history</td>
+                <td colSpan={5} className={styles.emptyState}>No requests history</td>
               </tr>
             )}
           </tbody>
@@ -140,7 +140,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
               ))
             ) : (
               <tr>
-                <td colSpan={4}>No donation history</td>
+                <td colSpan={4} className={styles.emptyState}>No donation history</td>
               </tr>
             )}
           </tbody>

@@ -1,5 +1,5 @@
 .form {
-  max-width: 700px;
+  max-width: 600px;
 }
 
 .field {
@@ -9,21 +9,21 @@
 .label {
   display: block;
   font-size: 13px;
-  font-weight: bold;
-  margin-bottom: 4px;
-  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--text-primary);
 }
 
 .helper {
   font-size: 12px;
   color: var(--text-muted);
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .criticalWarning {
   font-size: 12px;
   color: var(--status-critical);
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .severityRow {
@@ -35,20 +35,17 @@
   width: 48px;
   text-align: center;
   padding: 6px 0;
-  border: 1px solid var(--border-medium);
+  border: 1px solid var(--border-default);
   background: var(--bg-surface);
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   border-radius: 0;
-  transition: background 0.2s, color 0.2s;
-  box-shadow: none;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .severityBtn:hover {
   background: var(--bg-surface-elevated);
-  box-shadow: none;
-  transform: none;
 }
 
 .severityBtn + .severityBtn {
@@ -59,13 +56,12 @@
   width: 48px;
   text-align: center;
   padding: 6px 0;
-  border: 1px solid var(--accent-primary);
-  background: var(--accent-primary);
+  border: 1px solid var(--accent);
+  background: var(--accent);
   color: #fff;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   border-radius: 0;
-  box-shadow: 0 2px 6px var(--accent-glow);
 }
 
 .severityBtnActive + .severityBtn,
@@ -74,7 +70,7 @@
 }
 
 .preview {
-  border: 1px solid var(--border-medium);
+  border: 1px solid var(--border-default);
   padding: 16px;
   margin-bottom: 24px;
   background: var(--bg-surface-elevated);
@@ -83,19 +79,19 @@
 }
 
 .previewTitle {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-muted);
   margin-bottom: 8px;
 }
 
 .previewContent {
   font-size: 14px;
-  color: var(--text-main);
+  color: var(--text-primary);
 }
 
 .previewType {
-  font-weight: bold;
-  color: var(--accent-primary);
+  font-weight: 600;
+  color: var(--accent);
 }
 
 .previewWorkPlan {
@@ -112,12 +108,12 @@
 
 .responseText {
   margin-top: 16px;
-  font-size: 14px;
+  font-size: 13px;
   padding: 12px;
-  border: 1px solid var(--border-medium);
+  border: 1px solid var(--border-default);
   background: var(--bg-surface-elevated);
   border-radius: var(--radius-md);
-  color: var(--text-main);
+  color: var(--text-primary);
   transition: var(--transition-theme);
 }
 
