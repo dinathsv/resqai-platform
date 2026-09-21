@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { apiFetch } from '../../config/api';
 import { Colors, Fonts } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import TopBar from '../../components/TopBar';
+import { useCurrentLocation } from '../../hooks/useCurrentLocation';
 
 interface Hospital {
   hospital_id: string;
@@ -52,14 +53,166 @@ export default function LocatorScreen() {
   const [locationError, setLocationError] = useState('');
   const [manualArea, setManualArea] = useState('');
 
+  // ── Current Location hook (browser Geolocation API on web, expo-location on native) ──
+  const {
+    location: currentDeviceLocation,
+    status: currentLocStatus,
+    statusMessage: currentLocStatusMessage,
+    error: currentLocError,
+    loading: currentLocLoading,
+    requestLocation: requestDeviceLocation,
+  } = useCurrentLocation();
+
+  // ── Google Maps JavaScript API refs (web only) ──
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const googleMapRef = useRef<google.maps.Map | null>(null);
+  const googleMarkerRef = useRef<google.maps.Marker | null>(null);
+  const googleCircleRef = useRef<google.maps.Circle | null>(null);
+  const [jsApiLoaded, setJsApiLoaded] = useState(false);
+  const [jsApiError, setJsApiError] = useState(false);
+
   useEffect(() => {
     emergencyTypeRef.current = emergencyType;
   }, [emergencyType]);
+
+  // ── Load Google Maps JavaScript API script (web only, when API key exists) ──
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !GOOGLE_MAPS_API_KEY) return;
+    // Check if already loaded
+    if (typeof google !== 'undefined' && google.maps) {
+      setJsApiLoaded(true);
+      return;
+    }
+    // Check if script tag already exists
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => setJsApiLoaded(true));
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=marker`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setJsApiLoaded(true);
+    script.onerror = () => setJsApiError(true);
+    document.head.appendChild(script);
+  }, []);
 
   // Request high-accuracy device GPS position on mount
   useEffect(() => {
     fetchCurrentLocation();
   }, []);
+
+  // ── When the useCurrentLocation hook returns a result, sync it to locator state ──
+  useEffect(() => {
+    if (currentDeviceLocation && currentLocStatus === 'success') {
+      const coords = {
+        lat: currentDeviceLocation.latitude,
+        lng: currentDeviceLocation.longitude,
+      };
+      setUserLocation(coords);
+      fetchHospitals(coords.lat, coords.lng, emergencyTypeRef.current);
+
+      // Update Google Maps JS API map if available
+      if (Platform.OS === 'web' && jsApiLoaded && googleMapRef.current) {
+        const latLng = new google.maps.LatLng(coords.lat, coords.lng);
+        googleMapRef.current.panTo(latLng);
+        googleMapRef.current.setZoom(15);
+
+        // Update or create marker
+        if (googleMarkerRef.current) {
+          googleMarkerRef.current.setPosition(latLng);
+        } else {
+          googleMarkerRef.current = new google.maps.Marker({
+            position: latLng,
+            map: googleMapRef.current,
+            title: 'Your Current Location',
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 10,
+              fillColor: '#DC2626',
+              fillOpacity: 1,
+              strokeColor: '#FFFFFF',
+              strokeWeight: 3,
+            },
+          });
+        }
+
+        // Update or create accuracy circle
+        const accuracyMeters = currentDeviceLocation.accuracy ?? 0;
+        if (accuracyMeters > 0) {
+          if (googleCircleRef.current) {
+            googleCircleRef.current.setCenter(latLng);
+            googleCircleRef.current.setRadius(accuracyMeters);
+          } else {
+            googleCircleRef.current = new google.maps.Circle({
+              center: latLng,
+              radius: accuracyMeters,
+              map: googleMapRef.current,
+              fillColor: '#DC2626',
+              fillOpacity: 0.08,
+              strokeColor: '#DC2626',
+              strokeOpacity: 0.25,
+              strokeWeight: 1,
+            });
+          }
+        }
+      }
+    }
+    if (currentLocError) {
+      setLocationError(currentLocError);
+    }
+  }, [currentDeviceLocation, currentLocStatus, currentLocError, jsApiLoaded]);
+
+  // ── Initialize Google Maps JS API map when container is ready ──
+  const initGoogleMap = useCallback((containerEl: HTMLDivElement | null) => {
+    if (!containerEl || !jsApiLoaded || googleMapRef.current) return;
+    mapContainerRef.current = containerEl;
+
+    const defaultCenter = userLocation
+      ? { lat: userLocation.lat, lng: userLocation.lng }
+      : { lat: 7.8731, lng: 80.7718 }; // Sri Lanka center as initial view only
+
+    googleMapRef.current = new google.maps.Map(containerEl, {
+      center: defaultCenter,
+      zoom: userLocation ? 15 : 8,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: true,
+      zoomControl: true,
+    });
+
+    // If we already have a location, place marker immediately
+    if (userLocation) {
+      const latLng = new google.maps.LatLng(userLocation.lat, userLocation.lng);
+      googleMarkerRef.current = new google.maps.Marker({
+        position: latLng,
+        map: googleMapRef.current,
+        title: 'Your Current Location',
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: '#DC2626',
+          fillOpacity: 1,
+          strokeColor: '#FFFFFF',
+          strokeWeight: 3,
+        },
+      });
+
+      if (currentDeviceLocation?.accuracy && currentDeviceLocation.accuracy > 0) {
+        googleCircleRef.current = new google.maps.Circle({
+          center: latLng,
+          radius: currentDeviceLocation.accuracy,
+          map: googleMapRef.current,
+          fillColor: '#DC2626',
+          fillOpacity: 0.08,
+          strokeColor: '#DC2626',
+          strokeOpacity: 0.25,
+          strokeWeight: 1,
+        });
+      }
+    }
+  }, [jsApiLoaded, userLocation, currentDeviceLocation]);
 
   const fetchCurrentLocation = async () => {
     setLoadingLocation(true);
@@ -211,6 +364,9 @@ export default function LocatorScreen() {
     );
   };
 
+  // ── Determine whether to use the Google Maps JS API or Embed fallback (web only) ──
+  const useJsApi = Platform.OS === 'web' && GOOGLE_MAPS_API_KEY && jsApiLoaded && !jsApiError;
+
   const renderMapSection = () => {
     if (!userLocation) {
       return (
@@ -254,7 +410,7 @@ export default function LocatorScreen() {
             </Text>
             {GOOGLE_MAPS_API_KEY ? (
               <View style={styles.apiBadge}>
-                <Text style={styles.apiBadgeText}>Google API Active</Text>
+                <Text style={styles.apiBadgeText}>{useJsApi ? 'JS API Active' : 'Google API Active'}</Text>
               </View>
             ) : (
               <View style={styles.embedBadge}>
@@ -276,23 +432,95 @@ export default function LocatorScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Embedded Google Map */}
-        {Platform.OS === 'web' ? (
-          <View style={styles.iframeWrapper}>
-            <iframe
-              title="Google Map Live Location"
-              src={embedUrl}
-              style={{
-                width: '100%',
-                height: 200,
-                border: 'none',
-                borderRadius: 14,
-              }}
-              loading="lazy"
-              allowFullScreen
-              referrerPolicy="strict-origin-when-cross-origin"
-            />
+        {/* ── 📍 Current Location Button ── */}
+        <TouchableOpacity
+          style={[
+            styles.currentLocationButton,
+            currentLocLoading && styles.currentLocationButtonLoading,
+          ]}
+          onPress={requestDeviceLocation}
+          disabled={currentLocLoading}
+          activeOpacity={0.7}
+        >
+          {currentLocLoading ? (
+            <View style={styles.currentLocBtnInner}>
+              <ActivityIndicator size="small" color="#FFFFFF" />
+              <Text style={styles.currentLocationButtonText}>
+                Getting your current location...
+              </Text>
+            </View>
+          ) : (
+            <Text style={styles.currentLocationButtonText}>📍 Current Location</Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Status message */}
+        {currentLocStatusMessage && currentLocStatus === 'success' ? (
+          <View style={styles.locStatusSuccess}>
+            <Text style={styles.locStatusSuccessText}>✅ {currentLocStatusMessage}</Text>
           </View>
+        ) : null}
+        {currentLocError ? (
+          <View style={styles.locStatusError}>
+            <Text style={styles.locStatusErrorText}>⚠️ {currentLocError}</Text>
+          </View>
+        ) : null}
+
+        {/* ── Accuracy & Coordinates Info Panel ── */}
+        {currentDeviceLocation && currentLocStatus === 'success' ? (
+          <View style={styles.accuracyPanel}>
+            <Text style={styles.accuracyTitle}>Current Location</Text>
+            <View style={styles.accuracyRow}>
+              <Text style={styles.accuracyLabel}>Latitude:</Text>
+              <Text style={styles.accuracyValue}>{currentDeviceLocation.latitude.toFixed(5)}</Text>
+            </View>
+            <View style={styles.accuracyRow}>
+              <Text style={styles.accuracyLabel}>Longitude:</Text>
+              <Text style={styles.accuracyValue}>{currentDeviceLocation.longitude.toFixed(5)}</Text>
+            </View>
+            {currentDeviceLocation.accuracy !== null ? (
+              <View style={styles.accuracyRow}>
+                <Text style={styles.accuracyLabel}>Accuracy:</Text>
+                <Text style={styles.accuracyValue}>
+                  ~{Math.round(currentDeviceLocation.accuracy)} meters
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        {/* ── Google Map Display ── */}
+        {Platform.OS === 'web' ? (
+          useJsApi ? (
+            /* Google Maps JavaScript API — dynamic map with marker & accuracy circle */
+            <View style={styles.iframeWrapper}>
+              <div
+                ref={initGoogleMap}
+                style={{
+                  width: '100%',
+                  height: 240,
+                  borderRadius: 14,
+                }}
+              />
+            </View>
+          ) : (
+            /* Fallback: Embed iframe */
+            <View style={styles.iframeWrapper}>
+              <iframe
+                title="Google Map Live Location"
+                src={embedUrl}
+                style={{
+                  width: '100%',
+                  height: 200,
+                  border: 'none',
+                  borderRadius: 14,
+                }}
+                loading="lazy"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+              />
+            </View>
+          )
         ) : null}
 
         {/* Quick Hospital Chips */}
@@ -859,5 +1087,101 @@ const styles = StyleSheet.create({
     color: '#64748B',
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  // ── Current Location Button ──
+  currentLocationButton: {
+    backgroundColor: '#DC2626',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 4px 14px rgba(220, 38, 38, 0.30)',
+          transition: 'all 0.2s ease',
+        } as any)
+      : {}),
+  },
+  currentLocationButtonLoading: {
+    backgroundColor: '#B91C1C',
+    opacity: 0.9,
+  },
+  currentLocBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  currentLocationButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    textAlign: 'center',
+  },
+  // ── Status Messages ──
+  locStatusSuccess: {
+    backgroundColor: 'rgba(16, 185, 129, 0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginBottom: 8,
+  },
+  locStatusSuccessText: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    color: '#059669',
+  },
+  locStatusError: {
+    backgroundColor: 'rgba(220, 38, 38, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(220, 38, 38, 0.20)',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginBottom: 8,
+  },
+  locStatusErrorText: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    color: '#DC2626',
+    lineHeight: 17,
+  },
+  // ── Accuracy Panel ──
+  accuracyPanel: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+  },
+  accuracyTitle: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  accuracyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 2,
+  },
+  accuracyLabel: {
+    fontSize: 11.5,
+    fontFamily: Fonts.medium,
+    color: '#64748B',
+  },
+  accuracyValue: {
+    fontSize: 11.5,
+    fontFamily: Fonts.bold,
+    color: '#0F172A',
   },
 });

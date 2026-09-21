@@ -5,6 +5,7 @@
     "esModuleInterop": true,
     "jsx": "react-native",
     "lib": ["es2017", "dom"],
+    "types": ["google.maps"],
     "paths": {
       "@/*": ["./*"]
     }
