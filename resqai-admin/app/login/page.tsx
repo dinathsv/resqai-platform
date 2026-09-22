@@ -13,6 +13,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -64,14 +65,34 @@ export default function LoginPage() {
               Forgot Password?
             </Link>
           </div>
-          <input
-            id="login-password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            placeholder="Enter password"
-          />
+          <div style={{ position: 'relative' }}>
+            <input
+              id="login-password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              placeholder="Enter password"
+              style={{ paddingRight: '40px', width: '100%', boxSizing: 'border-box' }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: 'absolute',
+                right: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '16px',
+                color: 'var(--text-muted)'
+              }}
+            >
+              {showPassword ? '🙈' : '👁️'}
+            </button>
+          </div>
         </div>
 
         <button type="submit" className={styles.submitBtn} disabled={loading}>

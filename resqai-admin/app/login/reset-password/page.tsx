@@ -15,6 +15,7 @@ function ResetPasswordForm() {
   
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -86,15 +87,35 @@ function ResetPasswordForm() {
 
       <div className={styles.field}>
         <label className={styles.label} htmlFor="reset-password">New Password</label>
-        <input
-          id="reset-password"
-          type="password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          required
-          placeholder="••••••••••••"
-          disabled={loading}
-        />
+        <div style={{ position: 'relative' }}>
+          <input
+            id="reset-password"
+            type={showPassword ? 'text' : 'password'}
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+            placeholder="••••••••••••"
+            disabled={loading}
+            style={{ paddingRight: '40px', width: '100%', boxSizing: 'border-box' }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            style={{
+              position: 'absolute',
+              right: '10px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '16px',
+              color: 'var(--text-muted)'
+            }}
+          >
+            {showPassword ? '🙈' : '👁️'}
+          </button>
+        </div>
       </div>
 
       <button type="submit" className={styles.submitBtn} disabled={loading}>

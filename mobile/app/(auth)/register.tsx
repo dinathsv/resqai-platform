@@ -3,9 +3,10 @@
  */
 import React, { useState, useMemo } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  View, Text, TextInput, TouchableOpacity, StyleSheet, Image,
   SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { Fonts, makeGlass } from '../../constants/theme';
@@ -20,6 +21,8 @@ export default function RegisterScreen() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -48,10 +51,17 @@ export default function RegisterScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <Text style={[styles.headerTitle, { color: theme.brand }]}>Create Account</Text>
-          <Text style={[styles.subtitle, { color: theme.textMuted }]}>Register to access all ResQAI features</Text>
+          <View style={{ alignItems: 'center', marginBottom: 28 }}>
+            <Image 
+              source={require('../../assets/resqai_logo.png')} 
+              style={{ width: 140, height: 140, marginBottom: 16 }} 
+              resizeMode="contain" 
+            />
+          </View>
 
           <View style={[styles.card, glass.card]}>
+            <Text style={[styles.headerTitle, { color: theme.textPrimary, textAlign: 'center', marginBottom: 20 }]}>Create Account</Text>
+
             {error ? (
               <View style={[styles.errorBox, { backgroundColor: theme.emergencyLight, borderColor: theme.emergency }]}>
                 <Text style={[styles.errorText, { color: theme.isDark ? '#FFFFFF' : theme.emergency }]}>⚠ {error}</Text>
@@ -62,15 +72,26 @@ export default function RegisterScreen() {
               { label: 'Full Name *', value: fullName, set: setFullName, placeholder: 'Enter your full name' },
               { label: 'Email *', value: email, set: setEmail, placeholder: 'you@example.com', keyboard: 'email-address' as const, capitalize: 'none' as const },
               { label: 'Phone Number', value: phone, set: setPhone, placeholder: '+94 7X XXX XXXX', keyboard: 'phone-pad' as const },
-              { label: 'Password *', value: password, set: setPassword, placeholder: 'At least 6 characters', secure: true },
-              { label: 'Confirm Password *', value: confirmPassword, set: setConfirmPassword, placeholder: 'Re-enter your password', secure: true },
+              { label: 'Password *', value: password, set: setPassword, placeholder: 'At least 6 characters', secure: true, isPassword: true, showState: showPassword, toggle: () => setShowPassword(!showPassword) },
+              { label: 'Confirm Password *', value: confirmPassword, set: setConfirmPassword, placeholder: 'Re-enter your password', secure: true, isPassword: true, showState: showConfirmPassword, toggle: () => setShowConfirmPassword(!showConfirmPassword) },
             ].map((field) => (
               <View key={field.label} style={styles.inputGroup}>
                 <Text style={[styles.label, { color: theme.textSecondary }]}>{field.label}</Text>
-                <TextInput style={[styles.input, inputStyle]}
-                  value={field.value} onChangeText={field.set} placeholder={field.placeholder}
-                  placeholderTextColor={theme.textMuted} keyboardType={field.keyboard || 'default'}
-                  autoCapitalize={field.capitalize || 'sentences'} secureTextEntry={field.secure || false} editable={!loading} />
+                {field.isPassword ? (
+                  <View style={{ position: 'relative', justifyContent: 'center' }}>
+                    <TextInput style={[styles.input, inputStyle, { paddingRight: 40 }]}
+                      value={field.value} onChangeText={field.set} placeholder={field.placeholder}
+                      placeholderTextColor={theme.textMuted} secureTextEntry={!field.showState} editable={!loading} />
+                    <TouchableOpacity style={{ position: 'absolute', right: 14 }} onPress={field.toggle}>
+                      <Ionicons name={field.showState ? "eye-off" : "eye"} size={20} color={theme.textMuted} />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TextInput style={[styles.input, inputStyle]}
+                    value={field.value} onChangeText={field.set} placeholder={field.placeholder}
+                    placeholderTextColor={theme.textMuted} keyboardType={field.keyboard || 'default'}
+                    autoCapitalize={field.capitalize || 'sentences'} editable={!loading} />
+                )}
               </View>
             ))}
 

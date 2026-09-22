@@ -21,7 +21,7 @@ class User(Base):
     phone_number: Mapped[str | None] = mapped_column(String(20))
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     language_pref: Mapped[str] = mapped_column(
-        ENUM("en", "ta", "si", name="language_pref", create_type=False),
+        ENUM("en", "ta", "si", name="language_pref", create_type=True),
         nullable=False,
         default="en",
     )
