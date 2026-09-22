@@ -79,7 +79,12 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>Password</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={[styles.label, { color: theme.textSecondary, marginBottom: 0 }]}>Password</Text>
+                <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')} activeOpacity={0.7}>
+                  <Text style={[styles.linkBold, { color: theme.brandActive, fontSize: 12 }]}>Forgot Password?</Text>
+                </TouchableOpacity>
+              </View>
               <TextInput style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary }]}
                 value={password} onChangeText={setPassword} placeholder="••••••••••••"
                 placeholderTextColor={theme.textMuted} secureTextEntry editable={!loading} onSubmitEditing={handleLogin} />

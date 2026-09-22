@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
@@ -57,7 +58,12 @@ export default function LoginPage() {
         </div>
 
         <div className={styles.field}>
-          <label className={styles.label} htmlFor="login-password">Password</label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <label className={styles.label} htmlFor="login-password" style={{ marginBottom: 0 }}>Password</label>
+            <Link href="/login/forgot-password" style={{ fontSize: '12px', color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+              Forgot Password?
+            </Link>
+          </div>
           <input
             id="login-password"
             type="password"
