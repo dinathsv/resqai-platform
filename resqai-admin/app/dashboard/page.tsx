@@ -179,36 +179,63 @@ export default function DashboardPage() {
 
       <div className={styles.statsRow}>
         <div className={styles.statBox}>
-          <div className={styles.statTop}>
-            <span className={styles.statLabel}>Active Requests</span>
-            <div className={styles.statIcon}>R</div>
+          <div className={styles.statContent}>
+            <div className={styles.statTop}>
+              <span className={styles.statLabel}>Active Requests</span>
+              <div className={styles.statIcon}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                  <path d="M9 14l2 2 4-4" />
+                </svg>
+              </div>
+            </div>
+            <div className={styles.statNumber}>{stats?.active_requests ?? '—'}</div>
           </div>
-          <div className={styles.statNumber}>{stats?.active_requests ?? '—'}</div>
         </div>
 
         <div className={`${styles.statBox} ${styles.statBoxCritical}`}>
-          <div className={styles.statTop}>
-            <span className={styles.statLabel}>Critical Triage</span>
-            <div className={styles.statIcon}>C</div>
+          <div className={styles.statContent}>
+            <div className={styles.statTop}>
+              <span className={styles.statLabel}>Critical Triage</span>
+              <div className={styles.statIcon}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                </svg>
+              </div>
+            </div>
+            <div className={styles.statNumber}>{stats?.critical_count ?? '—'}</div>
           </div>
-          <div className={styles.statNumber}>{stats?.critical_count ?? '—'}</div>
         </div>
 
         <div className={`${styles.statBox} ${styles.statBoxWarning}`}>
-          <div className={styles.statTop}>
-            <span className={styles.statLabel}>Active Alerts</span>
-            <div className={styles.statIcon}>A</div>
+          <div className={styles.statContent}>
+            <div className={styles.statTop}>
+              <span className={styles.statLabel}>Active Alerts</span>
+              <div className={styles.statIcon}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+              </div>
+            </div>
+            <div className={styles.statNumber}>{stats?.active_alerts ?? '—'}</div>
           </div>
-          <div className={styles.statNumber}>{stats?.active_alerts ?? '—'}</div>
         </div>
 
         <div className={`${styles.statBox} ${styles.statBoxSuccess}`}>
-          <div className={styles.statTop}>
-            <span className={styles.statLabel}>Relief Donations</span>
-            <div className={styles.statIcon}>D</div>
-          </div>
-          <div className={styles.statNumber}>
-            {stats ? formatCurrency(stats.total_donations) : '—'}
+          <div className={styles.statContent}>
+            <div className={styles.statTop}>
+              <span className={styles.statLabel}>Relief Donations</span>
+              <div className={styles.statIcon}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+              </div>
+            </div>
+            <div className={styles.statNumber}>
+              {stats ? formatCurrency(stats.total_donations) : '—'}
+            </div>
           </div>
         </div>
       </div>
