@@ -22,6 +22,7 @@ import { useTheme } from '../../context/ThemeContext';
 import BottomNav from '../../components/BottomNav';
 import TopBar from '../../components/TopBar';
 
+const OPENWEATHER_API_KEY = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY || '882c9e6e37b9947d6d7ac859be36a1a7';
 
 interface AlertItem {
   alert_id: string;
@@ -31,6 +32,55 @@ interface AlertItem {
   created_at: string;
   description?: string;
 }
+
+interface WeatherData {
+  temp: number;
+  feelsLike: number;
+  humidity: number;
+  windSpeed: number;
+  description: string;
+  icon: string;
+  cityName: string;
+  main: string;
+}
+
+// Weather icon mapping to emoji for cross-platform support
+const getWeatherEmoji = (main: string): string => {
+  const map: Record<string, string> = {
+    Clear: '☀️',
+    Clouds: '☁️',
+    Rain: '🌧️',
+    Drizzle: '🌦️',
+    Thunderstorm: '⛈️',
+    Snow: '❄️',
+    Mist: '🌫️',
+    Smoke: '🌫️',
+    Haze: '🌫️',
+    Dust: '🌪️',
+    Fog: '🌁',
+    Sand: '🌪️',
+    Ash: '🌋',
+    Squall: '💨',
+    Tornado: '🌪️',
+  };
+  return map[main] || '🌤️';
+};
+
+// Weather-based gradient colors for the card
+const getWeatherColors = (main: string, isDark: boolean): { bg: string; accent: string; text: string } => {
+  const colors: Record<string, { bg: string; accent: string; text: string }> = {
+    Clear: { bg: isDark ? 'rgba(251, 191, 36, 0.12)' : 'rgba(251, 191, 36, 0.10)', accent: '#FBBF24', text: isDark ? '#FDE68A' : '#92400E' },
+    Clouds: { bg: isDark ? 'rgba(148, 163, 184, 0.12)' : 'rgba(148, 163, 184, 0.10)', accent: '#94A3B8', text: isDark ? '#CBD5E1' : '#475569' },
+    Rain: { bg: isDark ? 'rgba(59, 130, 246, 0.12)' : 'rgba(59, 130, 246, 0.10)', accent: '#3B82F6', text: isDark ? '#93C5FD' : '#1E40AF' },
+    Drizzle: { bg: isDark ? 'rgba(96, 165, 250, 0.12)' : 'rgba(96, 165, 250, 0.10)', accent: '#60A5FA', text: isDark ? '#BFDBFE' : '#1E3A8A' },
+    Thunderstorm: { bg: isDark ? 'rgba(139, 92, 246, 0.12)' : 'rgba(139, 92, 246, 0.10)', accent: '#8B5CF6', text: isDark ? '#C4B5FD' : '#5B21B6' },
+    Snow: { bg: isDark ? 'rgba(186, 230, 253, 0.12)' : 'rgba(186, 230, 253, 0.15)', accent: '#BAE6FD', text: isDark ? '#E0F2FE' : '#0C4A6E' },
+    Mist: { bg: isDark ? 'rgba(148, 163, 184, 0.10)' : 'rgba(148, 163, 184, 0.08)', accent: '#94A3B8', text: isDark ? '#CBD5E1' : '#475569' },
+    Haze: { bg: isDark ? 'rgba(148, 163, 184, 0.10)' : 'rgba(148, 163, 184, 0.08)', accent: '#94A3B8', text: isDark ? '#CBD5E1' : '#475569' },
+    Fog: { bg: isDark ? 'rgba(148, 163, 184, 0.10)' : 'rgba(148, 163, 184, 0.08)', accent: '#94A3B8', text: isDark ? '#CBD5E1' : '#475569' },
+  };
+  return colors[main] || colors.Clear;
+};
 
 function EmergencyGlow() {
   return (
@@ -51,14 +101,9 @@ export default function DashboardScreen() {
   const router = useRouter();
   const [userName, setUserName] = useState<string>('');
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
-  const [topAlert, setTopAlert] = useState<{
-    title: string;
-    description: string;
-    id?: string;
-  }>({
-    title: 'Flood Alert',
-    description: 'Heavy rainfall and strong winds in western province',
-  });
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(true);
+  const [weatherError, setWeatherError] = useState<string | null>(null);
   
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
@@ -78,6 +123,34 @@ export default function DashboardScreen() {
     }
   };
 
+  // Fetch weather data when user location is available
+  const fetchWeather = useCallback(async (lat: number, lng: number) => {
+    setWeatherLoading(true);
+    setWeatherError(null);
+    try {
+      const response = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lng}&appid=${OPENWEATHER_API_KEY}&units=metric`
+      );
+      if (!response.ok) throw new Error('Weather fetch failed');
+      const data = await response.json();
+      setWeather({
+        temp: Math.round(data.main.temp),
+        feelsLike: Math.round(data.main.feels_like),
+        humidity: data.main.humidity,
+        windSpeed: Math.round(data.wind.speed * 3.6), // Convert m/s to km/h
+        description: data.weather[0].description,
+        icon: data.weather[0].icon,
+        cityName: data.name,
+        main: data.weather[0].main,
+      });
+    } catch (err: any) {
+      console.error('Weather fetch error:', err);
+      setWeatherError('Unable to load weather');
+    } finally {
+      setWeatherLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     let mounted = true;
 
@@ -96,18 +169,6 @@ export default function DashboardScreen() {
           const alertsData = await alertsRes.json();
           if (mounted && alertsData.alerts && alertsData.alerts.length > 0) {
             setAlerts(alertsData.alerts);
-            const first = alertsData.alerts[0];
-            const typeCapitalized = first.disaster_type
-              ? first.disaster_type.charAt(0).toUpperCase() + first.disaster_type.slice(1)
-              : 'Flood';
-            setTopAlert({
-              title: `${typeCapitalized} Alert`,
-              description:
-                first.work_plan ||
-                first.description ||
-                (first.district ? `Severe conditions reported in ${first.district}` : 'Heavy rainfall and strong winds in western province'),
-              id: first.alert_id,
-            });
           }
         }
       } catch (err) {
@@ -121,6 +182,13 @@ export default function DashboardScreen() {
     };
   }, []);
 
+  // Fetch weather whenever location updates
+  useEffect(() => {
+    if (userLocation) {
+      fetchWeather(userLocation.lat, userLocation.lng);
+    }
+  }, [userLocation, fetchWeather]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -132,17 +200,6 @@ export default function DashboardScreen() {
         const onAlertReceived = (alert: any) => {
           if (!mounted) return;
           setAlerts((prev) => [alert, ...prev]);
-          const typeCapitalized = alert.disaster_type
-            ? alert.disaster_type.charAt(0).toUpperCase() + alert.disaster_type.slice(1)
-            : 'Emergency';
-          setTopAlert({
-            title: `${typeCapitalized} Alert`,
-            description:
-              alert.work_plan ||
-              alert.description ||
-              (alert.district ? `Severe conditions reported in ${alert.district}` : 'Emergency warning issued by Disaster Management Centre'),
-            id: alert.alert_id,
-          });
         };
 
         socket.on('alert_received', onAlertReceived);
@@ -163,13 +220,7 @@ export default function DashboardScreen() {
     Linking.openURL(`tel:${number}`);
   };
 
-  const handleViewAlert = () => {
-    if (topAlert.id) {
-      router.push(`/(people)/alert/${topAlert.id}` as any);
-    } else {
-      router.push('/(people)/locator');
-    }
-  };
+  const weatherColors = weather ? getWeatherColors(weather.main, theme.isDark) : null;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -180,30 +231,76 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.scrollInner}
         showsVerticalScrollIndicator={false}
       >
-        {/* Disaster Alert Banner */}
-        <View style={[styles.alertBanner, { backgroundColor: theme.emergencyLight, borderColor: theme.emergency }]}>
-          <View style={styles.alertBannerRow}>
-            <View style={[styles.alertIconCircle, { backgroundColor: theme.emergency }]}>
-              <View style={styles.warningTriangleOuter}>
-                <Text style={styles.warningExclamation}>⬡</Text>
+        {/* Weather Widget */}
+        <View style={[
+          styles.weatherCard,
+          {
+            backgroundColor: weatherColors?.bg || theme.surfaceElevated,
+            borderColor: weatherColors?.accent ? `${weatherColors.accent}40` : theme.border,
+          },
+        ]}>
+          {weatherLoading ? (
+            <View style={styles.weatherLoading}>
+              <ActivityIndicator size="small" color={theme.accent} />
+              <Text style={[styles.weatherLoadingText, { color: theme.textMuted }]}>Loading weather...</Text>
+            </View>
+          ) : weatherError ? (
+            <View style={styles.weatherLoading}>
+              <Text style={{ fontSize: 28 }}>🌤️</Text>
+              <Text style={[styles.weatherLoadingText, { color: theme.textMuted }]}>{weatherError}</Text>
+              <TouchableOpacity
+                onPress={() => userLocation && fetchWeather(userLocation.lat, userLocation.lng)}
+                style={[styles.weatherRetryBtn, { borderColor: theme.border }]}
+              >
+                <Text style={[styles.weatherRetryText, { color: theme.accent }]}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : weather ? (
+            <>
+              {/* Top Row: Emoji + Temp + Location */}
+              <View style={styles.weatherTopRow}>
+                <Text style={styles.weatherEmoji}>{getWeatherEmoji(weather.main)}</Text>
+                <View style={styles.weatherTempBlock}>
+                  <Text style={[styles.weatherTemp, { color: theme.textPrimary }]}>
+                    {weather.temp}°C
+                  </Text>
+                  <Text style={[styles.weatherFeelsLike, { color: theme.textMuted }]}>
+                    Feels like {weather.feelsLike}°C
+                  </Text>
+                </View>
+                <View style={styles.weatherLocationBlock}>
+                  <Text style={[styles.weatherCity, { color: theme.textPrimary }]}>📍 {weather.cityName}</Text>
+                  <Text style={[styles.weatherDesc, { color: weatherColors?.text || theme.textSecondary }]}>
+                    {weather.description.charAt(0).toUpperCase() + weather.description.slice(1)}
+                  </Text>
+                </View>
               </View>
-            </View>
 
-            <View style={styles.alertTextWrap}>
-              <Text style={[styles.alertHeading, { color: theme.emergency }]}>{topAlert.title}</Text>
-              <Text style={[styles.alertBody, { color: theme.textSecondary }]}>{topAlert.description}</Text>
-            </View>
-          </View>
+              {/* Divider */}
+              <View style={[styles.weatherDivider, { backgroundColor: theme.border }]} />
 
-          <View style={styles.alertActionRow}>
-            <TouchableOpacity
-              style={[styles.viewAlertPill, { backgroundColor: theme.emergency }]}
-              onPress={handleViewAlert}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.viewAlertText, { color: '#FFFFFF' }]}>View Details</Text>
-            </TouchableOpacity>
-          </View>
+              {/* Bottom Row: Stats */}
+              <View style={styles.weatherStatsRow}>
+                <View style={styles.weatherStat}>
+                  <Text style={styles.weatherStatIcon}>💧</Text>
+                  <Text style={[styles.weatherStatValue, { color: theme.textPrimary }]}>{weather.humidity}%</Text>
+                  <Text style={[styles.weatherStatLabel, { color: theme.textMuted }]}>Humidity</Text>
+                </View>
+                <View style={[styles.weatherStatDivider, { backgroundColor: theme.border }]} />
+                <View style={styles.weatherStat}>
+                  <Text style={styles.weatherStatIcon}>💨</Text>
+                  <Text style={[styles.weatherStatValue, { color: theme.textPrimary }]}>{weather.windSpeed} km/h</Text>
+                  <Text style={[styles.weatherStatLabel, { color: theme.textMuted }]}>Wind</Text>
+                </View>
+                <View style={[styles.weatherStatDivider, { backgroundColor: theme.border }]} />
+                <View style={styles.weatherStat}>
+                  <Text style={styles.weatherStatIcon}>🌡️</Text>
+                  <Text style={[styles.weatherStatValue, { color: theme.textPrimary }]}>{weather.feelsLike}°C</Text>
+                  <Text style={[styles.weatherStatLabel, { color: theme.textMuted }]}>Feels Like</Text>
+                </View>
+              </View>
+            </>
+          ) : null}
         </View>
 
         {/* Quick Actions Section */}
@@ -414,59 +511,101 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
 
-  alertBanner: {
-    borderRadius: 12,
+  /* Weather Card */
+  weatherCard: {
+    borderRadius: 14,
     paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 14,
+    paddingVertical: 16,
     marginBottom: 18,
     borderWidth: 1,
   },
-  alertBannerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  alertIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
+  weatherLoading: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
+    paddingVertical: 20,
+    gap: 8,
   },
-  warningTriangleOuter: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  warningExclamation: {
-    fontSize: 24,
-    color: '#FFFFFF',
-  },
-  alertTextWrap: {
-    flex: 1,
-  },
-  alertHeading: {
-    fontSize: 18,
-    fontFamily: Fonts.bold,
-    marginBottom: 4,
-  },
-  alertBody: {
+  weatherLoadingText: {
     fontSize: 13,
     fontFamily: Fonts.medium,
-    lineHeight: 18,
   },
-  alertActionRow: {
-    alignItems: 'flex-end',
-    marginTop: 8,
-  },
-  viewAlertPill: {
-    paddingVertical: 8,
-    paddingHorizontal: 20,
+  weatherRetryBtn: {
+    marginTop: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
     borderRadius: 8,
+    borderWidth: 1,
   },
-  viewAlertText: {
-    fontSize: 13,
+  weatherRetryText: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+  },
+  weatherTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  weatherEmoji: {
+    fontSize: 40,
+  },
+  weatherTempBlock: {
+    marginRight: 'auto' as any,
+  },
+  weatherTemp: {
+    fontSize: 28,
     fontFamily: Fonts.bold,
+    fontWeight: '700',
+    letterSpacing: -1,
+  },
+  weatherFeelsLike: {
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    marginTop: 1,
+  },
+  weatherLocationBlock: {
+    alignItems: 'flex-end',
+  },
+  weatherCity: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+  },
+  weatherDesc: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    marginTop: 2,
+  },
+  weatherDivider: {
+    height: 1,
+    marginVertical: 12,
+    opacity: 0.5,
+  },
+  weatherStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  weatherStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  weatherStatIcon: {
+    fontSize: 18,
+    marginBottom: 4,
+  },
+  weatherStatValue: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    fontWeight: '600',
+  },
+  weatherStatLabel: {
+    fontSize: 10,
+    fontFamily: Fonts.medium,
+    marginTop: 2,
+  },
+  weatherStatDivider: {
+    width: 1,
+    height: 30,
+    opacity: 0.4,
   },
 
   /* Section Header */
