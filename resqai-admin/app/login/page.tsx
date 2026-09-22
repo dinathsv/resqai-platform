@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -57,15 +59,40 @@ export default function LoginPage() {
         </div>
 
         <div className={styles.field}>
-          <label className={styles.label} htmlFor="login-password">Password</label>
-          <input
-            id="login-password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            placeholder="Enter password"
-          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <label className={styles.label} htmlFor="login-password" style={{ marginBottom: 0 }}>Password</label>
+            <Link href="/login/forgot-password" style={{ fontSize: '12px', color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+              Forgot Password?
+            </Link>
+          </div>
+          <div style={{ position: 'relative' }}>
+            <input
+              id="login-password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              placeholder="Enter password"
+              style={{ paddingRight: '40px', width: '100%', boxSizing: 'border-box' }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: 'absolute',
+                right: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '16px',
+                color: 'var(--text-muted)'
+              }}
+            >
+              {showPassword ? '🙈' : '👁️'}
+            </button>
+          </div>
         </div>
 
         <button type="submit" className={styles.submitBtn} disabled={loading}>

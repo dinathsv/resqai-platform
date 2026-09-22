@@ -6,6 +6,7 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Image,
   SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
@@ -18,6 +19,7 @@ export default function LoginScreen() {
   const glass = useMemo(() => makeGlass(theme), [theme]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -58,12 +60,10 @@ export default function LoginScreen() {
               style={{ width: 140, height: 140, marginBottom: 16 }} 
               resizeMode="contain" 
             />
-            <Text style={[styles.tagline, { color: theme.textSecondary }]}>Rapid Triage & Emergency Response</Text>
           </View>
 
           <View style={[styles.card, glass.card]}>
-            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>Sign In</Text>
-            <Text style={[styles.cardSubtitle, { color: theme.textMuted }]}>Access your emergency contact portal</Text>
+            <Text style={[styles.cardTitle, { color: theme.textPrimary, marginBottom: 20 }]}>Sign In</Text>
 
             {error ? (
               <View style={[styles.errorBox, { backgroundColor: theme.emergencyLight, borderColor: theme.emergency }]}>
@@ -79,10 +79,20 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>Password</Text>
-              <TextInput style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary }]}
-                value={password} onChangeText={setPassword} placeholder="••••••••••••"
-                placeholderTextColor={theme.textMuted} secureTextEntry editable={!loading} onSubmitEditing={handleLogin} />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={[styles.label, { color: theme.textSecondary, marginBottom: 0 }]}>Password</Text>
+                <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')} activeOpacity={0.7}>
+                  <Text style={[styles.linkBold, { color: theme.brandActive, fontSize: 12 }]}>Forgot Password?</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={{ position: 'relative', justifyContent: 'center' }}>
+                <TextInput style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary, paddingRight: 40 }]}
+                  value={password} onChangeText={setPassword} placeholder="••••••••••••"
+                  placeholderTextColor={theme.textMuted} secureTextEntry={!showPassword} editable={!loading} onSubmitEditing={handleLogin} />
+                <TouchableOpacity style={{ position: 'absolute', right: 14 }} onPress={() => setShowPassword(!showPassword)}>
+                  <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color={theme.textMuted} />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <TouchableOpacity style={[styles.loginButton, { backgroundColor: theme.brandActive, shadowColor: theme.brandActive }, loading && styles.buttonDisabled]}

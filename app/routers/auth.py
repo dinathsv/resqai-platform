@@ -59,6 +59,14 @@ class GuestVerifyNicRequest(BaseModel):
     lat: float | None = None
     lng: float | None = None
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str = Field(..., min_length=6)
+
 def create_access_token(data: dict[str, Any], expires_delta: timedelta) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + expires_delta
@@ -370,3 +378,86 @@ async def verify_nic(req: GuestVerifyNicRequest, db: AsyncSession = Depends(get_
     await db.commit()
 
     return {"access_token": token, "token_type": "bearer"}
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    req: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+):
+    result = await db.execute(select(User).where(User.email == req.email))
+    user = result.scalars().first()
+    if not user:
+        return {"message": "If that email is registered, an OTP has been sent."}
+
+    otp = f"{random.randint(100000, 999999)}"
+    await redis_client.set(f"reset_otp:{user.user_id}", otp, ex=300)
+
+    await send_otp(email=user.email, phone=user.phone_number, otp=otp)
+
+    return {"message": "If that email is registered, an OTP has been sent."}
+
+
+@router.post("/reset-password")
+async def reset_password(
+    req: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+):
+    result = await db.execute(select(User).where(User.email == req.email))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid request")
+
+    stored_otp = await redis_client.get(f"reset_otp:{user.user_id}")
+    if not stored_otp or stored_otp != req.otp:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP")
+
+    user.password_hash = pwd_context.hash(req.new_password)
+    await db.commit()
+    await redis_client.delete(f"reset_otp:{user.user_id}")
+
+    return {"message": "Password reset successfully"}
+
+
+@router.post("/admin/forgot-password")
+async def admin_forgot_password(
+    req: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+):
+    result = await db.execute(select(Administrator).where(Administrator.email == req.email))
+    admin = result.scalars().first()
+    if not admin:
+        return {"message": "If that email is registered, an OTP has been sent."}
+
+    otp = f"{random.randint(100000, 999999)}"
+    await redis_client.set(f"reset_otp_admin:{admin.admin_id}", otp, ex=300)
+
+    # Admin lacks a phone number, so phone is None. It will use Email OTP.
+    await send_otp(email=admin.email, phone=None, otp=otp)
+
+    return {"message": "If that email is registered, an OTP has been sent."}
+
+
+@router.post("/admin/reset-password")
+async def admin_reset_password(
+    req: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+):
+    result = await db.execute(select(Administrator).where(Administrator.email == req.email))
+    admin = result.scalars().first()
+    if not admin:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid request")
+
+    stored_otp = await redis_client.get(f"reset_otp_admin:{admin.admin_id}")
+    if not stored_otp or stored_otp != req.otp:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP")
+
+    admin.password_hash = pwd_context.hash(req.new_password)
+    await db.commit()
+    await redis_client.delete(f"reset_otp_admin:{admin.admin_id}")
+
+    return {"message": "Password reset successfully"}
