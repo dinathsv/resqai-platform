@@ -18,6 +18,7 @@ import { useTheme } from '../context/ThemeContext';
 import AppearanceSettings from './AppearanceSettings';
 import { apiFetch } from '../config/api';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
 export type NavTab = 'home' | 'alerts' | 'activities' | 'profile';
 
@@ -479,7 +480,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
               >
                 {renderAvatarContent(76)}
                 <View style={[styles.cameraBadge, { backgroundColor: theme.brandActive, borderColor: theme.navBar }]}>
-                  <Text style={styles.cameraBadgeIcon}>⬡</Text>
+                  <Ionicons name="camera" size={14} color="#FFFFFF" />
                 </View>
               </TouchableOpacity>
             </View>
@@ -538,7 +539,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   accessibilityLabel="Edit Profile Name"
                 >
-                  <Text style={styles.editPencilIcon}>⬡</Text>
+                  <Ionicons name="pencil" size={14} color={theme.textPrimary} />
                 </TouchableOpacity>
               </View>
             )}
@@ -574,7 +575,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 onPress={() => setAppearanceVisible(true)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.profileMenuEmoji}>⬡</Text>
+                <Ionicons name="color-palette-outline" size={20} color={theme.textPrimary} />
                 <View style={styles.menuTextCol}>
                   <Text style={[styles.profileMenuText, { color: theme.textPrimary }]}>Appearance & Theme</Text>
                   <Text style={[styles.profileMenuDesc, { color: theme.textMuted }]}>
@@ -590,7 +591,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 onPress={() => { setProfileModalVisible(false); router.push('/(people)/quiz'); }}
                 activeOpacity={0.7}
               >
-                <Text style={styles.profileMenuEmoji}>⬡</Text>
+                <Ionicons name="help-buoy-outline" size={20} color={theme.textPrimary} />
                 <View style={styles.menuTextCol}>
                   <Text style={[styles.profileMenuText, { color: theme.textPrimary }]}>Disaster Preparedness Quiz</Text>
                   <Text style={[styles.profileMenuDesc, { color: theme.textMuted }]}>Earn emergency readiness score</Text>
@@ -603,7 +604,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 onPress={() => { setProfileModalVisible(false); router.push('/(people)/donate'); }}
                 activeOpacity={0.7}
               >
-                <Text style={styles.profileMenuEmoji}>⬡</Text>
+                <Ionicons name="heart-outline" size={20} color={theme.textPrimary} />
                 <View style={styles.menuTextCol}>
                   <Text style={[styles.profileMenuText, { color: theme.textPrimary }]}>Relief Fund Donations</Text>
                   <Text style={[styles.profileMenuDesc, { color: theme.textMuted }]}>Support flood & disaster victims</Text>
@@ -616,7 +617,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 onPress={handleSignOut}
                 activeOpacity={0.7}
               >
-                <Text style={styles.profileMenuEmoji}>⬡</Text>
+                <Ionicons name="log-out-outline" size={20} color={theme.emergency} />
                 <View style={styles.menuTextCol}>
                   <Text style={[styles.signOutText, { color: theme.emergency }]}>Sign Out</Text>
                   <Text style={[styles.profileMenuDesc, { color: theme.textMuted }]}>Disconnect this session</Text>
@@ -690,7 +691,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
               onPress={handlePickFile}
               activeOpacity={0.8}
             >
-              <Text style={styles.uploadButtonIcon}>⬡</Text>
+              <Ionicons name="cloud-upload-outline" size={24} color="#FFFFFF" />
               <Text style={styles.uploadButtonText}>Upload Photo from Device</Text>
             </TouchableOpacity>
 

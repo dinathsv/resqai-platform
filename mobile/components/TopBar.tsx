@@ -13,6 +13,7 @@ import { useRouter, usePathname } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Fonts } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
+import { Ionicons } from '@expo/vector-icons';
 
 interface TopBarProps {
   title?: string;
@@ -201,7 +202,7 @@ export default function TopBar({
                   onPress={() => handleNavigate('/(people)/dashboard')}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.menuItemIcon}>⬡</Text>
+                  <Ionicons name="home-outline" size={16} color={pathname === '/(people)/dashboard' ? appTheme.brandActive : appTheme.textPrimary} />
                   <Text
                     style={[
                       styles.menuItemLabel,
@@ -220,7 +221,7 @@ export default function TopBar({
                   onPress={() => handleNavigate('/(people)/alerts')}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.menuItemIcon}>⬡</Text>
+                  <Ionicons name="notifications-outline" size={16} color={pathname === '/(people)/alerts' ? appTheme.brandActive : appTheme.textPrimary} />
                   <Text
                     style={[
                       styles.menuItemLabel,
@@ -239,7 +240,7 @@ export default function TopBar({
                   onPress={() => handleNavigate('/(people)/activities')}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.menuItemIcon}>⬡</Text>
+                  <Ionicons name="person-outline" size={16} color={pathname === '/(people)/activities' ? appTheme.brandActive : appTheme.textPrimary} />
                   <Text
                     style={[
                       styles.menuItemLabel,
@@ -258,7 +259,7 @@ export default function TopBar({
                   onPress={() => handleNavigate('/(people)/help')}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.menuItemIcon}>⬡</Text>
+                  <Ionicons name="medkit-outline" size={16} color={pathname === '/(people)/help' ? appTheme.brandActive : appTheme.textPrimary} />
                   <Text
                     style={[
                       styles.menuItemLabel,
@@ -277,7 +278,7 @@ export default function TopBar({
                   onPress={() => handleNavigate('/(people)/locator')}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.menuItemIcon}>⬡</Text>
+                  <Ionicons name="location-outline" size={16} color={pathname === '/(people)/locator' ? appTheme.brandActive : appTheme.textPrimary} />
                   <Text
                     style={[
                       styles.menuItemLabel,
@@ -296,7 +297,7 @@ export default function TopBar({
                   onPress={() => handleNavigate('/(people)/chatbot')}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.menuItemIcon}>⬡</Text>
+                  <Ionicons name="chatbubbles-outline" size={16} color={pathname === '/(people)/chatbot' ? appTheme.brandActive : appTheme.textPrimary} />
                   <Text
                     style={[
                       styles.menuItemLabel,
@@ -315,7 +316,7 @@ export default function TopBar({
                   onPress={handleSignOut}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.menuItemIcon}>⬡</Text>
+                  <Ionicons name="log-out-outline" size={16} color={appTheme.emergency} />
                   <Text style={styles.menuSignOutLabel}>Sign Out</Text>
                 </TouchableOpacity>
               </View>

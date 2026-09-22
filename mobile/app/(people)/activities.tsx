@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { Colors, Fonts } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../components/BottomNav';
 import TopBar from '../../components/TopBar';
 
@@ -166,7 +167,7 @@ export default function ActivitiesScreen() {
         {/* Avatar and User Info */}
         <View style={styles.bannerUserRow}>
           <View style={[styles.avatarCircle, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Text style={styles.avatarSilhouette}>⬡</Text>
+            <Ionicons name="person" size={28} color={theme.textPrimary} />
           </View>
           <View style={styles.greetingWrap}>
             <Text style={[styles.greetingText, { color: theme.textPrimary }]}>
@@ -182,7 +183,7 @@ export default function ActivitiesScreen() {
         <View style={styles.quizCardWrapper}>
           <TouchableOpacity style={[styles.quizCard, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => router.push('/(people)/quiz')} activeOpacity={0.8}>
             <View style={[styles.robotIconCircle, { backgroundColor: theme.emergency }]}>
-              <Text style={styles.robotEmoji}>⬡</Text>
+              <Ionicons name="hardware-chip-outline" size={16} color="#FFFFFF" />
             </View>
             <Text style={[styles.quizTitle, { color: theme.textPrimary }]}>ResQ-Quiz</Text>
           </TouchableOpacity>
@@ -212,7 +213,7 @@ export default function ActivitiesScreen() {
               <Text style={styles.rescueTitle}>{item.title}</Text>
               <View style={styles.locationRow}>
                 <View style={styles.locItem}>
-                  <Text style={styles.locIcon}>⬡</Text>
+                  <Ionicons name="location-outline" size={16} color={theme.textSecondary} />
                   <Text style={[styles.locText, { color: theme.textSecondary }]}>{item.location}</Text>
                 </View>
                 <TouchableOpacity
@@ -224,14 +225,14 @@ export default function ActivitiesScreen() {
                 </TouchableOpacity>
               </View>
               <View style={styles.calendarRow}>
-                <Text style={styles.calIcon}>⬡</Text>
+                <Ionicons name="calendar-outline" size={15} color={theme.textMuted} />
                 <Text style={[styles.calText, { color: theme.textMuted }]}>{item.date}</Text>
               </View>
             </View>
           ))
         ) : (
           <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Text style={styles.emptyEmoji}>⬡</Text>
+            <Ionicons name="folder-open-outline" size={36} color={theme.textSecondary} />
             <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>No Active Rescue Requests</Text>
             <Text style={[styles.emptySub, { color: theme.textSecondary }]}>
               You have no active emergency requests. If you or someone nearby is
@@ -285,7 +286,7 @@ export default function ActivitiesScreen() {
           ))
         ) : (
           <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Text style={styles.emptyEmoji}>⬡</Text>
+            <Ionicons name="wallet-outline" size={36} color={theme.textSecondary} />
             <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>No Donations Yet</Text>
             <Text style={[styles.emptySub, { color: theme.textSecondary }]}>
               Contribute essential relief supplies and funds to flood and disaster
@@ -312,7 +313,7 @@ export default function ActivitiesScreen() {
           recentAlerts.map((alert) => (
             <View key={alert.alert_id} style={[styles.recentAlertCard, { backgroundColor: theme.emergencyLight, borderColor: theme.emergency }]}>
               <View style={[styles.hazardSquare, { backgroundColor: theme.emergency }]}>
-                <Text style={styles.hazardTriangle}>⬡</Text>
+                <Ionicons name="warning-outline" size={26} color="#FFFFFF" />
               </View>
               <View style={styles.alertContentTextWrap}>
                 <Text style={[styles.recentAlertTitle, { color: theme.emergency }]}>
@@ -329,7 +330,7 @@ export default function ActivitiesScreen() {
         ) : (
           <View style={[styles.safeAlertCard, { backgroundColor: theme.successLight, borderColor: theme.success }]}>
             <View style={[styles.safeShieldSquare, { backgroundColor: theme.success }]}>
-              <Text style={styles.safeShieldEmoji}>⬡</Text>
+              <Ionicons name="shield-checkmark-outline" size={24} color="#FFFFFF" />
             </View>
             <View style={styles.alertContentTextWrap}>
               <Text style={[styles.safeAlertTitle, { color: theme.success }]}>No Active Emergency Alerts</Text>

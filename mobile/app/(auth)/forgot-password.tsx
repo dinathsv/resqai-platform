@@ -94,7 +94,7 @@ export default function ForgotPasswordScreen() {
               {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.actionButtonText}>Send OTP</Text>}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.linkButton} onPress={() => router.back()} activeOpacity={0.7} disabled={loading}>
+            <TouchableOpacity style={styles.linkButton} onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(auth)/login'); }} activeOpacity={0.7} disabled={loading}>
               <Text style={[styles.linkText, { color: theme.textMuted }]}>
                 Remember your password? <Text style={[styles.linkBold, { color: theme.brandActive }]}>Sign In</Text>
               </Text>

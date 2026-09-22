@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { Fonts, makeGlass } from '../../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function VerifyOtpScreen() {
@@ -56,7 +57,7 @@ export default function VerifyOtpScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.content}>
         <View style={[styles.iconCircle, { backgroundColor: theme.successLight }]}>
-          <Text style={styles.iconText}>⬡</Text>
+          <Ionicons name="shield-checkmark-outline" size={36} color={theme.success} />
         </View>
 
         <Text style={[styles.title, { color: theme.textPrimary }]}>Verify Your Account</Text>

@@ -99,12 +99,12 @@ async def register(
     otp = f"{random.randint(100000, 999999)}"
     await redis_client.set(f"otp:{new_user.user_id}", otp, ex=300)
 
-    # Send OTP via configured channels (email primary, SMS secondary)
+    # Send OTP via SMS to mobile number
     delivery = await send_otp(email=req.email, phone=req.phone_number, otp=otp)
 
     return {
         "user_id": str(new_user.user_id),
-        "message": "OTP sent",
+        "message": "OTP sent to your mobile number",
         "delivery": delivery,
     }
 
@@ -144,7 +144,7 @@ async def resend_otp(
     await redis_client.incr(resend_key)
     await redis_client.expire(resend_key, 900)
 
-    # Send OTP via configured channels (email primary, SMS secondary)
+    # Send OTP via SMS to mobile number
     delivery = await send_otp(email=user.email, phone=user.phone_number, otp=otp)
 
     return {"message": "OTP resent successfully", "delivery": delivery}
@@ -389,14 +389,14 @@ async def forgot_password(
     result = await db.execute(select(User).where(User.email == req.email))
     user = result.scalars().first()
     if not user:
-        return {"message": "If that email is registered, an OTP has been sent."}
+        return {"message": "If that account exists, an OTP has been sent to the registered mobile number."}
 
     otp = f"{random.randint(100000, 999999)}"
     await redis_client.set(f"reset_otp:{user.user_id}", otp, ex=300)
 
     await send_otp(email=user.email, phone=user.phone_number, otp=otp)
 
-    return {"message": "If that email is registered, an OTP has been sent."}
+    return {"message": "If that account exists, an OTP has been sent to the registered mobile number."}
 
 
 @router.post("/reset-password")

@@ -180,7 +180,7 @@ def build_otp_senders() -> list[OTPSender]:
         senders.append(SMSlenzOTPSender())
         logger.info("SMSlenz SMS OTP sender configured (User ID: %s, Sender ID: %s)", settings.SMSLENZ_USER_ID, settings.SMSLENZ_SENDER_ID)
 
-    # Email OTP Delivery (optional / multi-channel)
+    # Email OTP Delivery (fallback for accounts without a phone number, e.g. admins)
     if _is_configured(
         settings.SMTP_HOST,
         settings.SMTP_USER,
@@ -224,6 +224,7 @@ def build_otp_senders() -> list[OTPSender]:
 
 
 async def send_otp(*, email: str, phone: str | None, otp: str) -> dict[str, bool]:
+    """Send OTP via SMS only. Email is used only as a fallback when no phone number is available (e.g. admin accounts)."""
     senders = build_otp_senders()
     results: dict[str, bool] = {}
 
@@ -234,16 +235,21 @@ async def send_otp(*, email: str, phone: str | None, otp: str) -> dict[str, bool
             else:
                 logger.info("Skipping SMSlenz SMS — no phone number provided")
                 results["sms"] = False
-        elif isinstance(sender, EmailOTPSender):
-            results["email"] = await sender.send(recipient=email, otp=otp)
         elif isinstance(sender, TwilioSMSOTPSender):
             if phone:
                 results["sms"] = await sender.send(recipient=phone, otp=otp)
             else:
                 logger.info("Skipping Twilio SMS — no phone number provided")
                 results["sms"] = False
+        elif isinstance(sender, EmailOTPSender):
+            # Email OTP is only used as a fallback for accounts without a phone number (e.g. admins)
+            if not phone:
+                results["email"] = await sender.send(recipient=email, otp=otp)
+            else:
+                logger.info("Skipping email OTP — delivering via SMS to mobile number")
         elif isinstance(sender, MockOTPSender):
-            results["mock"] = await sender.send(recipient=email, otp=otp)
+            mock_recipient = phone or email
+            results["mock"] = await sender.send(recipient=mock_recipient, otp=otp)
 
     return results
 
