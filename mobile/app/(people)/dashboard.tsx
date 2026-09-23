@@ -421,34 +421,34 @@ export default function DashboardScreen() {
         <View style={styles.emergencyRow}>
           {/* 1990 Suwa Seriya */}
           <TouchableOpacity
-            style={styles.emergencyCard}
+            style={[styles.emergencyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
             onPress={() => handleCall('1990')}
             activeOpacity={0.75}
           >
             <View style={styles.emergencyIconWrap}>
-              <Image source={require('../../assets/1990_Suwa_Seriya.png')} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+              <Image source={require('../../assets/1990_Suwa_Seriya.png')} style={styles.emergencyImage} resizeMode="contain" />
             </View>
           </TouchableOpacity>
 
           {/* 110 Fire Service */}
           <TouchableOpacity
-            style={styles.emergencyCard}
+            style={[styles.emergencyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
             onPress={() => handleCall('110')}
             activeOpacity={0.75}
           >
             <View style={styles.emergencyIconWrap}>
-              <Image source={require('../../assets/110_Fire_Service.png')} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+              <Image source={require('../../assets/110_Fire_Service.png')} style={styles.emergencyImage} resizeMode="contain" />
             </View>
           </TouchableOpacity>
 
           {/* 119 Police */}
           <TouchableOpacity
-            style={styles.emergencyCard}
+            style={[styles.emergencyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
             onPress={() => handleCall('119')}
             activeOpacity={0.75}
           >
             <View style={styles.emergencyIconWrap}>
-              <Image source={require('../../assets/119_police.png')} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+              <Image source={require('../../assets/119_police.png')} style={styles.emergencyImage} resizeMode="contain" />
             </View>
           </TouchableOpacity>
         </View>
@@ -621,52 +621,65 @@ const styles = StyleSheet.create({
 
   /* Quick Actions */
   quickActionsGrid: {
-    marginBottom: 16,
-    gap: 10,
+    marginBottom: 20,
+    gap: 12,
   },
   quickActionsRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
   },
   actionCard: {
     flex: 1,
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: 16,
+    paddingVertical: 18,
     paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
   },
   actionIconCardWrap: {
-    width: 52,
-    height: 52,
+    width: 56,
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
+    backgroundColor: 'rgba(220, 38, 38, 0.05)',
+    borderRadius: 28,
   },
   actionIconImage: {
-    width: 48,
-    height: 48,
+    width: 36,
+    height: 36,
   },
   actionLabel: {
     fontSize: 13,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.semiBold,
     textAlign: 'center',
     lineHeight: 18,
   },
 
-  /* Dark Map Preview */
+  /* Map Preview */
   mapContainer: {
-    height: 175,
-    borderRadius: 12,
+    height: 180,
+    borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: 18,
+    marginBottom: 24,
     borderWidth: 1,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
   },
   mapGridBackground: {
     flex: 1,
-    backgroundColor: '#121A28',
     position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   mapRoad1: {
     position: 'absolute',
@@ -758,10 +771,29 @@ const styles = StyleSheet.create({
   },
   emergencyCard: {
     flex: 1,
-    borderRadius: 12,
-    height: 120,
+    borderRadius: 16,
+    height: 115,
     overflow: 'hidden',
     position: 'relative',
+    borderWidth: 1,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 4,
+  },
+  emergencyIconWrap: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emergencyImage: {
+    width: '95%',
+    height: '95%',
   },
   emergencyGlow: {
     ...StyleSheet.absoluteFill,
@@ -806,16 +838,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Fonts.regular,
     textAlign: 'center',
-  },
-  emergencyIconWrap: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 0,
   },
   emergencyTextWrap: {
     position: 'absolute',

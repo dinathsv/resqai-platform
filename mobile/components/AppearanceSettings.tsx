@@ -38,27 +38,37 @@ export default function AppearanceSettings({ visible, onClose }: AppearanceSetti
       onRequestClose={onClose}
     >
       <TouchableOpacity
-        style={[styles.backdrop, { backgroundColor: theme.overlay }]}
+        style={[styles.backdrop, { backgroundColor: Platform.OS === 'web' ? 'transparent' : theme.overlay, alignItems: 'center' }]}
         activeOpacity={1}
         onPress={onClose}
       >
-        <TouchableOpacity
-          activeOpacity={1}
+        <View
           style={[
-            styles.sheet,
-            {
-              backgroundColor: theme.navBar,
-              borderTopColor: theme.border,
-            },
-            Platform.OS === 'web' && ({
-              boxShadow: theme.isDark
-                ? '0 -12px 40px rgba(0,0,0,0.5)'
-                : '0 -12px 40px rgba(22,79,67,0.15)',
-            } as any),
+            styles.webFrameConstraint,
+            { backgroundColor: Platform.OS === 'web' ? theme.overlay : 'transparent' },
           ]}
         >
-          {/* Handle */}
-          <View style={[styles.handle, { backgroundColor: theme.border }]} />
+          <TouchableOpacity
+            activeOpacity={1}
+            style={[
+              styles.sheet,
+              {
+                backgroundColor: theme.navBar,
+                borderTopColor: theme.border,
+              },
+              Platform.OS === 'web' && ({
+                width: '100%',
+                maxWidth: 480,
+                borderBottomLeftRadius: 0,
+                borderBottomRightRadius: 0,
+                boxShadow: theme.isDark
+                  ? '0 -12px 40px rgba(0,0,0,0.5)'
+                  : '0 -12px 40px rgba(22,79,67,0.15)',
+              } as any),
+            ]}
+          >
+            {/* Handle */}
+            <View style={[styles.handle, { backgroundColor: theme.border }]} />
 
           <Text style={[styles.title, { color: theme.textPrimary }]}>
             Appearance
@@ -122,19 +132,7 @@ export default function AppearanceSettings({ visible, onClose }: AppearanceSetti
             })}
           </View>
 
-          {/* Description row */}
-          <View style={[styles.descRow, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]}>
-            <Text style={[styles.descIcon]}>
-              {themeMode === 'light' ? '☀' : themeMode === 'dark' ? '🌙' : '◐'}
-            </Text>
-            <Text style={[styles.descText, { color: theme.textMuted }]}>
-              {themeMode === 'system'
-                ? 'Follows your device display settings automatically'
-                : themeMode === 'dark'
-                ? 'Dark mode — professional, secure, low-light optimised'
-                : 'Light mode — clean, bright, high-contrast'}
-            </Text>
-          </View>
+
 
           <TouchableOpacity
             style={[
@@ -146,7 +144,8 @@ export default function AppearanceSettings({ visible, onClose }: AppearanceSetti
           >
             <Text style={[styles.closeBtnText, { color: theme.textPrimary }]}>Done</Text>
           </TouchableOpacity>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
       </TouchableOpacity>
     </Modal>
   );
@@ -157,9 +156,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
   },
+  webFrameConstraint: {
+    width: '100%',
+    maxWidth: 480,
+    height: '100%',
+    justifyContent: 'flex-end',
+  },
   sheet: {
     width: '100%',
-    maxWidth: 420,
+    maxWidth: 480,
     alignSelf: 'center',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
@@ -218,25 +223,7 @@ const styles = StyleSheet.create({
   segmentLabel: {
     fontSize: 14,
   },
-  descRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 14,
-    gap: 10,
-    marginBottom: 20,
-  },
-  descIcon: {
-    fontSize: 20,
-  },
-  descText: {
-    flex: 1,
-    fontSize: 13,
-    fontFamily: Fonts.regular,
-    lineHeight: 18,
-  },
+
   closeBtn: {
     width: '100%',
     paddingVertical: 12,

@@ -98,7 +98,7 @@ export default function TopBar({
             <TouchableOpacity
               onPress={() => router.replace('/(people)/dashboard')}
               activeOpacity={0.8}
-              style={[styles.logoTouch, styles.logoBadge, { backgroundColor: appTheme.surface, borderColor: appTheme.border }]}
+              style={[styles.logoTouch, styles.logoBadge]}
             >
               <Image
                 source={require('../assets/resqai_logo.png')}
@@ -140,7 +140,6 @@ export default function TopBar({
             <TouchableOpacity
               style={[
                 styles.dotsButton,
-                { backgroundColor: appTheme.surface, borderColor: appTheme.border },
                 isDark && styles.dotsButtonDark,
               ]}
               onPress={() => setMenuVisible(true)}
@@ -173,27 +172,7 @@ export default function TopBar({
             <View style={styles.modalContentWrapper}>
               <Pressable>
                 <View style={styles.menuDropdown}>
-                  {/* Menu Header */}
-                  <View style={styles.menuHeader}>
-                    <View style={styles.logoBadgeSmall}>
-                      <Image
-                        source={require('../assets/resqai_logo.png')}
-                        style={styles.menuLogo}
-                        resizeMode="contain"
-                      />
-                    </View>
-                    <TouchableOpacity
-                      onPress={() => setMenuVisible(false)}
-                      style={styles.closeButton}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.closeIcon}>✕</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                <View style={styles.menuDivider} />
-
-                {/* Navigation Items */}
+                  {/* Navigation Items */}
                 <TouchableOpacity
                   style={[
                     styles.menuItem,
@@ -350,18 +329,10 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   logoBadge: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
     padding: 3,
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
   },
   logoBadgeSmall: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
     padding: 2,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   logoImage: {
     width: 36,
@@ -405,10 +376,6 @@ const styles = StyleSheet.create({
   dotsButton: {
     width: 36,
     height: 36,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -433,57 +400,36 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   dotsButtonDark: {
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
-    borderColor: 'rgba(255, 255, 255, 0.40)',
   },
   dotsIconDark: {
     color: '#FFFFFF',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.40)',
+    backgroundColor: 'transparent',
     justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 56 : 48,
   },
   modalContentWrapper: {
     width: '100%',
-    maxWidth: 420,
+    maxWidth: 480,
     alignItems: 'flex-end',
     paddingRight: 16,
+    paddingTop: Platform.OS === 'ios' ? 56 : 56,
   },
   menuDropdown: {
     width: 250,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E4E4E7',
+    borderColor: '#E2E8F0',
     paddingVertical: 12,
     paddingHorizontal: 12,
-  },
-  menuHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-  },
-  menuLogo: {
-    width: 100,
-    height: 28,
-  },
-  closeButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeIcon: {
-    fontSize: 12,
-    color: '#64748B',
-    fontFamily: Fonts.bold,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 10,
   },
   menuDivider: {
     height: 1,
@@ -493,19 +439,19 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     borderRadius: 12,
-    gap: 10,
+    gap: 12,
   },
   menuItemActive: {
     backgroundColor: '#FEE2E2',
   },
   menuItemIcon: {
-    fontSize: 16,
+    fontSize: 18,
   },
   menuItemLabel: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontFamily: Fonts.medium,
     color: '#1E293B',
   },
@@ -516,13 +462,14 @@ const styles = StyleSheet.create({
   menuItemSignOut: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     borderRadius: 12,
-    gap: 10,
+    gap: 12,
+    marginTop: 4,
   },
   menuSignOutLabel: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontFamily: Fonts.bold,
     color: '#DC2626',
   },
