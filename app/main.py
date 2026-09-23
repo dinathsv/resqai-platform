@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from app.config import settings
 from app.database import engine, Base
-from app.routers import ai, alerts, auth, donations, requests
+from app.routers import ai, alerts, auth, donations, missions, requests, quiz
 import app.routers.auth as auth_router
 
 logging.basicConfig(
@@ -101,14 +101,13 @@ app.include_router(donations.router, prefix="/api/donations")
 
 from fastapi import APIRouter
 
-missions_router = APIRouter(tags=["Missions"])
+missions_router = missions.router
 admin_router = APIRouter(tags=["Admin"])
-quiz_router = APIRouter(tags=["Quiz"])
 locator_router = APIRouter(tags=["Locator"])
 
 app.include_router(missions_router, prefix="/api/missions")
 app.include_router(admin_router, prefix="/api/admin")
-app.include_router(quiz_router, prefix="/api/quiz")
+app.include_router(quiz.router, prefix="/api/quiz")
 app.include_router(locator_router, prefix="/api/locator")
 
 @app.get("/")

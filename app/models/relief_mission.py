@@ -25,6 +25,10 @@ class ReliefMission(Base):
     description: Mapped[str | None] = mapped_column(Text)
     target_zone = mapped_column(Geometry(srid=4326), nullable=True)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="planning")
+    district: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    target: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), nullable=False, default=0
+    )
     funds_collected: Mapped[Decimal] = mapped_column(
         Numeric(12, 2), nullable=False, default=0
     )

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import {
   View,
   Text,
@@ -8,12 +8,12 @@ import {
   SafeAreaView,
   ScrollView,
 } from 'react-native'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import axios from 'axios'
-import { BASE_URL } from '../../constants/api'
+
+import { apiFetch, API_BASE } from '../../config/api'
 import MinimalButton from '../../components/MinimalButton'
 import { useRouter } from 'expo-router'
-import { Colors, Fonts, Glass } from '../../constants/theme'
+import { Fonts, makeCardStyles } from '../../constants/theme'
+import { useTheme } from '../../context/ThemeContext'
 
 interface Option {
   id: string
@@ -37,6 +37,9 @@ interface WrongAnswer {
 
 export default function QuizScreen() {
   const router = useRouter()
+  const { theme } = useTheme()
+  const cardStyles = useMemo(() => makeCardStyles(theme), [theme])
+
   const [questions, setQuestions] = useState<Question[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
@@ -47,17 +50,23 @@ export default function QuizScreen() {
   const [answers, setAnswers] = useState<{ question_id: string; option_id: string }[]>([])
   const [wrongAnswers, setWrongAnswers] = useState<WrongAnswer[]>([])
 
+  const [error, setError] = useState<string | null>(null)
+
   useEffect(() => {
     fetchQuestions()
   }, [])
 
   async function fetchQuestions() {
     setLoading(true)
+    setError(null)
     try {
-      const res = await axios.get(`${BASE_URL}/api/quiz/questions?count=10`)
-      setQuestions(res.data)
+      const res = await apiFetch('/api/quiz/questions?count=10')
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      setQuestions(data)
     } catch (e) {
       console.error('Error fetching questions:', e)
+      setError('Unable to load quiz questions. Please try again later.')
     } finally {
       setLoading(false)
     }
@@ -101,14 +110,10 @@ export default function QuizScreen() {
 
   async function submitAttempt() {
     try {
-      const token = await AsyncStorage.getItem('token')
-      if (token) {
-        await axios.post(
-          `${BASE_URL}/api/quiz/attempts`,
-          { answers },
-          { headers: { Authorization: `Bearer ${token}` } }
-        )
-      }
+      await apiFetch('/api/quiz/attempts', {
+        method: 'POST',
+        body: JSON.stringify({ answers }),
+      })
     } catch (e) {
       console.error('Error submitting attempt:', e)
     }
@@ -134,28 +139,48 @@ export default function QuizScreen() {
 
   function getOptionStyle(option: Option) {
     if (!showFeedback) {
-      return styles.optionDefault
+      return {
+        backgroundColor: theme.surface,
+        borderWidth: 1,
+        borderColor: theme.border,
+        borderRadius: 12,
+      }
     }
     if (option.is_correct) {
-      return styles.optionCorrect
+      return {
+        backgroundColor: theme.success,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: theme.success,
+      }
     }
     if (option.id === selectedOption && !option.is_correct) {
-      return styles.optionWrong
+      return {
+        backgroundColor: theme.error,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: theme.error,
+      }
     }
-    return styles.optionDefault
+    return {
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.border,
+      borderRadius: 12,
+    }
   }
 
   function getOptionTextStyle(option: Option) {
     if (!showFeedback) {
-      return styles.optionTextDefault
+      return { fontSize: 15, fontFamily: Fonts.medium, color: theme.textPrimary }
     }
     if (option.is_correct) {
-      return styles.optionTextCorrect
+      return { fontSize: 15, fontFamily: Fonts.semiBold, color: '#FFFFFF' }
     }
     if (option.id === selectedOption && !option.is_correct) {
-      return styles.optionTextWrong
+      return { fontSize: 15, fontFamily: Fonts.semiBold, color: '#FFFFFF' }
     }
-    return styles.optionTextDefault
+    return { fontSize: 15, fontFamily: Fonts.medium, color: theme.textPrimary }
   }
 
   function getOptionLabel(option: Option): string {
@@ -167,8 +192,32 @@ export default function QuizScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.loadingText}>Loading...</Text>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        <Text style={[styles.loadingText, { color: theme.textMuted }]}>Loading...</Text>
+      </SafeAreaView>
+    )
+  }
+
+  if (error || questions.length === 0) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={styles.finishedContainer}>
+          <Text style={[styles.loadingText, { color: theme.textMuted }]}>{error || 'No questions available.'}</Text>
+          <View style={{ height: 20 }} />
+          <MinimalButton title="Retry" variant="outline" onPress={tryAgain} />
+          <View style={{ height: 12 }} />
+          <MinimalButton
+            title="Back to Home"
+            variant="cta"
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(people)/dashboard');
+              }
+            }}
+          />
+        </View>
       </SafeAreaView>
     )
   }
@@ -176,30 +225,30 @@ export default function QuizScreen() {
   if (finished) {
     const pct = (score / questions.length) * 100
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <ScrollView contentContainerStyle={styles.finishedContainer}>
-          <View style={styles.scoreCard}>
-            <Text style={styles.scoreText}>
+          <View style={[styles.scoreCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Text style={[styles.scoreText, { color: theme.textPrimary }]}>
               {score} / {questions.length}
             </Text>
             <Text style={[
               styles.performanceText,
-              { color: pct >= 60 ? Colors.cta : Colors.accent },
+              { color: pct >= 60 ? theme.accent : theme.error },
             ]}>{getPerformanceText()}</Text>
           </View>
 
           {wrongAnswers.length > 0 && (
             <View style={styles.reviewSection}>
-              <Text style={styles.reviewHeading}>Review Mistakes</Text>
+              <Text style={[styles.reviewHeading, { color: theme.textPrimary }]}>Review Mistakes</Text>
               <FlatList
                 data={wrongAnswers}
                 scrollEnabled={false}
                 keyExtractor={(_, i) => String(i)}
                 renderItem={({ item }: { item: WrongAnswer }) => (
-                  <View style={styles.reviewItem}>
-                    <Text style={styles.reviewQuestion}>Q: {item.question}</Text>
-                    <Text style={styles.reviewYours}>Your answer: {item.yourAnswer}</Text>
-                    <Text style={styles.reviewCorrect}>Correct: {item.correctAnswer}</Text>
+                  <View style={[styles.reviewItem, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                    <Text style={[styles.reviewQuestion, { color: theme.textSecondary }]}>Q: {item.question}</Text>
+                    <Text style={[styles.reviewYours, { color: theme.error }]}>Your answer: {item.yourAnswer}</Text>
+                    <Text style={[styles.reviewCorrect, { color: theme.success }]}>Correct: {item.correctAnswer}</Text>
                   </View>
                 )}
               />
@@ -231,18 +280,18 @@ export default function QuizScreen() {
   const progressPercent = (currentIndex / total) * 100
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.questionContainer}>
 
-        <Text style={styles.progressLabel}>
+        <Text style={[styles.progressLabel, { color: theme.textMuted }]}>
           Question {currentIndex + 1} of {total}
         </Text>
-        <View style={styles.progressOuter}>
-          <View style={[styles.progressInner, { width: `${progressPercent}%` }]} />
+        <View style={[styles.progressOuter, { backgroundColor: theme.borderSubtle }]}>
+          <View style={[styles.progressInner, { width: `${progressPercent}%`, backgroundColor: theme.accent }]} />
         </View>
 
-        <View style={styles.questionCard}>
-          <Text style={styles.questionText}>{question.question_text}</Text>
+        <View style={[styles.questionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.questionText, { color: theme.textPrimary }]}>{question.question_text}</Text>
         </View>
 
         {question.options.map((option) => (
@@ -260,9 +309,9 @@ export default function QuizScreen() {
         ))}
 
         {showFeedback && (
-          <View style={styles.explanationContainer}>
-            <Text style={styles.explanationText}>{question.explanation}</Text>
-            <Text style={styles.categoryText}>Category: {question.category}</Text>
+          <View style={[styles.explanationContainer, { backgroundColor: theme.surface, borderColor: theme.border, borderLeftColor: theme.accent }]}>
+            <Text style={[styles.explanationText, { color: theme.textSecondary }]}>{question.explanation}</Text>
+            <Text style={[styles.categoryText, { color: theme.textMuted }]}>Category: {question.category}</Text>
           </View>
         )}
 
@@ -279,10 +328,8 @@ export default function QuizScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   loadingText: {
-    color: Colors.textMuted,
     fontFamily: Fonts.regular,
     textAlign: 'center',
     marginTop: 40,
@@ -296,13 +343,11 @@ const styles = StyleSheet.create({
   progressLabel: {
     fontSize: 13,
     fontFamily: Fonts.medium,
-    color: Colors.textMuted,
     textAlign: 'right',
     marginBottom: 8,
   },
   progressOuter: {
     height: 5,
-    backgroundColor: Colors.borderLight,
     width: '100%',
     marginBottom: 20,
     borderRadius: 3,
@@ -310,21 +355,17 @@ const styles = StyleSheet.create({
   },
   progressInner: {
     height: 5,
-    backgroundColor: Colors.accent,
     borderRadius: 3,
   },
   questionCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     padding: 24,
     marginBottom: 20,
   },
   questionText: {
     fontSize: 20,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
     textAlign: 'center',
   },
   optionBase: {
@@ -333,42 +374,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 12,
   },
-  optionDefault: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  optionCorrect: {
-    backgroundColor: Colors.cta,
-    borderRadius: 12,
-  },
-  optionWrong: {
-    backgroundColor: Colors.accent,
-    borderRadius: 12,
-  },
-  optionTextDefault: {
-    fontSize: 15,
-    fontFamily: Fonts.medium,
-    color: Colors.textPrimary,
-  },
-  optionTextCorrect: {
-    fontSize: 15,
-    fontFamily: Fonts.semiBold,
-    color: Colors.white,
-  },
-  optionTextWrong: {
-    fontSize: 15,
-    fontFamily: Fonts.semiBold,
-    color: Colors.white,
-  },
   explanationContainer: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     borderLeftWidth: 3,
-    borderLeftColor: Colors.accent,
     paddingLeft: 12,
     paddingVertical: 14,
     paddingRight: 14,
@@ -378,13 +387,11 @@ const styles = StyleSheet.create({
   explanationText: {
     fontSize: 14,
     fontFamily: Fonts.regular,
-    color: Colors.textSecondary,
     lineHeight: 20,
   },
   categoryText: {
     fontSize: 11,
     fontFamily: Fonts.medium,
-    color: Colors.textMuted,
     marginTop: 6,
   },
   nextButtonContainer: {
@@ -397,10 +404,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scoreCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     padding: 32,
     alignItems: 'center',
     width: '100%',
@@ -409,7 +414,6 @@ const styles = StyleSheet.create({
   scoreText: {
     fontSize: 48,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
     textAlign: 'center',
   },
   performanceText: {
@@ -425,36 +429,31 @@ const styles = StyleSheet.create({
   reviewHeading: {
     fontSize: 16,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
     marginBottom: 12,
   },
   reviewItem: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     padding: 14,
     marginBottom: 10,
   },
   reviewQuestion: {
     fontSize: 13,
     fontFamily: Fonts.regular,
-    color: Colors.textSecondary,
     marginBottom: 6,
   },
   reviewYours: {
     fontSize: 14,
     fontFamily: Fonts.medium,
-    color: Colors.accent,
     marginBottom: 2,
   },
   reviewCorrect: {
     fontSize: 14,
     fontFamily: Fonts.medium,
-    color: Colors.cta,
   },
   finishedButtons: {
     width: '100%',
     marginTop: 16,
   },
 })
+

@@ -1,18 +1,21 @@
 
 
 import { Stack } from 'expo-router';
-import { Colors, Fonts } from '../../constants/theme';
+import { Fonts } from '../../constants/theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function PeopleLayout() {
+  const { theme } = useTheme();
+
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        headerStyle: { backgroundColor: Colors.background },
-        headerTintColor: Colors.accent,
+        headerStyle: { backgroundColor: theme.background },
+        headerTintColor: theme.accent,
         headerTitleStyle: { fontWeight: '700', fontFamily: Fonts.bold },
         headerShadowVisible: false,
-        contentStyle: { backgroundColor: Colors.background },
+        contentStyle: { backgroundColor: theme.background },
         animation: 'slide_from_right',
       }}
     >

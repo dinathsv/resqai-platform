@@ -13,11 +13,11 @@ import {
   Dimensions,
 } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import axios from 'axios'
-import { BASE_URL } from '../../constants/api'
+import { apiFetch } from '../../config/api'
 import MinimalButton from '../../components/MinimalButton'
 import MinimalInput from '../../components/MinimalInput'
-import { Colors, Fonts, Glass } from '../../constants/theme'
+import { Fonts } from '../../constants/theme'
+import { useTheme } from '../../context/ThemeContext'
 
 interface Mission {
   mission_id: string
@@ -31,6 +31,8 @@ interface Mission {
 type PaymentStep = 'details' | 'payment' | 'success'
 
 export default function DonateScreen() {
+  const { theme } = useTheme()
+
   const [missions, setMissions] = useState<Mission[]>([])
   const [selectedMission, setSelectedMission] = useState<Mission | null>(null)
   const [amount, setAmount] = useState('')
@@ -50,11 +52,10 @@ export default function DonateScreen() {
     setLoading(true)
     setError('')
     try {
-      const token = await AsyncStorage.getItem('token')
-      const res = await axios.get(`${BASE_URL}/api/missions?status=active`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      setMissions(res.data)
+      const res = await apiFetch('/api/missions?status=active')
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      setMissions(data)
     } catch (e) {
       setError('Failed to load missions')
     } finally {
@@ -80,12 +81,11 @@ export default function DonateScreen() {
   async function confirmPayment() {
     if (!selectedMission) return
     try {
-      const token = await AsyncStorage.getItem('token')
-      await axios.post(
-        `${BASE_URL}/api/donations`,
-        { mission_id: selectedMission.mission_id, amount: Number(amount) },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+      const res = await apiFetch('/api/donations', {
+        method: 'POST',
+        body: JSON.stringify({ mission_id: selectedMission.mission_id, amount: Number(amount) }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setPaymentStep('success')
     } catch (e) {
       setError('Payment failed. Please try again.')
@@ -107,14 +107,14 @@ export default function DonateScreen() {
       : 0
 
     return (
-      <View style={styles.missionCard}>
+      <View style={[styles.missionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View style={styles.missionInfo}>
-          <Text style={styles.missionTitle}>{item.title}</Text>
-          <Text style={styles.missionDistrict}>{item.district}</Text>
-          <View style={styles.progressOuter}>
-            <View style={[styles.progressInner, { width: `${percentage}%` }]} />
+          <Text style={[styles.missionTitle, { color: theme.textPrimary }]}>{item.title}</Text>
+          <Text style={[styles.missionDistrict, { color: theme.textSecondary }]}>{item.district}</Text>
+          <View style={[styles.progressOuter, { backgroundColor: theme.borderSubtle }]}>
+            <View style={[styles.progressInner, { width: `${percentage}%`, backgroundColor: theme.accent }]} />
           </View>
-          <Text style={styles.progressText}>
+          <Text style={[styles.progressText, { color: theme.accent }]}>
             {Math.round(percentage)}% funded
           </Text>
         </View>
@@ -135,12 +135,12 @@ export default function DonateScreen() {
       return (
         <View style={styles.modalBody}>
           <View style={styles.successContainer}>
-            <View style={styles.successIconCircle}>
+            <View style={[styles.successIconCircle, { backgroundColor: theme.accent }]}>
               <Text style={styles.successCheck}>✓</Text>
             </View>
-            <Text style={styles.successTitle}>Donation confirmed</Text>
-            <Text style={styles.successAmount}>{amount} LKR</Text>
-            <Text style={styles.successMission}>{selectedMission.title}</Text>
+            <Text style={[styles.successTitle, { color: theme.textPrimary }]}>Donation confirmed</Text>
+            <Text style={[styles.successAmount, { color: theme.accent }]}>{amount} LKR</Text>
+            <Text style={[styles.successMission, { color: theme.textSecondary }]}>{selectedMission.title}</Text>
             <View style={{ marginTop: 32, width: '100%' }}>
               <MinimalButton title="Done" variant="cta" onPress={closeModal} />
             </View>
@@ -156,7 +156,7 @@ export default function DonateScreen() {
           style={styles.modalBody}
         >
           <ScrollView>
-            <Text style={styles.modalTitle}>Secure Payment</Text>
+            <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Secure Payment</Text>
 
             <MinimalInput
               label="Card Number"
@@ -190,7 +190,7 @@ export default function DonateScreen() {
               </View>
             </View>
 
-            <Text style={styles.securityNote}>
+            <Text style={[styles.securityNote, { color: theme.textMuted }]}>
               Payments processed securely — card not stored
             </Text>
 
@@ -210,8 +210,8 @@ export default function DonateScreen() {
         style={styles.modalBody}
       >
         <ScrollView>
-          <Text style={styles.modalTitle}>{selectedMission.title}</Text>
-          <Text style={styles.modalDescription}>
+          <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{selectedMission.title}</Text>
+          <Text style={[styles.modalDescription, { color: theme.textSecondary }]}>
             {selectedMission.description}
           </Text>
 
@@ -229,7 +229,7 @@ export default function DonateScreen() {
             onPress={closeModal}
             style={styles.cancelLink}
           >
-            <Text style={styles.cancelText}>Cancel</Text>
+            <Text style={[styles.cancelText, { color: theme.accent }]}>Cancel</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -237,13 +237,13 @@ export default function DonateScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.header}>Donate Relief Funds</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <Text style={[styles.header, { color: theme.textPrimary }]}>Donate Relief Funds</Text>
 
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {error ? <Text style={[styles.errorText, { color: theme.error }]}>{error}</Text> : null}
 
       {loading ? (
-        <Text style={styles.loadingText}>Loading...</Text>
+        <Text style={[styles.loadingText, { color: theme.textMuted }]}>Loading...</Text>
       ) : (
         <FlatList
           data={missions}
@@ -251,7 +251,7 @@ export default function DonateScreen() {
           renderItem={renderMission}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No active missions</Text>
+            <Text style={[styles.emptyText, { color: theme.textMuted }]}>No active missions</Text>
           }
         />
       )}
@@ -264,7 +264,7 @@ export default function DonateScreen() {
         onRequestClose={closeModal}
       >
         <View style={styles.modalOverlay}>
-          <SafeAreaView style={styles.modalContainer}>
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.background }]}>
             {renderModalContent()}
           </SafeAreaView>
         </View>
@@ -280,12 +280,10 @@ const isMobileWeb = isWeb && screenWidth <= 480;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   header: {
     fontSize: 22,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 16,
@@ -295,10 +293,8 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   missionCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
@@ -311,17 +307,14 @@ const styles = StyleSheet.create({
   missionTitle: {
     fontSize: 16,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
   },
   missionDistrict: {
     fontSize: 13,
     fontFamily: Fonts.regular,
-    color: Colors.textSecondary,
     marginTop: 2,
   },
   progressOuter: {
     height: 6,
-    backgroundColor: Colors.borderLight,
     width: '100%',
     marginTop: 10,
     borderRadius: 3,
@@ -329,31 +322,26 @@ const styles = StyleSheet.create({
   },
   progressInner: {
     height: 6,
-    backgroundColor: Colors.cta,
     borderRadius: 3,
   },
   progressText: {
     fontSize: 11,
     fontFamily: Fonts.medium,
-    color: Colors.cta,
     marginTop: 4,
   },
   loadingText: {
-    color: Colors.textMuted,
     fontFamily: Fonts.regular,
     textAlign: 'center',
     marginTop: 40,
     fontSize: 14,
   },
   emptyText: {
-    color: Colors.textMuted,
     fontFamily: Fonts.regular,
     textAlign: 'center',
     marginTop: 40,
     fontSize: 14,
   },
   errorText: {
-    color: Colors.error,
     fontFamily: Fonts.medium,
     fontSize: 13,
     paddingHorizontal: 20,
@@ -373,7 +361,6 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: Colors.background,
     ...(isWeb
       ? ({
           width: isMobileWeb ? '100%' : 420,
@@ -395,13 +382,11 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
     marginBottom: 12,
   },
   modalDescription: {
     fontSize: 15,
     fontFamily: Fonts.regular,
-    color: Colors.textSecondary,
     lineHeight: 22,
     marginBottom: 24,
   },
@@ -415,7 +400,6 @@ const styles = StyleSheet.create({
   securityNote: {
     fontSize: 12,
     fontFamily: Fonts.regular,
-    color: Colors.textMuted,
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -427,7 +411,6 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 14,
     fontFamily: Fonts.medium,
-    color: Colors.accent,
     textDecorationLine: 'underline',
   },
   successContainer: {
@@ -439,7 +422,6 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Colors.cta,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
@@ -447,23 +429,22 @@ const styles = StyleSheet.create({
   successCheck: {
     fontSize: 36,
     fontFamily: Fonts.bold,
-    color: Colors.white,
+    color: '#FFFFFF',
   },
   successTitle: {
     fontSize: 20,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
     marginBottom: 8,
   },
   successAmount: {
     fontSize: 28,
     fontFamily: Fonts.bold,
-    color: Colors.cta,
     marginBottom: 4,
   },
   successMission: {
     fontSize: 15,
     fontFamily: Fonts.regular,
-    color: Colors.textSecondary,
   },
 })
+
+
