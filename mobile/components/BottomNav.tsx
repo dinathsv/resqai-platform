@@ -48,13 +48,18 @@ function HomeIcon({ active, color }: { active: boolean; color: string }) {
   );
 }
 
-function AlertsIcon({ active, color }: { active: boolean; color: string }) {
+function AlertsIcon({ active, color, badgeCount }: { active: boolean; color: string; badgeCount?: number }) {
   return (
     <View style={iconStyles.iconBox}>
       <View style={[iconStyles.bellTopDot, { backgroundColor: color }]} />
       <View style={[iconStyles.bellBody, { borderColor: color, backgroundColor: active ? color : 'transparent' }]} />
       <View style={[iconStyles.bellRim, { backgroundColor: color }]} />
       <View style={[iconStyles.bellClapper, { backgroundColor: color }]} />
+      {badgeCount !== undefined && badgeCount > 0 && (
+        <View style={iconStyles.badgeContainer}>
+          <Text style={iconStyles.badgeText}>{badgeCount > 99 ? '99+' : badgeCount}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -99,6 +104,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
   const [editNameText, setEditNameText] = useState('');
   const [savingName, setSavingName] = useState(false);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
+  const [unreadAlertsCount, setUnreadAlertsCount] = useState<number>(0);
 
   const activeColor = theme.emergency;
   const inactiveColor = theme.textMuted;
@@ -135,8 +141,26 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
     }
   };
 
+  const loadAlerts = async () => {
+    try {
+      const res = await apiFetch('/api/alerts');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.alerts)) {
+          const stored = await AsyncStorage.getItem('@resqai_acknowledged_alerts');
+          const ackedIds = stored ? JSON.parse(stored) : {};
+          const unread = data.alerts.filter((a: any) => a.status === 'active' && !ackedIds[a.alert_id]);
+          setUnreadAlertsCount(unread.length);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load alerts for badge:', err);
+    }
+  };
+
   useEffect(() => {
     loadProfile();
+    loadAlerts();
   }, []);
 
   const handleTabPress = (tab: NavTab) => {
@@ -341,7 +365,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
     {
       id: 'alerts',
       label: 'Alerts',
-      icon: <AlertsIcon active={currentTab === 'alerts'} color={currentTab === 'alerts' ? activeColor : inactiveColor} />,
+      icon: <AlertsIcon active={currentTab === 'alerts'} color={currentTab === 'alerts' ? activeColor : inactiveColor} badgeCount={unreadAlertsCount} />,
     },
     {
       id: 'activities',
@@ -407,44 +431,41 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
         }}
       >
         <TouchableOpacity
-          style={[styles.modalBackdrop, { backgroundColor: theme.overlay }]}
+          style={[styles.modalBackdrop, { backgroundColor: Platform.OS === 'web' ? 'transparent' : theme.overlay, alignItems: 'center' }]}
           activeOpacity={1}
           onPress={() => {
             setProfileModalVisible(false);
             setIsEditingName(false);
           }}
         >
-          <TouchableOpacity
-            activeOpacity={1}
-            style={[
-              styles.profileSheet,
-              {
-                backgroundColor: theme.navBar,
-                borderTopColor: theme.border,
-              },
-              Platform.OS === 'web' && ({
-                borderTopWidth: 1,
-                borderTopColor: theme.border,
-              } as any),
-            ]}
-          >
+          <View style={[styles.webFrameConstraint, { backgroundColor: Platform.OS === 'web' ? theme.overlay : 'transparent' }]}>
+            <TouchableOpacity
+              activeOpacity={1}
+              style={[
+                styles.profileSheet,
+                {
+                  backgroundColor: theme.navBar,
+                  borderTopColor: theme.border,
+                },
+                Platform.OS === 'web' && ({
+                  width: '100%',
+                  maxWidth: 480,
+                  borderTopWidth: 1,
+                  borderTopColor: theme.border,
+                  borderBottomLeftRadius: 0,
+                  borderBottomRightRadius: 0,
+                } as any),
+              ]}
+            >
             {/* Sheet Top Controls: Theme Switcher Icon & Close Button */}
             <View style={styles.sheetTopControls}>
               <TouchableOpacity
-                style={[
-                  styles.appearanceHeaderIconBtn,
-                  {
-                    backgroundColor: theme.surfaceSubtle,
-                    borderColor: theme.borderSubtle,
-                  },
-                ]}
+                style={styles.appearanceHeaderIconBtn}
                 onPress={() => setAppearanceVisible(true)}
                 activeOpacity={0.7}
                 accessibilityLabel="Change Theme Appearance"
               >
-                <Text style={styles.appearanceHeaderEmoji}>
-                  {theme.isDark ? '🌙' : '☀'}
-                </Text>
+                <Ionicons name={theme.isDark ? 'moon-outline' : 'sunny-outline'} size={14} color={theme.textSecondary} />
                 <Text style={[styles.appearanceHeaderText, { color: theme.textSecondary }]}>
                   Appearance
                 </Text>
@@ -458,7 +479,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 }}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={[styles.closeIconText, { color: theme.textMuted }]}>✕</Text>
+                <Ionicons name="close" size={16} color={theme.textMuted} />
               </TouchableOpacity>
             </View>
 
@@ -575,15 +596,15 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 onPress={() => setAppearanceVisible(true)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="color-palette-outline" size={20} color={theme.textPrimary} />
+                <Ionicons name="color-palette-outline" size={20} color={theme.textPrimary} style={{ marginRight: 12 }} />
                 <View style={styles.menuTextCol}>
                   <Text style={[styles.profileMenuText, { color: theme.textPrimary }]}>Appearance & Theme</Text>
                   <Text style={[styles.profileMenuDesc, { color: theme.textMuted }]}>
                     Current: {theme.isDark ? 'Dark Mode' : 'Light Mode'}
                   </Text>
                 </View>
-                <Text style={styles.profileMenuModeIcon}>{theme.isDark ? '🌙' : '☀'}</Text>
-                <Text style={[styles.profileMenuChevron, { color: theme.textMuted }]}>➔</Text>
+                <Ionicons name={theme.isDark ? 'moon-outline' : 'sunny-outline'} size={16} color={theme.textMuted} style={{ marginRight: 6 }} />
+                <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -591,12 +612,12 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 onPress={() => { setProfileModalVisible(false); router.push('/(people)/quiz'); }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="help-buoy-outline" size={20} color={theme.textPrimary} />
+                <Ionicons name="help-buoy-outline" size={20} color={theme.textPrimary} style={{ marginRight: 12 }} />
                 <View style={styles.menuTextCol}>
                   <Text style={[styles.profileMenuText, { color: theme.textPrimary }]}>Disaster Preparedness Quiz</Text>
                   <Text style={[styles.profileMenuDesc, { color: theme.textMuted }]}>Earn emergency readiness score</Text>
                 </View>
-                <Text style={[styles.profileMenuChevron, { color: theme.textMuted }]}>➔</Text>
+                <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -604,12 +625,12 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 onPress={() => { setProfileModalVisible(false); router.push('/(people)/donate'); }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="heart-outline" size={20} color={theme.textPrimary} />
+                <Ionicons name="heart-outline" size={20} color={theme.textPrimary} style={{ marginRight: 12 }} />
                 <View style={styles.menuTextCol}>
                   <Text style={[styles.profileMenuText, { color: theme.textPrimary }]}>Relief Fund Donations</Text>
                   <Text style={[styles.profileMenuDesc, { color: theme.textMuted }]}>Support flood & disaster victims</Text>
                 </View>
-                <Text style={[styles.profileMenuChevron, { color: theme.textMuted }]}>➔</Text>
+                <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -617,12 +638,12 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 onPress={handleSignOut}
                 activeOpacity={0.7}
               >
-                <Ionicons name="log-out-outline" size={20} color={theme.emergency} />
+                <Ionicons name="log-out-outline" size={20} color={theme.emergency} style={{ marginRight: 12 }} />
                 <View style={styles.menuTextCol}>
                   <Text style={[styles.signOutText, { color: theme.emergency }]}>Sign Out</Text>
                   <Text style={[styles.profileMenuDesc, { color: theme.textMuted }]}>Disconnect this session</Text>
                 </View>
-                <Text style={[styles.profileMenuChevron, { color: theme.emergency }]}>➔</Text>
+                <Ionicons name="chevron-forward" size={16} color={theme.emergency} />
               </TouchableOpacity>
             </View>
 
@@ -643,11 +664,12 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 end={{ x: 1, y: 0.5 }}
                 style={styles.closeBtnGradient}
               >
-                <View style={styles.closeBtnHighlight} pointerEvents="none" />
+                <View style={[styles.closeBtnHighlight, { pointerEvents: 'none' }]} />
                 <Text style={[styles.closeBtnText, { color: theme.white }]}>Close</Text>
               </LinearGradient>
             </TouchableOpacity>
           </TouchableOpacity>
+          </View>
         </TouchableOpacity>
       </Modal>
 
@@ -659,20 +681,27 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
         onRequestClose={() => setAvatarPickerVisible(false)}
       >
         <TouchableOpacity
-          style={[styles.modalBackdrop, { backgroundColor: theme.overlay }]}
+          style={[styles.modalBackdrop, { backgroundColor: Platform.OS === 'web' ? 'transparent' : theme.overlay, alignItems: 'center' }]}
           activeOpacity={1}
           onPress={() => setAvatarPickerVisible(false)}
         >
-          <TouchableOpacity
-            activeOpacity={1}
-            style={[
-              styles.avatarPickerSheet,
-              {
-                backgroundColor: theme.navBar,
-                borderColor: theme.border,
-              },
-            ]}
-          >
+          <View style={[styles.webFrameConstraint, { backgroundColor: Platform.OS === 'web' ? theme.overlay : 'transparent' }]}>
+            <TouchableOpacity
+              activeOpacity={1}
+              style={[
+                styles.avatarPickerSheet,
+                {
+                  backgroundColor: theme.navBar,
+                  borderColor: theme.border,
+                },
+                Platform.OS === 'web' && ({
+                  width: '100%',
+                  maxWidth: 480,
+                  borderBottomLeftRadius: 0,
+                  borderBottomRightRadius: 0,
+                } as any),
+              ]}
+            >
             <View style={styles.pickerHeader}>
               <Text style={[styles.pickerTitle, { color: theme.textPrimary }]}>
                 Change Profile Picture
@@ -756,6 +785,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
               </Text>
             </TouchableOpacity>
           </TouchableOpacity>
+          </View>
         </TouchableOpacity>
       </Modal>
 
@@ -783,6 +813,8 @@ const iconStyles = StyleSheet.create({
   profileRing: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.8, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginBottom: 2 },
   profileHead: { width: 7, height: 7, borderRadius: 3.5, marginTop: 2 },
   profileShoulders: { width: 15, height: 9, borderRadius: 7.5, borderWidth: 1.5, marginTop: 2 },
+  badgeContainer: { position: 'absolute', top: -6, right: -8, backgroundColor: '#DC2626', borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#FFFFFF', zIndex: 10 },
+  badgeText: { color: '#FFFFFF', fontSize: 9, fontFamily: Fonts.bold, lineHeight: 11 },
 });
 
 const styles = StyleSheet.create({
@@ -799,6 +831,13 @@ const styles = StyleSheet.create({
   navItem: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 4 },
   navLabel: { fontSize: 11, letterSpacing: -0.2, marginTop: 2 },
   modalBackdrop: { flex: 1, justifyContent: 'flex-end' },
+  webFrameConstraint: {
+    width: '100%',
+    maxWidth: 480,
+    height: '100%',
+    justifyContent: 'flex-end',
+    alignSelf: 'center',
+  },
   profileSheet: {
     width: '100%',
     maxWidth: 440,
@@ -823,13 +862,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
     gap: 6,
   },
-  appearanceHeaderEmoji: {
-    fontSize: 14,
-  },
+
   appearanceHeaderText: {
     fontFamily: Fonts.bold,
     fontSize: 12,
@@ -841,10 +876,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  closeIconText: {
-    fontSize: 13,
-    fontWeight: 'bold',
-  },
+
   noticeBadge: {
     paddingHorizontal: 12,
     paddingVertical: 5,
@@ -991,10 +1023,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 1,
   },
-  profileMenuEmoji: {
-    fontSize: 20,
-    marginRight: 12,
-  },
+
   menuTextCol: {
     flex: 1,
   },
@@ -1007,13 +1036,8 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     marginTop: 1,
   },
-  profileMenuModeIcon: {
-    fontSize: 14,
-    marginRight: 8,
-  },
-  profileMenuChevron: {
-    fontSize: 13,
-  },
+
+
   signOutItem: {
     borderBottomWidth: 0,
   },
