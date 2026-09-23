@@ -21,7 +21,7 @@ class EmergencyAlert(Base):
         nullable=False,
     )
     disaster_type: Mapped[str] = mapped_column(
-        ENUM("flood", "landslide", "tsunami", "earthquake", "fire", "medical", "search_and_rescue", "infrastructure_damage", "hazardous_material", "other", name="emergency_type", create_type=False),
+        ENUM("flood", "landslide", "tsunami", "earthquake", "fire", "medical", "search_and_rescue", "infrastructure_damage", "hazardous_material", "other", "donation", "help_rescue", name="emergency_type", create_type=False),
         nullable=False
     )
     severity: Mapped[int] = mapped_column(Integer, nullable=False, default=3)

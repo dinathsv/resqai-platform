@@ -47,6 +47,7 @@ export default function HelpScreen() {
   const router = useRouter();
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [message, setMessage] = useState('');
+  const [requestType, setRequestType] = useState<'help_rescue' | 'donation'>('help_rescue');
   const [submitting, setSubmitting] = useState(false);
   const [calling1990, setCalling1990] = useState(false);
 
@@ -135,6 +136,7 @@ export default function HelpScreen() {
           message: trimmed,
           lat: coords.lat,
           lng: coords.lng,
+          request_type: requestType,
         }),
       });
 
@@ -145,7 +147,7 @@ export default function HelpScreen() {
 
         Alert.alert(
           'Request Received ✓',
-          `Your help request has been submitted and analyzed by our AI system.\n\nEmergency Type: ${data.emergency_type}\nUrgency Level: ${data.urgency_level}/5\n${data.ai_summary ? `\nSummary: ${data.ai_summary}` : ''}`,
+          `Your ${requestType === 'donation' ? 'Donation' : 'Help & Rescue'} request has been successfully submitted.\n\nRequest ID: ${data.request_id}`,
           [{ text: 'OK' }]
         );
       } else {
@@ -293,9 +295,29 @@ export default function HelpScreen() {
                   editable={!submitting}
                 />
 
+                <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginVertical: 12 }}>
+                  <TouchableOpacity
+                    style={[
+                      styles.submitButton,
+                      { flex: 1, marginRight: 6, backgroundColor: requestType === 'help_rescue' ? theme.emergency : theme.surfaceSubtle }
+                    ]}
+                    onPress={() => setRequestType('help_rescue')}
+                  >
+                    <Text style={{ color: requestType === 'help_rescue' ? '#FFFFFF' : theme.textSecondary, fontFamily: Fonts.bold, textAlign: 'center' }}>Help & Rescue</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.submitButton,
+                      { flex: 1, marginLeft: 6, backgroundColor: requestType === 'donation' ? '#10B981' : theme.surfaceSubtle }
+                    ]}
+                    onPress={() => setRequestType('donation')}
+                  >
+                    <Text style={{ color: requestType === 'donation' ? '#FFFFFF' : theme.textSecondary, fontFamily: Fonts.bold, textAlign: 'center' }}>Donation</Text>
+                  </TouchableOpacity>
+                </View>
+
                 <Text style={styles.formHint}>
-                  📍 Your location will be automatically included.{'\n'}
-                  🤖 Our AI will analyze and categorize your request.
+                  📍 Your location will be automatically included.
                 </Text>
 
                 <TouchableOpacity
@@ -483,7 +505,7 @@ const styles = StyleSheet.create({
     flex: 1,
     ...(isWeb
       ? {
-          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backgroundColor: 'transparent',
           alignItems: 'center',
           justifyContent: 'center',
           width: '100%',
@@ -495,19 +517,13 @@ const styles = StyleSheet.create({
     flex: 1,
     ...(isWeb
       ? ({
-          width: isMobileWeb ? '100%' : 420,
-          maxWidth: isMobileWeb ? '100%' : 420,
-          height: isMobileWeb ? '100%' : '92%',
-          maxHeight: isMobileWeb ? '100%' : 840,
-          borderRadius: isMobileWeb ? 0 : 28,
+          width: '100%',
+          maxWidth: 480,
+          height: '100%',
+          maxHeight: '100%',
+          borderRadius: 0,
           overflow: 'hidden',
-          shadowColor: '#0F172A',
-          shadowOffset: { width: 0, height: 25 },
-          shadowOpacity: 0.35,
-          shadowRadius: 50,
-          elevation: 24,
-          borderWidth: isMobileWeb ? 0 : 1,
-          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 0,
         } as any)
       : {}),
   },

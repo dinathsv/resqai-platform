@@ -27,6 +27,7 @@ class SubmitRequest(BaseModel):
     message: str
     lat: float
     lng: float
+    request_type: str
 
 class StatusUpdateRequest(BaseModel):
     status: str
@@ -76,23 +77,9 @@ async def create_request(
     user_id = current_user.get("sub") if current_user else None
     role = current_user.get("role") if current_user else "guest"
 
-    port = os.getenv("PORT", "8000")
-    ai_url = f"http://localhost:{port}/api/ai/translate-report"
-
-    emergency_type = "other"
+    emergency_type = req.request_type if req.request_type in ["donation", "help_rescue"] else "help_rescue"
     urgency_level = 3
     ai_summary = None
-
-    try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(ai_url, json={"message": req.message}, timeout=10.0)
-            if resp.status_code == 200:
-                data = resp.json()
-                emergency_type = data.get("emergency_type", "other")
-                urgency_level = data.get("urgency_level", 3)
-                ai_summary = data.get("summary_english")
-    except Exception as e:
-        print(f"AI translation failed: {e}")
 
     new_req = HelpRequest(
         original_message=req.message,
@@ -220,6 +207,26 @@ async def list_requests(
             "created_at": r.created_at.isoformat() if r.created_at else None,
         }
         for r in requests
+    ]
+
+@router.get("/public")
+async def list_public_requests(
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
+):
+    """List recent requests (Public)."""
+    query = select(HelpRequest).order_by(desc(HelpRequest.created_at)).limit(limit)
+    result = await db.execute(query)
+    records = result.scalars().all()
+    return [
+        {
+            "request_id": str(r.request_id),
+            "emergency_type": r.emergency_type,
+            "status": r.status,
+            "message": r.original_message,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r in records
     ]
 
 @router.get("/my")

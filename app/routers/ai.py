@@ -197,7 +197,7 @@ async def generate_summary(req: GenerateSummaryRequest):
         "You are an emergency operations analyst for ResQAI Sri Lanka. "
         "The following are active help requests. Write a 3-paragraph situational report "
         "for a government administrator. Include: total incidents, most critical zones, "
-        "predominant emergency types, top 3 priority actions."
+        "predominant emergency types, top 3 priority actions, and a list of 5-10 critical KEY WORDS extracted from the requests."
     )
 
     user_msg = f"Data: {requests_json}"
