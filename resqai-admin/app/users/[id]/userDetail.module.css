@@ -1,0 +1,33 @@
+.definitionList {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 12px;
+  margin-bottom: 32px;
+  font-size: 14px;
+}
+
+@media (max-width: 480px) {
+  .definitionList {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
+
+.label {
+  font-weight: bold;
+  color: #9ca3af;
+}
+
+.value {
+  color: #e1e3e8;
+}
+
+.section {
+  margin-bottom: 32px;
+}
+
+.suspendContainer {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid #2d3039;
+}

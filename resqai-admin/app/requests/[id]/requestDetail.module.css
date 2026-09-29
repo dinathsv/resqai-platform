@@ -1,0 +1,86 @@
+.originalMessage {
+  border-left: 3px solid #3b82f6;
+  padding: 12px 16px;
+  background: #1a1c24;
+  margin-bottom: 16px;
+  font-size: 14px;
+  border-radius: 0 6px 6px 0;
+}
+
+.aiSummary {
+  font-style: italic;
+  color: #9ca3af;
+  margin-bottom: 24px;
+  font-size: 13px;
+}
+
+.section {
+  margin-bottom: 32px;
+}
+
+.gpsLink {
+  margin-left: 12px;
+  font-size: 13px;
+}
+
+.timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-left: 1px solid #2d3039;
+  margin-left: 8px;
+}
+
+.timelineItem {
+  padding-left: 16px;
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.timelineItem::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 4px;
+  width: 9px;
+  height: 9px;
+  background: #3b82f6;
+  border-radius: 50%;
+}
+
+.timelineDate {
+  font-size: 11px;
+  color: #6b7280;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.assignRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.assignRow select {
+  max-width: 250px;
+}
+
+.assignBtn {
+  padding: 6px 16px;
+}
+
+.actionRow {
+  display: flex;
+  gap: 12px;
+  padding-top: 24px;
+  border-top: 1px solid #2d3039;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .assignRow select {
+    max-width: 100%;
+  }
+}

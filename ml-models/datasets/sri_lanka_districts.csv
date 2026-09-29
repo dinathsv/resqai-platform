@@ -1,0 +1,26 @@
+district,province,zone,primary_river_basin,landslide_prone_zone,elevation_category,major_hazard_profile
+Ampara,Eastern,Dry,Gal Oya,No,Lowland,Floods & Cyclones
+Anuradhapura,North Central,Dry,Malwathu Oya / Yan Oya,No,Lowland,Droughts & Flash Floods
+Badulla,Uva,Intermediate/Wet,Mahaweli / Uma Oya,High,Hill Country,Severe Landslides & Slope Failures
+Batticaloa,Eastern,Dry,Mundeni Aru,No,Coastal Lowland,Floods & Storm Surges
+Colombo,Western,Wet,Kelani Ganga,Low,Coastal Lowland,Severe Riverine & Urban Floods
+Galle,Southern,Wet,Gin Ganga,Medium,Coastal & Lowland,Riverine Floods & Local Landslides
+Gampaha,Western,Wet,Kelani Ganga / Attanagalu Oya,Low,Lowland,Riverine Floods & Waterlogging
+Hambantota,Southern,Dry,Walawe Ganga / Kirindi Oya,No,Coastal Lowland,Droughts & Flash Floods
+Jaffna,Northern,Dry,None (Peninsula Lagoons),No,Coastal Lowland,Cyclones & Saltwater Intrusion
+Kalutara,Western,Wet,Kalu Ganga,High,Lowland & Slopes,Severe Floods & Landslides
+Kandy,Central,Wet,Mahaweli Ganga,High,Hill Country,Landslides & Riverine Floods
+Kegalle,Sabaragamuwa,Wet,Kelani Ganga / Maha Oya,High,Hill Slopes,Severe Landslides & Flash Floods
+Kilinochchi,Northern,Dry,Kanakarayan Aru,No,Lowland,Floods & Droughts
+Kurunegala,North Western,Intermediate,Deduru Oya,Low,Plains & Rock Formations,Flash Floods & Droughts
+Mannar,Northern,Dry,Aruvi Aru,No,Coastal Lowland,Cyclones & Coastal Flooding
+Matale,Central,Intermediate/Wet,Mahaweli / Amban Ganga,High,Hill Country,Landslides & Droughts
+Matara,Southern,Wet,Nilwala Ganga,Medium,Coastal & Slopes,Severe Floods & Landslides
+Monaragala,Uva,Dry/Intermediate,Menik Ganga / Kumbukkan Oya,Low,Undulating Plains,Droughts & Local Floods
+Mullaitivu,Northern,Dry,Nay Aru,No,Coastal Lowland,Floods & Cyclones
+Nuwara Eliya,Central,Wet,Mahaweli / Kotmale Oya,High,High Mountain,Severe Landslides & Slope Failures
+Polonnaruwa,North Central,Dry,Mahaweli Ganga,No,Lowland,Riverine Floods (Mahaweli spills)
+Puttalam,North Western,Dry,Deduru Oya / Mi Oya,No,Coastal Lowland,Floods & Droughts
+Ratnapura,Sabaragamuwa,Wet,Kalu Ganga,High,Valleys & Steep Slopes,Severe Floods & High-Risk Landslides
+Trincomalee,Eastern,Dry,Mahaweli Ganga (Estuary),No,Coastal Lowland,Cyclones & Floods
+Vavuniya,Northern,Dry,Malwathu Oya (Upper),No,Lowland,Droughts & Flash Floods

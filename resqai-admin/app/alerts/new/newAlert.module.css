@@ -1,0 +1,122 @@
+.form {
+  max-width: 700px;
+}
+
+.field {
+  margin-bottom: 20px;
+}
+
+.label {
+  display: block;
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 4px;
+  color: #d1d5db;
+}
+
+.helper {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.criticalWarning {
+  font-size: 12px;
+  color: #f87171;
+  margin-top: 4px;
+}
+
+.severityRow {
+  display: flex;
+  gap: 0;
+}
+
+.severityBtn {
+  width: 48px;
+  text-align: center;
+  padding: 6px 0;
+  border: 1px solid #2d3039;
+  background: #1a1c24;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 0;
+  transition: background 0.2s, color 0.2s;
+}
+
+.severityBtn:hover {
+  background: #252730;
+}
+
+.severityBtn + .severityBtn {
+  border-left: none;
+}
+
+.severityBtnActive {
+  width: 48px;
+  text-align: center;
+  padding: 6px 0;
+  border: 1px solid #3b82f6;
+  background: #3b82f6;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 0;
+}
+
+.severityBtnActive + .severityBtn,
+.severityBtn + .severityBtnActive {
+  border-left: none;
+}
+
+.preview {
+  border: 1px solid #2d3039;
+  padding: 16px;
+  margin-bottom: 24px;
+  background: #1a1c24;
+  border-radius: 6px;
+}
+
+.previewTitle {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.previewContent {
+  font-size: 14px;
+  color: #e1e3e8;
+}
+
+.previewType {
+  font-weight: bold;
+  color: #93c5fd;
+}
+
+.previewWorkPlan {
+  margin-top: 8px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.buttonRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.responseText {
+  margin-top: 16px;
+  font-size: 14px;
+  padding: 12px;
+  border: 1px solid #2d3039;
+  background: #1a1c24;
+  border-radius: 6px;
+  color: #e1e3e8;
+}
+
+@media (max-width: 480px) {
+  .form {
+    max-width: 100%;
+  }
+}

@@ -1,0 +1,73 @@
+.filterRow {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filterRow select,
+.filterRow input {
+  width: 150px;
+}
+
+.pagination {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 16px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.pagination button {
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+.pageNum {
+  padding: 4px 8px;
+  cursor: pointer;
+  color: #9ca3af;
+}
+
+.pageNumActive {
+  padding: 4px 8px;
+  cursor: pointer;
+  font-weight: bold;
+  background: #3b82f6;
+  color: #fff;
+  border-radius: 4px;
+}
+
+.flagBtn {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.viewLink {
+  font-size: 13px;
+  margin-right: 8px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.flaggedRow {
+  text-decoration: line-through;
+  color: #6b7280;
+}
+
+.urgency5 { color: #f87171; font-weight: bold; }
+.urgency4 { color: #fb923c; font-weight: bold; }
+.urgencyNormal { color: inherit; }
+
+@media (max-width: 768px) {
+  .filterRow select,
+  .filterRow input {
+    width: 100%;
+  }
+}
