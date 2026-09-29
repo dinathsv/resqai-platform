@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
-import styles from '../../login.module.css';
+import styles from '../login.module.css';
 
 const AUTH_API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://localhost:8000';
 
