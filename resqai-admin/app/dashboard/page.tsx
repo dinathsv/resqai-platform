@@ -87,7 +87,7 @@ export default function DashboardPage() {
       setChatMessages((prev) => [...prev, msg]);
     });
     
-    socket.on('new_request', (req: any) => {
+    socket.on('new_request', (_req: unknown) => {
       // Re-fetch the requests list instantly
       mutate('/api/requests?status=pending,ai_processing,verified,dispatched,in_progress&limit=20');
       // Also mutate stats to update the counters instantly
