@@ -90,11 +90,21 @@ async def create_request(
     )
 
     if role == "guest":
-        new_req.guest_session_id = user_id
+        # For guest sessions with a valid session UUID
+        if user_id:
+            try:
+                new_req.guest_session_id = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
+            except (ValueError, AttributeError):
+                new_req.guest_session_id = None
         new_req.is_guest_request = True
     else:
-        new_req.user_id = user_id
-        new_req.is_guest_request = False
+        # For authenticated users (role = "people" or "admin")
+        if user_id:
+            try:
+                new_req.user_id = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
+            except (ValueError, AttributeError):
+                new_req.user_id = None
+        new_req.is_guest_request = new_req.user_id is None
 
     new_req.gps_location = f"SRID=4326;POINT({req.lng} {req.lat})"
 

@@ -34,10 +34,14 @@ async def lifespan(app: FastAPI):
                 "DO $$ BEGIN "
                 "  CREATE TYPE emergency_type AS ENUM "
                 "    ('flood','landslide','tsunami','earthquake','fire','medical',"
-                "     'search_and_rescue','infrastructure_damage','hazardous_material','other'); "
+                "     'search_and_rescue','infrastructure_damage','hazardous_material','other',"
+                "     'donation','help_rescue'); "
                 "EXCEPTION WHEN duplicate_object THEN NULL; END $$;"
             )
         )
+        # Ensure new enum values exist on databases created with the old schema
+        await conn.execute(text("ALTER TYPE emergency_type ADD VALUE IF NOT EXISTS 'donation';"))
+        await conn.execute(text("ALTER TYPE emergency_type ADD VALUE IF NOT EXISTS 'help_rescue';"))
         await conn.execute(
             text(
                 "DO $$ BEGIN "

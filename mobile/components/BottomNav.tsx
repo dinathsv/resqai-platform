@@ -658,7 +658,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
               activeOpacity={0.8}
             >
               <LinearGradient
-                colors={['#7F0000', '#C40000', '#F51F26']}
+                colors={['#DC3545', '#E8434A', '#EF5350']}
                 locations={[0, 0.48, 1]}
                 start={{ x: 0, y: 0.5 }}
                 end={{ x: 1, y: 0.5 }}

@@ -306,7 +306,7 @@ export default function ActivitiesScreen() {
 
         {/* Recent Alerts Section */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionHeading}>Recent Alerts</Text>
+          <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>Recent Alerts</Text>
         </View>
 
         {recentAlerts.length > 0 ? (

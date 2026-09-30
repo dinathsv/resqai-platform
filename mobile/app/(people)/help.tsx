@@ -50,6 +50,7 @@ export default function HelpScreen() {
   const [requestType, setRequestType] = useState<'help_rescue' | 'donation'>('help_rescue');
   const [submitting, setSubmitting] = useState(false);
   const [calling1990, setCalling1990] = useState(false);
+  const [successData, setSuccessData] = useState<{ id: string; type: string } | null>(null);
 
   /**
    * Get the user's current location.
@@ -144,12 +145,7 @@ export default function HelpScreen() {
         const data = await res.json();
         setMessage('');
         setShowRequestForm(false);
-
-        Alert.alert(
-          'Request Received ✓',
-          `Your ${requestType === 'donation' ? 'Donation' : 'Help & Rescue'} request has been successfully submitted.\n\nRequest ID: ${data.request_id}`,
-          [{ text: 'OK' }]
-        );
+        setSuccessData({ id: data.request_id, type: requestType });
       } else {
         const errorData = await res.json().catch(() => ({}));
         Alert.alert('Error', errorData.detail || 'Failed to submit request. Please try again.');
@@ -335,6 +331,36 @@ export default function HelpScreen() {
               </ScrollView>
             </KeyboardAvoidingView>
           </SafeAreaView>
+        </View>
+      </Modal>
+
+      {/* Custom Success Modal */}
+      <Modal
+        visible={!!successData}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setSuccessData(null)}
+      >
+        <View style={styles.successModalOverlay}>
+          <View style={[styles.successCard, { backgroundColor: theme.surface }]}>
+            <View style={styles.successIconWrap}>
+              <Text style={{ fontSize: 36 }}>✅</Text>
+            </View>
+            <Text style={[styles.successTitle, { color: theme.textPrimary }]}>Request Received</Text>
+            <Text style={[styles.successText, { color: theme.textSecondary }]}>
+              Your {successData?.type === 'donation' ? 'Donation' : 'Help & Rescue'} request has been successfully submitted.
+            </Text>
+            <View style={styles.requestIdBox}>
+              <Text style={[styles.requestIdLabel, { color: theme.textMuted }]}>Request ID</Text>
+              <Text style={[styles.requestIdValue, { color: theme.textPrimary }]}>{successData?.id}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.successBtn}
+              onPress={() => setSuccessData(null)}
+            >
+              <Text style={styles.successBtnText}>OK</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     </SafeAreaView>
@@ -587,6 +613,80 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: Colors.white,
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+  },
+  // Success Modal Styles
+  successModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  successCard: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  successIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  successTitle: {
+    fontSize: 22,
+    fontFamily: Fonts.bold,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  successText: {
+    fontSize: 15,
+    fontFamily: Fonts.regular,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  requestIdBox: {
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  requestIdLabel: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  requestIdValue: {
+    fontSize: 13,
+    fontFamily: Fonts.mono,
+  },
+  successBtn: {
+    backgroundColor: '#059669',
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  successBtnText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontFamily: Fonts.bold,
   },
