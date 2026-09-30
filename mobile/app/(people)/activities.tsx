@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: Fonts.bold,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#000000',
     letterSpacing: -0.3,
   },
   viewAllRed: {
