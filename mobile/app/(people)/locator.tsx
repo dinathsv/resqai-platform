@@ -227,10 +227,25 @@ export default function LocatorScreen() {
         return;
       }
 
-      // Explicitly request High Accuracy GPS from the device
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
+      // Try to get high accuracy location, fallback to last known or balanced if it fails
+      let location;
+      try {
+        location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+      } catch (highErr) {
+        console.warn('High accuracy GPS failed, falling back...', highErr);
+        location = await Location.getLastKnownPositionAsync();
+        if (!location) {
+          location = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+        }
+      }
+
+      if (!location) {
+        throw new Error('Could not determine location.');
+      }
 
       const coords = {
         lat: location.coords.latitude,
@@ -238,8 +253,8 @@ export default function LocatorScreen() {
       };
       setUserLocation(coords);
       fetchHospitals(coords.lat, coords.lng, emergencyTypeRef.current);
-    } catch (err) {
-      console.error('Location error:', err);
+    } catch (err: any) {
+      console.error('Location error:', err?.message || err);
       setLocationError('Could not obtain live GPS coordinates. Search your city or area below.');
       setUserLocation(null);
       setHospitals([]);
