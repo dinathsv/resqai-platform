@@ -217,6 +217,18 @@ export default function LocatorScreen() {
   const fetchCurrentLocation = async () => {
     setLoadingLocation(true);
     setLocationError('');
+
+    if (Platform.OS === 'web') {
+      // On web, delegate to the useCurrentLocation hook which uses the browser's
+      // native navigator.geolocation API. expo-location's getCurrentPositionAsync
+      // on web wraps a network call to Google's geolocation service, which throws
+      // "Network error" when the request fails (no API key, CORS, connectivity).
+      requestDeviceLocation();
+      setLoadingLocation(false);
+      return;
+    }
+
+    // Native platforms: use expo-location directly
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
