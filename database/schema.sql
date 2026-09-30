@@ -23,7 +23,9 @@ CREATE TYPE emergency_type AS ENUM (
     'search_and_rescue',
     'infrastructure_damage',
     'hazardous_material',
-    'other'
+    'other',
+    'donation',
+    'help_rescue'
 );
 
 -- Lifecycle status of a help request
