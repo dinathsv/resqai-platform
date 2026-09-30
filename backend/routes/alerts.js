@@ -102,18 +102,18 @@ router.post('/', requireAuth, async (req, res) => {
     if (isWktPolygon) {
       insertQuery = `
         INSERT INTO emergency_alerts (
-          admin_id, disaster_type, severity, work_plan, status, expires_at, delivered_count, affected_zone
+          alert_id, admin_id, disaster_type, severity, work_plan, status, expires_at, delivered_count, affected_zone
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, ST_GeomFromText($8, 4326))
+        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, ST_GeomFromText($8, 4326))
         RETURNING alert_id, disaster_type, severity, work_plan, status, created_at, expires_at
       `;
       insertParams = [adminId, disaster_type, Number(severity) || 3, work_plan || null, status, expiresAt, 0, cleanZone];
     } else {
       insertQuery = `
         INSERT INTO emergency_alerts (
-          admin_id, disaster_type, severity, work_plan, status, expires_at, delivered_count
+          alert_id, admin_id, disaster_type, severity, work_plan, status, expires_at, delivered_count
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7)
         RETURNING alert_id, disaster_type, severity, work_plan, status, created_at, expires_at
       `;
       insertParams = [adminId, disaster_type, Number(severity) || 3, work_plan || null, status, expiresAt, 0];

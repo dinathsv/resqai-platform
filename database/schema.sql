@@ -42,7 +42,7 @@ CREATE TYPE request_status AS ENUM (
 -- 1. USERS
 -- ============================================================================
 CREATE TABLE users (
-    user_id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     full_name       VARCHAR(150)    NOT NULL,
     email           VARCHAR(255)    NOT NULL UNIQUE,
     phone_number    VARCHAR(20),
@@ -66,7 +66,7 @@ CREATE INDEX idx_users_gps          ON users USING GIST (gps_location);
 -- 2. GUEST SESSIONS
 -- ============================================================================
 CREATE TABLE guest_sessions (
-    session_id      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    session_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nic_number      VARCHAR(12)     NOT NULL,           -- Old 9-digit or new 12-digit NIC
     nic_verified    BOOLEAN         NOT NULL DEFAULT FALSE,
     nic_format_valid BOOLEAN        NOT NULL DEFAULT FALSE,
@@ -87,7 +87,7 @@ CREATE INDEX idx_guest_gps          ON guest_sessions USING GIST (gps_location);
 -- 3. ADMINISTRATORS
 -- ============================================================================
 CREATE TABLE administrators (
-    admin_id        UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    admin_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     full_name       VARCHAR(150)    NOT NULL,
     email           VARCHAR(255)    NOT NULL UNIQUE,
     agency          VARCHAR(150),                       -- e.g. DMC, NBRO, SL Red Cross
@@ -107,7 +107,7 @@ CREATE INDEX idx_admin_agency       ON administrators (agency);
 -- 4. HELP REQUESTS
 -- ============================================================================
 CREATE TABLE help_requests (
-    request_id      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    request_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     -- Exactly one of these must be set (enforced by CHECK below)
     user_id         UUID            REFERENCES users (user_id)
@@ -150,7 +150,7 @@ CREATE INDEX idx_hr_gps             ON help_requests USING GIST (gps_location);
 -- 5. HOSPITALS
 -- ============================================================================
 CREATE TABLE hospitals (
-    hospital_id     UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    hospital_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name            VARCHAR(255)    NOT NULL,
     phone           VARCHAR(20),
     gps_location    GEOMETRY(POINT, 4326) NOT NULL,
@@ -171,7 +171,7 @@ CREATE INDEX idx_hosp_gps           ON hospitals USING GIST (gps_location);
 -- 6. NIC DATABASE
 -- ============================================================================
 CREATE TABLE nic_database (
-    nic_id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    nic_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nic_number      VARCHAR(12)     NOT NULL UNIQUE,    -- Old or new format
     is_valid        BOOLEAN         NOT NULL DEFAULT TRUE,
     district        VARCHAR(100),
@@ -318,7 +318,7 @@ CREATE TYPE alert_status AS ENUM (
 -- 7. RELIEF MISSIONS
 -- ============================================================================
 CREATE TABLE relief_missions (
-    mission_id      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    mission_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     admin_id        UUID            NOT NULL
                                         REFERENCES administrators (admin_id)
                                         ON DELETE CASCADE,
@@ -344,7 +344,7 @@ CREATE TRIGGER trg_relief_missions_updated_at
 -- 8. DONATIONS
 -- ============================================================================
 CREATE TABLE donations (
-    donation_id     UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    donation_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     donor_id        UUID            NOT NULL
                                         REFERENCES users (user_id)
                                         ON DELETE CASCADE,
@@ -370,7 +370,7 @@ CREATE TRIGGER trg_donations_updated_at
 -- 9. VOLUNTEER ASSIGNMENTS
 -- ============================================================================
 CREATE TABLE volunteer_assignments (
-    assignment_id   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    assignment_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id         UUID            NOT NULL
                                         REFERENCES users (user_id)
                                         ON DELETE CASCADE,
@@ -398,7 +398,7 @@ CREATE TRIGGER trg_volunteer_assignments_updated_at
 -- 10. EMERGENCY ALERTS
 -- ============================================================================
 CREATE TABLE emergency_alerts (
-    alert_id        UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    alert_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     admin_id        UUID            NOT NULL
                                         REFERENCES administrators (admin_id)
                                         ON DELETE CASCADE,
@@ -428,7 +428,7 @@ CREATE TRIGGER trg_emergency_alerts_updated_at
 -- 11. AGENCY CHAT MESSAGES
 -- ============================================================================
 CREATE TABLE agency_chat_messages (
-    message_id      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    message_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     sender_id       UUID            NOT NULL
                                         REFERENCES administrators (admin_id)
                                         ON DELETE CASCADE,
@@ -449,7 +449,7 @@ CREATE INDEX idx_acm_sent            ON agency_chat_messages (sent_at DESC);
 -- 12. RATINGS
 -- ============================================================================
 CREATE TABLE ratings (
-    rating_id       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    rating_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     rater_id        UUID            NOT NULL
                                         REFERENCES users (user_id)
                                         ON DELETE CASCADE,
@@ -475,7 +475,7 @@ CREATE INDEX idx_rating_request      ON ratings (request_id);
 -- 13. AUDIT LOGS
 -- ============================================================================
 CREATE TABLE audit_logs (
-    log_id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    log_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id         UUID            REFERENCES users (user_id)
                                         ON DELETE SET NULL,
     admin_id        UUID            REFERENCES administrators (admin_id)
