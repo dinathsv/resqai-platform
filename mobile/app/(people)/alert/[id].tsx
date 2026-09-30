@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { apiFetch } from '../../../config/api';
-import { Colors, Fonts, Glass } from '../../../constants/theme';
+import { Fonts, ThemeTokens } from '../../../constants/theme';
+import { useTheme } from '../../../context/ThemeContext';
 import TopBar from '../../../components/TopBar';
 
 interface AlertDetail {
@@ -30,6 +31,8 @@ interface AlertDetail {
 
 export default function AlertDetailScreen() {
   const { id } = useLocalSearchParams() as { id: string };
+  const { theme } = useTheme();
+  const styles = React.useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const [alert, setAlert] = useState<AlertDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -85,7 +88,7 @@ export default function AlertDetailScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={Colors.accent} />
+          <ActivityIndicator size="large" color={theme.accent} />
         </View>
       </SafeAreaView>
     );
@@ -136,16 +139,7 @@ export default function AlertDetailScreen() {
             Alert
           </Text>
 
-          <View style={styles.severityBadge}>
-            <Text
-              style={[
-                styles.severityText,
-                isCritical && styles.severityCritical,
-              ]}
-            >
-              Severity: {alert.severity}/5
-            </Text>
-          </View>
+
         </View>
 
         <View style={styles.sectionCard}>
@@ -185,7 +179,7 @@ export default function AlertDetailScreen() {
           activeOpacity={0.7}
         >
           {acknowledging ? (
-            <ActivityIndicator size="small" color={Colors.white} />
+            <ActivityIndicator size="small" color={theme.white} />
           ) : (
             <Text style={styles.acknowledgeText}>
               {acknowledged ? 'Acknowledged ✓' : 'Acknowledge'}
@@ -197,10 +191,10 @@ export default function AlertDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: ThemeTokens) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: theme.background,
   },
   header: {
     paddingHorizontal: 16,
@@ -209,7 +203,7 @@ const styles = StyleSheet.create({
   backButton: {
     fontSize: 16,
     fontFamily: Fonts.semiBold,
-    color: Colors.accent,
+    color: theme.accent,
   },
   content: {
     flex: 1,
@@ -223,33 +217,33 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     fontFamily: Fonts.regular,
-    color: Colors.textMuted,
+    color: theme.textMuted,
   },
   criticalBar: {
-    backgroundColor: Colors.accent,
+    backgroundColor: theme.accent,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
     marginBottom: 16,
   },
   criticalBarText: {
-    color: Colors.white,
+    color: theme.white,
     fontSize: 16,
     fontFamily: Fonts.bold,
     textAlign: 'center',
   },
   titleCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.border,
     padding: 20,
     marginBottom: 16,
   },
   title: {
     fontSize: 26,
     fontFamily: Fonts.bold,
-    color: Colors.textPrimary,
+    color: theme.textPrimary,
     marginBottom: 8,
   },
   severityBadge: {
@@ -257,28 +251,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 8,
-    backgroundColor: Colors.accentLight,
+    backgroundColor: theme.accentLight,
   },
   severityText: {
     fontSize: 14,
     fontFamily: Fonts.semiBold,
-    color: Colors.textPrimary,
+    color: theme.textPrimary,
   },
   severityCritical: {
-    color: Colors.accent,
+    color: theme.accent,
   },
   sectionCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: theme.border,
     padding: 16,
     marginBottom: 12,
   },
   sectionHeading: {
     fontSize: 18,
     fontFamily: Fonts.bold,
-    color: Colors.accent,
+    color: theme.accent,
     marginBottom: 12,
   },
   stepRow: {
@@ -290,7 +284,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.accent,
+    backgroundColor: theme.accent,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -299,47 +293,47 @@ const styles = StyleSheet.create({
   stepNumberText: {
     fontSize: 12,
     fontFamily: Fonts.bold,
-    color: Colors.white,
+    color: theme.white,
   },
   workPlanStep: {
     flex: 1,
     fontSize: 15,
     fontFamily: Fonts.regular,
-    color: Colors.textPrimary,
+    color: theme.textPrimary,
     lineHeight: 24,
   },
   noContent: {
     fontSize: 14,
     fontFamily: Fonts.regular,
-    color: Colors.textMuted,
+    color: theme.textMuted,
   },
   zoneDescription: {
     fontSize: 15,
     fontFamily: Fonts.regular,
-    color: Colors.textPrimary,
+    color: theme.textPrimary,
     lineHeight: 22,
   },
   issuedTime: {
     fontSize: 13,
     fontFamily: Fonts.regular,
-    color: Colors.textMuted,
+    color: theme.textMuted,
     marginTop: 8,
     marginBottom: 16,
   },
   acknowledgeButton: {
-    backgroundColor: Colors.cta,
+    backgroundColor: theme.accent,
     paddingVertical: 16,
     alignItems: 'center',
     marginBottom: 32,
     borderRadius: 12,
   },
   acknowledgedButton: {
-    backgroundColor: Colors.textMuted,
+    backgroundColor: theme.textMuted,
     shadowOpacity: 0,
     elevation: 0,
   },
   acknowledgeText: {
-    color: Colors.white,
+    color: theme.white,
     fontSize: 16,
     fontFamily: Fonts.bold,
   },
