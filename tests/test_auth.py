@@ -12,7 +12,7 @@ async def test_register_success(client: AsyncClient):
     assert r.status_code == 201
     data = r.json()
     assert "user_id" in data
-    assert data["message"] == "OTP sent"
+    assert data["message"] == "OTP sent to your mobile number"
 
 @pytest.mark.asyncio
 async def test_register_duplicate_email(client: AsyncClient):
