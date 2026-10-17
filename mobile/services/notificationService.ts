@@ -23,15 +23,25 @@ export async function registerForPushNotifications(): Promise<string | null> {
   const { status } = await Notifications.requestPermissionsAsync()
   if (status !== 'granted') return null
 
-  const token = (await Notifications.getExpoPushTokenAsync()).data
+  let token: string | null = null;
+  try {
+    token = (await Notifications.getExpoPushTokenAsync({ projectId: '00000000-0000-0000-0000-000000000000' })).data
+  } catch (error) {
+    console.warn("Could not fetch Expo push token (ensure EAS projectId is valid). Using dummy token.");
+    token = "dummy-expo-push-token";
+  }
 
   const authToken = await AsyncStorage.getItem('token')
-  if (authToken) {
-    await axios.post(
-      `${BASE_URL}/api/users/push-token`,
-      { push_token: token },
-      { headers: { Authorization: `Bearer ${authToken}` } }
-    )
+  if (authToken && token) {
+    try {
+      await axios.post(
+        `${BASE_URL}/api/users/push-token`,
+        { push_token: token },
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      )
+    } catch (e) {
+      console.warn("Failed to send push token to backend", e);
+    }
   }
 
   return token
