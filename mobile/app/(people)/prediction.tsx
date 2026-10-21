@@ -127,7 +127,11 @@ export default function PredictionScreen() {
 
   // Pulse animation for alert levels
   useEffect(() => {
-    if (result && (result.nbro_landslide_alert.level >= 2 || result.prediction.flood_status === 'Major Flood')) {
+    const isMajor =
+      result?.prediction?.flood_status === 'Major Flood' ||
+      result?.prediction?.flood_category?.includes('Critical') ||
+      result?.prediction?.flood_category?.includes('High');
+    if (result && ((result.nbro_landslide_alert?.level ?? 0) >= 2 || isMajor)) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, { toValue: 1.04, duration: 900, useNativeDriver: true }),
@@ -207,29 +211,37 @@ export default function PredictionScreen() {
   };
 
   // --- Color helpers ---
-  const getFloodColor = (status: string) => {
-    if (status === 'Major Flood') return C.red;
-    if (status === 'Minor Flood') return C.amber;
+  const getFloodColor = (status?: string) => {
+    if (!status) return C.green;
+    if (status.includes('Critical') || status === 'Major Flood') return C.red;
+    if (status.includes('High') || status === 'Minor Flood') return C.amber;
+    if (status.includes('Advisory')) return C.yellow;
     return C.green;
   };
-  const getFloodBg = (status: string) => {
-    if (status === 'Major Flood') return C.redLight;
-    if (status === 'Minor Flood') return C.amberLight;
+  const getFloodBg = (status?: string) => {
+    if (!status) return C.greenLight;
+    if (status.includes('Critical') || status === 'Major Flood') return C.redLight;
+    if (status.includes('High') || status === 'Minor Flood') return C.amberLight;
+    if (status.includes('Advisory')) return C.yellowLight;
     return C.greenLight;
   };
-  const getFloodBorder = (status: string) => {
-    if (status === 'Major Flood') return C.redBorder;
-    if (status === 'Minor Flood') return C.amberBorder;
+  const getFloodBorder = (status?: string) => {
+    if (!status) return C.greenBorder;
+    if (status.includes('Critical') || status === 'Major Flood') return C.redBorder;
+    if (status.includes('High') || status === 'Minor Flood') return C.amberBorder;
+    if (status.includes('Advisory')) return C.amberBorder;
     return C.greenBorder;
   };
-  const getFloodEmoji = (status: string) => {
-    if (status === 'Major Flood') return '🌊';
-    if (status === 'Minor Flood') return '💧';
+  const getFloodEmoji = (status?: string) => {
+    if (!status) return '✅';
+    if (status.includes('Critical') || status === 'Major Flood') return '🌊';
+    if (status.includes('High') || status === 'Minor Flood') return '💧';
+    if (status.includes('Advisory')) return '⚠️';
     return '✅';
   };
   const getHazardColor = (index: number) => {
-    if (index >= 2) return C.red;
-    if (index >= 1) return C.amber;
+    if (index > 2 ? index >= 60 : index >= 2) return C.red;
+    if (index > 2 ? index >= 25 : index >= 1) return C.amber;
     return C.green;
   };
   const getNBROColor = (level: number) => {
@@ -433,11 +445,15 @@ export default function PredictionScreen() {
   // ── Flood Card ──
   const renderFloodCard = () => {
     if (!result) return null;
-    const { flood_status, flood_probabilities } = result.prediction;
+    const pred = result.prediction || {};
+    const flood_status = pred.flood_status || pred.flood_category || 'Low Risk (Normal)';
+    const flood_probabilities: Record<string, number> =
+      pred.flood_probabilities || pred.flood_category_probabilities || {};
     const statusColor = getFloodColor(flood_status);
     const statusBg = getFloodBg(flood_status);
     const statusBorder = getFloodBorder(flood_status);
-    const maxProb = Math.max(...Object.values(flood_probabilities));
+    const probValues = Object.values(flood_probabilities);
+    const maxProb = probValues.length > 0 ? Math.max(...probValues) : 0;
 
     return (
       <View style={[s.card, { backgroundColor: theme.surface }]}>
@@ -468,9 +484,13 @@ export default function PredictionScreen() {
   // ── Hazard Card ──
   const renderHazardCard = () => {
     if (!result) return null;
-    const { overall_hazard_level, hazard_index } = result.prediction;
+    const pred = result.prediction || {};
+    const overall_hazard_level = pred.overall_hazard_level || pred.flood_category || 'Low Risk (Normal)';
+    const hazard_index = typeof pred.hazard_index === 'number'
+      ? pred.hazard_index
+      : (typeof pred.flood_risk_score === 'number' ? pred.flood_risk_score : 0);
     const hazardColor = getHazardColor(hazard_index);
-    const hazardPct = (hazard_index / 2) * 100;
+    const hazardPct = hazard_index > 2 ? Math.min(hazard_index, 100) : (hazard_index / 2) * 100;
 
     return (
       <View style={[s.card, { backgroundColor: theme.surface }]}>
@@ -540,17 +560,32 @@ export default function PredictionScreen() {
   // ── District Profile ──
   const renderDistrictProfileCard = () => {
     if (!result) return null;
+    const pred = result.prediction || {};
+    const peak24h = pred.peak_24h_rain_mm ?? pred.rain_24h_mm ?? 0;
+    const rain48h = pred.rain_48h_mm;
+    const rain72h = pred.rain_72h_mm;
+    const annual = pred.annual_rainfall_mm ?? (peak24h > 0 ? (peak24h * 15).toFixed(1) : 'N/A');
+
+    const profileItems = [
+      { label: 'Province', value: result.province },
+      { label: 'Climatic Zone', value: result.climatic_zone },
+      { label: 'River Basin', value: result.river_basin },
+      { label: 'Hazard Profile', value: result.hazard_profile },
+      { label: 'Peak 24h Rain', value: `${peak24h} mm` },
+    ];
+    if (rain48h !== undefined) {
+      profileItems.push({ label: '48h Rain', value: `${rain48h} mm` });
+    }
+    if (rain72h !== undefined) {
+      profileItems.push({ label: '72h Rain', value: `${rain72h} mm` });
+    } else {
+      profileItems.push({ label: 'Annual Rainfall', value: `${annual} mm` });
+    }
+
     return (
       <View style={[s.card, { backgroundColor: theme.surface }]}>
         <Text style={s.cardTitle}>🏛️ District Profile</Text>
-        {[
-          { label: 'Province', value: result.province },
-          { label: 'Climatic Zone', value: result.climatic_zone },
-          { label: 'River Basin', value: result.river_basin },
-          { label: 'Hazard Profile', value: result.hazard_profile },
-          { label: 'Peak 24h Rain', value: `${result.prediction.peak_24h_rain_mm} mm` },
-          { label: 'Annual Rainfall', value: `${result.prediction.annual_rainfall_mm} mm` },
-        ].map(({ label, value }, i, arr) => (
+        {profileItems.map(({ label, value }, i, arr) => (
           <View key={label} style={[s.profileRow, i === arr.length - 1 && { borderBottomWidth: 0 }]}>
             <Text style={s.profileLabel}>{label}</Text>
             <Text style={s.profileValue}>{value}</Text>
@@ -563,7 +598,12 @@ export default function PredictionScreen() {
   // ── Guidance ──
   const renderGuidanceCard = () => {
     if (!result || !result.actionable_guidance.length) return null;
-    const isUrgent = result.prediction.flood_status === 'Major Flood' || result.nbro_landslide_alert.level >= 2;
+    const pred = result.prediction || {};
+    const isUrgent =
+      pred.flood_status === 'Major Flood' ||
+      pred.flood_category?.includes('Critical') ||
+      pred.flood_category?.includes('High') ||
+      (result.nbro_landslide_alert?.level ?? 0) >= 2;
 
     return (
       <View style={isUrgent ? s.urgentCard : s.card}>

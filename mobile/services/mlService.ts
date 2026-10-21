@@ -33,12 +33,19 @@ export interface PredictionResult {
   river_basin: string;
   hazard_profile: string;
   prediction: {
-    flood_status: string;
-    flood_probabilities: Record<string, number>;
-    overall_hazard_level: string;
-    hazard_index: number;
-    peak_24h_rain_mm: number;
-    annual_rainfall_mm: number;
+    flood_status?: string;
+    flood_category?: string;
+    flood_probabilities?: Record<string, number>;
+    flood_category_probabilities?: Record<string, number>;
+    overall_hazard_level?: string;
+    hazard_index?: number;
+    flood_risk_score?: number;
+    peak_24h_rain_mm?: number;
+    rain_24h_mm?: number;
+    rain_48h_mm?: number;
+    rain_72h_mm?: number;
+    annual_rainfall_mm?: number;
+    soil_saturation_index?: number;
   };
   nbro_landslide_alert: NBROLandslideAlert;
   actionable_guidance: string[];

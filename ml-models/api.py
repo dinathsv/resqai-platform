@@ -68,6 +68,15 @@ class HazardPredictionRequest(BaseModel):
     soil_saturation_index: Optional[float] = Field(
         None, description="Computed soil saturation index (0–1). Auto-calculated if omitted."
     )
+    peak_24h_rain_mm: Optional[float] = Field(
+        None, description="Legacy peak 24-hour rainfall in mm (mapped to rain_24h)"
+    )
+    monthly_rainfall: Optional[Dict[str, float]] = Field(
+        None, description="Legacy monthly rainfall"
+    )
+    annual_rainfall_mm: Optional[float] = Field(
+        None, description="Legacy annual rainfall in mm"
+    )
 
     class Config:
         json_schema_extra = {
@@ -101,16 +110,23 @@ def list_districts():
 @app.post("/predict")
 def predict_hazard(payload: HazardPredictionRequest):
     """Predicts flood category, flood risk score, and NBRO landslide alert from daily weather data."""
+    rain_24 = payload.rain_24h
+    if (rain_24 is None or rain_24 == 0.0) and payload.peak_24h_rain_mm is not None:
+        rain_24 = payload.peak_24h_rain_mm
+
+    precip = payload.precipitation_sum if payload.precipitation_sum > 0.0 else rain_24
+    rain_s = payload.rain_sum if payload.rain_sum > 0.0 else rain_24
+
     result = predict_disaster_risk(
         district=payload.district,
         climatic_zone=payload.climatic_zone,
-        precipitation_sum=payload.precipitation_sum,
-        rain_sum=payload.rain_sum,
+        precipitation_sum=precip,
+        rain_sum=rain_s,
         soil_moisture_0_to_7cm=payload.soil_moisture_0_to_7cm,
         soil_moisture_7_to_28cm=payload.soil_moisture_7_to_28cm,
         temperature_2m_max=payload.temperature_2m_max,
         wind_speed_10m_max=payload.wind_speed_10m_max,
-        rain_24h=payload.rain_24h,
+        rain_24h=rain_24,
         rain_48h=payload.rain_48h,
         rain_72h=payload.rain_72h,
         soil_saturation_index=payload.soil_saturation_index,
