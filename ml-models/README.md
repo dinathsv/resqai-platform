@@ -20,20 +20,21 @@ This ML service analyzes cumulative and peak 24-hour rainfall against geographic
 ```
 ml-models/
 ├── datasets/
-│   ├── sri_lanka_districts.csv                # Master profile: 25 districts, provinces, river basins & hazard zones
-│   └── sri_lanka_flood_landslide_history.csv  # 1995–2024 Sri Lankan rainfall and disaster occurrence records
+│   ├── sri_lanka_districts.csv            # Master profile: 25 districts, provinces, river basins & hazard zones
+│   └── sri_lanka_flood_risk_modeled.csv   # 91,325 daily weather & flood risk records (2015–2024)
 ├── notebooks/
-│   └── sri_lanka_disaster_prediction.ipynb    # Interactive EDA, training, and evaluation notebook
+│   └── sri_lanka_disaster_prediction.ipynb # Interactive EDA, training, and evaluation notebook
 ├── models/
-│   ├── sri_lanka_district_encoder.joblib      # LabelEncoder for all 25 Sri Lankan districts
-│   ├── sri_lanka_flood_model.joblib           # Trained Random Forest classifier (93.3% accuracy)
-│   ├── sri_lanka_hazard_model.joblib          # Multi-hazard index classifier (97.3% accuracy)
-│   └── model_metadata.json                    # Feature and accuracy metadata
-├── train.py                                   # Automated training & export pipeline
-├── predict.py                                 # Core prediction engine (Flood risk + NBRO alerts)
-├── api.py                                     # FastAPI REST microservice
-├── requirements.txt                           # Python dependencies
-└── README.md                                  # Documentation
+│   ├── sri_lanka_district_encoder.joblib  # LabelEncoder for all 25 Sri Lankan districts
+│   ├── sri_lanka_climatic_zone_encoder.joblib # LabelEncoder for climatic zones (Wet, Dry, Intermediate)
+│   ├── sri_lanka_flood_model.joblib       # Random Forest Flood Category Classifier (99.46% accuracy)
+│   ├── sri_lanka_flood_risk_model.joblib  # Random Forest Flood Risk Score Regressor (R²: 0.9981, MAE: 0.10)
+│   └── model_metadata.json                # Feature and accuracy metadata
+├── train.py                               # Automated training & export pipeline
+├── predict.py                             # Core prediction engine (Flood category, risk score + NBRO alerts)
+├── api.py                                 # FastAPI REST microservice
+├── requirements.txt                       # Python dependencies
+└── README.md                              # Documentation
 ```
 
 ---
@@ -80,8 +81,15 @@ from predict import predict_disaster_risk
 
 result = predict_disaster_risk(
     district="Ratnapura",
-    monthly_rainfall={"MAY": 480.0, "JUN": 390.0, "NOV": 350.0},
-    peak_24h_rain=135.0
+    precipitation_sum=140.0,
+    rain_sum=140.0,
+    soil_moisture_0_to_7cm=0.52,
+    soil_moisture_7_to_28cm=0.50,
+    temperature_2m_max=26.0,
+    wind_speed_10m_max=18.5,
+    rain_24h=140.0,
+    rain_48h=250.0,
+    rain_72h=350.0
 )
 print(result)
 ```
@@ -95,15 +103,19 @@ python api.py
 #### API Endpoints:
 - `GET /health` — Service health and district count
 - `GET /districts` — Returns list of all 25 supported Sri Lankan districts
-- `POST /predict` — Evaluates flood and landslide hazard:
+- `POST /predict` — Evaluates flood category, risk score, and NBRO landslide alerts:
   ```json
   {
     "district": "Colombo",
-    "monthly_rainfall": {
-      "MAY": 450.0,
-      "JUN": 420.0
-    },
-    "peak_24h_rain_mm": 175.0
+    "precipitation_sum": 185.0,
+    "rain_sum": 185.0,
+    "soil_moisture_0_to_7cm": 0.48,
+    "soil_moisture_7_to_28cm": 0.45,
+    "temperature_2m_max": 27.5,
+    "wind_speed_10m_max": 22.0,
+    "rain_24h": 185.0,
+    "rain_48h": 310.0,
+    "rain_72h": 420.0
   }
   ```
 
