@@ -1,20 +1,18 @@
 {
+  "dataset": "sri_lanka_flood_risk_modeled.csv",
   "feature_names": [
-    "DISTRICT_ENCODED",
-    "JAN",
-    "FEB",
-    "MAR",
-    "APR",
-    "MAY",
-    "JUN",
-    "JUL",
-    "AUG",
-    "SEP",
-    "OCT",
-    "NOV",
-    "DEC",
-    "ANNUAL",
-    "PEAK_24H_RAIN"
+    "district_encoded",
+    "climatic_zone_encoded",
+    "precipitation_sum",
+    "rain_sum",
+    "soil_moisture_0_to_7cm_mean",
+    "soil_moisture_7_to_28cm_mean",
+    "temperature_2m_max",
+    "wind_speed_10m_max",
+    "rain_24h",
+    "rain_48h",
+    "rain_72h",
+    "soil_saturation_index"
   ],
   "districts": [
     "Ampara",
@@ -43,11 +41,18 @@
     "Trincomalee",
     "Vavuniya"
   ],
-  "target_flood_classes": [
-    "Major Flood",
-    "Minor Flood",
-    "No Flood"
+  "climatic_zones": [
+    "Dry",
+    "Intermediate",
+    "Wet"
   ],
-  "flood_accuracy": 0.9333333333333333,
-  "hazard_accuracy": 0.9733333333333334
+  "target_flood_classes": [
+    "Advisory (Waterlogging)",
+    "Critical Emergency (Catastrophic Overflow)",
+    "High Warning (Inundation)",
+    "Low Risk (Normal)"
+  ],
+  "flood_classifier_accuracy": 0.9946345469477142,
+  "risk_regressor_mae": 0.10129855113697639,
+  "risk_regressor_r2": 0.9980612748839337
 }
