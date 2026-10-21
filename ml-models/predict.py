@@ -1,7 +1,11 @@
 """
 ResQAI — Sri Lanka Disaster Hazard & Flood Prediction Engine
-Evaluates riverine flood probabilities, NBRO landslide risk thresholds,
+Evaluates daily weather-driven flood probabilities, NBRO landslide risk thresholds,
 and generates actionable emergency guidance for Sri Lanka's 25 districts.
+
+Uses the sri_lanka_flood_risk_modeled.csv feature schema:
+  precipitation_sum, rain_sum, soil_moisture, temperature, wind_speed,
+  rain_24h/48h/72h, soil_saturation_index
 """
 
 import os
@@ -16,26 +20,29 @@ MODELS_DIR = os.path.join(BASE_DIR, "models")
 DATASETS_DIR = os.path.join(BASE_DIR, "datasets")
 
 ENCODER_PATH = os.path.join(MODELS_DIR, "sri_lanka_district_encoder.joblib")
+ZONE_ENCODER_PATH = os.path.join(MODELS_DIR, "sri_lanka_climatic_zone_encoder.joblib")
 FLOOD_MODEL_PATH = os.path.join(MODELS_DIR, "sri_lanka_flood_model.joblib")
-HAZARD_MODEL_PATH = os.path.join(MODELS_DIR, "sri_lanka_hazard_model.joblib")
+RISK_MODEL_PATH = os.path.join(MODELS_DIR, "sri_lanka_flood_risk_model.joblib")
 DISTRICTS_CSV = os.path.join(DATASETS_DIR, "sri_lanka_districts.csv")
 
 # Global cached resources
 _district_encoder: Any = None
+_zone_encoder: Any = None
 _flood_model: Any = None
-_hazard_model: Any = None
+_risk_model: Any = None
 _districts_meta: Dict[str, Any] = {}
 
 def _load_artifacts() -> None:
-    global _district_encoder, _flood_model, _hazard_model, _districts_meta
+    global _district_encoder, _zone_encoder, _flood_model, _risk_model, _districts_meta
     if _district_encoder is None:
         if not os.path.exists(ENCODER_PATH) or not os.path.exists(FLOOD_MODEL_PATH):
             raise FileNotFoundError(
                 "Model artifacts not found. Please run 'python train.py' first."
             )
         _district_encoder = joblib.load(ENCODER_PATH)
+        _zone_encoder = joblib.load(ZONE_ENCODER_PATH)
         _flood_model = joblib.load(FLOOD_MODEL_PATH)
-        _hazard_model = joblib.load(HAZARD_MODEL_PATH)
+        _risk_model = joblib.load(RISK_MODEL_PATH)
 
         if os.path.exists(DISTRICTS_CSV):
             df_dist = pd.read_csv(DISTRICTS_CSV)
@@ -55,7 +62,7 @@ def get_supported_districts() -> List[str]:
     _load_artifacts()
     return list(_district_encoder.classes_)
 
-def evaluate_nbro_landslide_alert(is_landslide_zone: bool, peak_24h_rain: float) -> Dict[str, Any]:
+def evaluate_nbro_landslide_alert(is_landslide_zone: bool, rain_24h: float) -> Dict[str, Any]:
     """
     Evaluates official NBRO (National Building Research Organisation)
     24-hour rainfall threshold rules for Sri Lanka hill slopes.
@@ -68,21 +75,21 @@ def evaluate_nbro_landslide_alert(is_landslide_zone: bool, peak_24h_rain: float)
             "message": "Region is not designated as a high-risk slope failure area by NBRO."
         }
 
-    if peak_24h_rain >= 150.0:
+    if rain_24h >= 150.0:
         return {
             "level": 3,
             "color": "Red",
             "status": "Level 3 - Evacuation",
             "message": "Rainfall exceeds 150mm within 24h. High risk of landslides, rock falls, and cut-slope failures. Evacuate designated slopes immediately to safe shelters."
         }
-    elif peak_24h_rain >= 100.0:
+    elif rain_24h >= 100.0:
         return {
             "level": 2,
             "color": "Amber",
             "status": "Level 2 - Warning",
             "message": "Rainfall exceeds 100mm within 24h. Be ready to evacuate immediately if continuous rains or slope ground cracks appear."
         }
-    elif peak_24h_rain >= 75.0:
+    elif rain_24h >= 75.0:
         return {
             "level": 1,
             "color": "Yellow",
@@ -97,14 +104,38 @@ def evaluate_nbro_landslide_alert(is_landslide_zone: bool, peak_24h_rain: float)
             "message": "Rainfall is below NBRO advisory threshold (<75mm/24h)."
         }
 
+
 def predict_disaster_risk(
     district: str,
-    monthly_rainfall: Optional[Dict[str, float]] = None,
-    peak_24h_rain: float = 0.0,
-    annual_rainfall: Optional[float] = None
+    climatic_zone: Optional[str] = None,
+    precipitation_sum: float = 0.0,
+    rain_sum: float = 0.0,
+    soil_moisture_0_to_7cm: float = 0.3,
+    soil_moisture_7_to_28cm: float = 0.3,
+    temperature_2m_max: float = 30.0,
+    wind_speed_10m_max: float = 10.0,
+    rain_24h: float = 0.0,
+    rain_48h: Optional[float] = None,
+    rain_72h: Optional[float] = None,
+    soil_saturation_index: Optional[float] = None,
 ) -> Dict[str, Any]:
     """
-    Predicts flood occurrence and multi-hazard index for a given Sri Lankan district.
+    Predicts flood category and flood risk score for a given Sri Lankan district
+    using daily weather parameters.
+
+    Args:
+        district: Sri Lankan district name (e.g., 'Colombo', 'Ratnapura')
+        climatic_zone: Climatic zone ('Wet', 'Dry', 'Intermediate'). Auto-detected if omitted.
+        precipitation_sum: Total precipitation for the day (mm)
+        rain_sum: Total rainfall for the day (mm)
+        soil_moisture_0_to_7cm: Mean soil moisture in 0–7 cm layer (m³/m³, 0–1)
+        soil_moisture_7_to_28cm: Mean soil moisture in 7–28 cm layer (m³/m³, 0–1)
+        temperature_2m_max: Maximum temperature at 2m height (°C)
+        wind_speed_10m_max: Maximum wind speed at 10m height (km/h)
+        rain_24h: Accumulated rainfall in last 24 hours (mm)
+        rain_48h: Accumulated rainfall in last 48 hours (mm). Defaults to rain_24h if not provided.
+        rain_72h: Accumulated rainfall in last 72 hours (mm). Defaults to rain_48h if not provided.
+        soil_saturation_index: Computed soil saturation index (0–1). Auto-calculated if omitted.
     """
     _load_artifacts()
 
@@ -119,97 +150,104 @@ def predict_disaster_risk(
 
     meta = _districts_meta[matched_key]
     official_district_name = meta["district"]
+
+    # Encode district
     encoded_district = _district_encoder.transform([official_district_name])[0]
 
-    # Default baseline monthly distribution if not fully supplied
-    default_monthly = {
-        "JAN": 40.0, "FEB": 30.0, "MAR": 60.0, "APR": 120.0,
-        "MAY": 200.0, "JUN": 180.0, "JUL": 140.0, "AUG": 130.0,
-        "SEP": 160.0, "OCT": 250.0, "NOV": 280.0, "DEC": 110.0
-    }
-    if monthly_rainfall:
-        for month, val in monthly_rainfall.items():
-            month_upper = month.upper()
-            if month_upper in default_monthly:
-                default_monthly[month_upper] = float(val)
+    # Auto-detect climatic zone from district metadata if not supplied
+    if climatic_zone is None:
+        climatic_zone = meta.get("zone", "Dry")
+    # Encode climatic zone
+    try:
+        encoded_zone = _zone_encoder.transform([climatic_zone])[0]
+    except ValueError:
+        # Fallback if zone not seen during training
+        encoded_zone = 0
 
-    if annual_rainfall is None:
-        annual_rainfall = sum(default_monthly.values())
+    # Default accumulated rain values
+    if rain_48h is None:
+        rain_48h = rain_24h
+    if rain_72h is None:
+        rain_72h = rain_48h
 
-    if peak_24h_rain <= 0.0:
-        # Default peak estimate from highest monthly rain
-        max_month = max(default_monthly.values())
-        peak_24h_rain = round(max_month * 0.35, 1)
+    # Auto-calculate soil saturation index if not provided
+    if soil_saturation_index is None:
+        soil_saturation_index = (soil_moisture_0_to_7cm + soil_moisture_7_to_28cm) / 2.0
 
-    # Prepare DataFrame for scikit-learn model
+    # Prepare DataFrame for model inference
     input_row = {
-        "DISTRICT_ENCODED": encoded_district,
-        "JAN": default_monthly["JAN"],
-        "FEB": default_monthly["FEB"],
-        "MAR": default_monthly["MAR"],
-        "APR": default_monthly["APR"],
-        "MAY": default_monthly["MAY"],
-        "JUN": default_monthly["JUN"],
-        "JUL": default_monthly["JUL"],
-        "AUG": default_monthly["AUG"],
-        "SEP": default_monthly["SEP"],
-        "OCT": default_monthly["OCT"],
-        "NOV": default_monthly["NOV"],
-        "DEC": default_monthly["DEC"],
-        "ANNUAL": annual_rainfall,
-        "PEAK_24H_RAIN": peak_24h_rain
+        "district_encoded": encoded_district,
+        "climatic_zone_encoded": encoded_zone,
+        "precipitation_sum": precipitation_sum,
+        "rain_sum": rain_sum,
+        "soil_moisture_0_to_7cm_mean": soil_moisture_0_to_7cm,
+        "soil_moisture_7_to_28cm_mean": soil_moisture_7_to_28cm,
+        "temperature_2m_max": temperature_2m_max,
+        "wind_speed_10m_max": wind_speed_10m_max,
+        "rain_24h": rain_24h,
+        "rain_48h": rain_48h,
+        "rain_72h": rain_72h,
+        "soil_saturation_index": soil_saturation_index,
     }
     df_input = pd.DataFrame([input_row])
 
-    # Model Inferences
-    flood_pred = _flood_model.predict(df_input)[0]
+    # --- Model Inferences ---
+    # Flood category classification
+    flood_category = _flood_model.predict(df_input)[0]
     flood_probs = _flood_model.predict_proba(df_input)[0]
     classes = list(_flood_model.classes_)
     prob_dict = {cls: round(float(prob) * 100, 1) for cls, prob in zip(classes, flood_probs)}
 
-    hazard_idx = int(_hazard_model.predict(df_input)[0])
-    hazard_labels = {
-        0: "Low / Normal",
-        1: "Moderate / Advisory",
-        2: "Critical / Emergency"
-    }
+    # Flood risk score regression
+    flood_risk_score = float(_risk_model.predict(df_input)[0])
+    flood_risk_score = max(0.0, round(flood_risk_score, 2))
 
     # NBRO Landslide Analysis
     is_landslide_zone = meta["landslide_prone_zone"] in ["High", "Medium"]
-    landslide_alert = evaluate_nbro_landslide_alert(is_landslide_zone, peak_24h_rain)
+    landslide_alert = evaluate_nbro_landslide_alert(is_landslide_zone, rain_24h)
 
-    # Actionable guidance tailored to Sri Lankan emergency response
+    # --- Actionable guidance tailored to Sri Lankan emergency response ---
     guidance = []
-    if flood_pred == "Major Flood":
+    if flood_category == "Critical Emergency (Catastrophic Overflow)":
         guidance.append(
-            f"URGENT: Major flooding predicted for {official_district_name} along the {meta['primary_river_basin']} basin. Move to higher ground."
+            f"CRITICAL: Catastrophic flooding predicted for {official_district_name} "
+            f"along the {meta['primary_river_basin']} basin. Evacuate immediately to higher ground."
         )
-    elif flood_pred == "Minor Flood":
+    elif flood_category == "High Warning (Inundation)":
         guidance.append(
-            f"ADVISORY: Minor localized inundation anticipated in low-lying areas of {official_district_name}."
+            f"URGENT: Significant inundation expected in {official_district_name}. "
+            f"Move to elevated areas and avoid river crossings."
+        )
+    elif flood_category == "Advisory (Waterlogging)":
+        guidance.append(
+            f"ADVISORY: Waterlogging and localized flooding anticipated in low-lying areas of {official_district_name}."
         )
     else:
-        guidance.append(f"Normal conditions. No widespread riverine flooding anticipated for {official_district_name}.")
+        guidance.append(
+            f"Normal conditions. No widespread riverine flooding anticipated for {official_district_name}."
+        )
 
     if landslide_alert["level"] >= 2:
         guidance.append(
-            f"NBRO WARNING: {landslide_alert['status']} active. Evacuate steep slopes in {official_district_name} immediately."
+            f"NBRO WARNING: {landslide_alert['status']} active. "
+            f"Evacuate steep slopes in {official_district_name} immediately."
         )
 
     return {
         "status": "success",
         "district": official_district_name,
         "province": meta["province"],
-        "climatic_zone": meta["zone"],
+        "climatic_zone": climatic_zone,
         "river_basin": meta["primary_river_basin"],
         "hazard_profile": meta["major_hazard_profile"],
         "prediction": {
-            "flood_status": flood_pred,
-            "flood_probabilities": prob_dict,
-            "overall_hazard_level": hazard_labels.get(hazard_idx, "Unknown"),
-            "hazard_index": hazard_idx,
-            "peak_24h_rain_mm": peak_24h_rain,
-            "annual_rainfall_mm": round(annual_rainfall, 1)
+            "flood_category": flood_category,
+            "flood_category_probabilities": prob_dict,
+            "flood_risk_score": flood_risk_score,
+            "rain_24h_mm": rain_24h,
+            "rain_48h_mm": rain_48h,
+            "rain_72h_mm": rain_72h,
+            "soil_saturation_index": round(soil_saturation_index, 4),
         },
         "nbro_landslide_alert": landslide_alert,
         "actionable_guidance": guidance,
@@ -224,13 +262,20 @@ def predict_disaster_risk(
 
 if __name__ == "__main__":
     print("=== Testing Sri Lanka Disaster Prediction Engine ===")
-    
-    # Test 1: Colombo during heavy Southwest monsoon
-    print("\n--- Test 1: Colombo (Heavy Southwest Monsoon) ---")
+
+    # Test 1: Colombo during heavy monsoon day
+    print("\n--- Test 1: Colombo (Heavy Monsoon Rain Day) ---")
     res_colombo = predict_disaster_risk(
         district="Colombo",
-        monthly_rainfall={"MAY": 450.0, "JUN": 420.0, "JUL": 300.0},
-        peak_24h_rain=175.0
+        precipitation_sum=185.0,
+        rain_sum=185.0,
+        soil_moisture_0_to_7cm=0.48,
+        soil_moisture_7_to_28cm=0.45,
+        temperature_2m_max=27.5,
+        wind_speed_10m_max=22.0,
+        rain_24h=185.0,
+        rain_48h=310.0,
+        rain_72h=420.0,
     )
     print(json.dumps(res_colombo, indent=2))
 
@@ -238,8 +283,15 @@ if __name__ == "__main__":
     print("\n--- Test 2: Ratnapura (Kalu Ganga + Landslide Risk) ---")
     res_ratnapura = predict_disaster_risk(
         district="Ratnapura",
-        monthly_rainfall={"MAY": 520.0, "NOV": 450.0},
-        peak_24h_rain=135.0
+        precipitation_sum=140.0,
+        rain_sum=140.0,
+        soil_moisture_0_to_7cm=0.52,
+        soil_moisture_7_to_28cm=0.50,
+        temperature_2m_max=26.0,
+        wind_speed_10m_max=18.5,
+        rain_24h=140.0,
+        rain_48h=250.0,
+        rain_72h=350.0,
     )
     print(json.dumps(res_ratnapura, indent=2))
 
@@ -247,7 +299,12 @@ if __name__ == "__main__":
     print("\n--- Test 3: Jaffna (Dry Period) ---")
     res_jaffna = predict_disaster_risk(
         district="Jaffna",
-        monthly_rainfall={"MAY": 15.0, "JUN": 10.0},
-        peak_24h_rain=12.0
+        precipitation_sum=2.0,
+        rain_sum=2.0,
+        soil_moisture_0_to_7cm=0.18,
+        soil_moisture_7_to_28cm=0.20,
+        temperature_2m_max=33.0,
+        wind_speed_10m_max=12.0,
+        rain_24h=2.0,
     )
     print(json.dumps(res_jaffna, indent=2))

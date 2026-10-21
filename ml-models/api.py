@@ -1,6 +1,7 @@
 """
 ResQAI — Sri Lanka Disaster Hazard Prediction Microservice
 Exposes REST endpoints for real-time flood risk evaluation and NBRO landslide alerts.
+Uses daily weather parameters from the sri_lanka_flood_risk_modeled dataset.
 """
 
 import os
@@ -20,7 +21,7 @@ from predict import predict_disaster_risk, get_supported_districts
 app = FastAPI(
     title="ResQAI Sri Lanka Disaster Hazard ML API",
     description="Machine Learning prediction service for Sri Lankan riverine floods and NBRO landslide alerts.",
-    version="2.0.0"
+    version="3.0.0"
 )
 
 app.add_middleware(
@@ -33,29 +34,54 @@ app.add_middleware(
 
 class HazardPredictionRequest(BaseModel):
     district: str = Field(..., description="Sri Lankan District (e.g., 'Colombo', 'Ratnapura', 'Kandy')")
-    monthly_rainfall: Optional[Dict[str, float]] = Field(
+    climatic_zone: Optional[str] = Field(
         None,
-        description="Monthly rainfall in mm (e.g., {'MAY': 350.0, 'JUN': 280.0})"
+        description="Climatic zone ('Wet', 'Dry', 'Intermediate'). Auto-detected from district if omitted."
     )
-    peak_24h_rain_mm: Optional[float] = Field(
-        0.0,
-        description="Peak 24-hour rainfall in mm (critical for NBRO landslide alerts and flash floods)"
+    precipitation_sum: float = Field(
+        0.0, description="Total precipitation for the day (mm)"
     )
-    annual_rainfall_mm: Optional[float] = Field(
-        None,
-        description="Cumulative annual rainfall in mm (calculated automatically if omitted)"
+    rain_sum: float = Field(
+        0.0, description="Total rainfall for the day (mm)"
+    )
+    soil_moisture_0_to_7cm: float = Field(
+        0.3, description="Mean soil moisture in 0–7 cm layer (m³/m³, range 0–1)"
+    )
+    soil_moisture_7_to_28cm: float = Field(
+        0.3, description="Mean soil moisture in 7–28 cm layer (m³/m³, range 0–1)"
+    )
+    temperature_2m_max: float = Field(
+        30.0, description="Maximum temperature at 2m height (°C)"
+    )
+    wind_speed_10m_max: float = Field(
+        10.0, description="Maximum wind speed at 10m height (km/h)"
+    )
+    rain_24h: float = Field(
+        0.0, description="Accumulated rainfall in last 24 hours (mm)"
+    )
+    rain_48h: Optional[float] = Field(
+        None, description="Accumulated rainfall in last 48 hours (mm). Defaults to rain_24h."
+    )
+    rain_72h: Optional[float] = Field(
+        None, description="Accumulated rainfall in last 72 hours (mm). Defaults to rain_48h."
+    )
+    soil_saturation_index: Optional[float] = Field(
+        None, description="Computed soil saturation index (0–1). Auto-calculated if omitted."
     )
 
     class Config:
         json_schema_extra = {
             "example": {
                 "district": "Ratnapura",
-                "monthly_rainfall": {
-                    "MAY": 480.0,
-                    "JUN": 390.0,
-                    "NOV": 350.0
-                },
-                "peak_24h_rain_mm": 125.0
+                "precipitation_sum": 140.0,
+                "rain_sum": 140.0,
+                "soil_moisture_0_to_7cm": 0.52,
+                "soil_moisture_7_to_28cm": 0.50,
+                "temperature_2m_max": 26.0,
+                "wind_speed_10m_max": 18.5,
+                "rain_24h": 140.0,
+                "rain_48h": 250.0,
+                "rain_72h": 350.0
             }
         }
 
@@ -74,12 +100,20 @@ def list_districts():
 
 @app.post("/predict")
 def predict_hazard(payload: HazardPredictionRequest):
-    """Predicts flood occurrence, multi-hazard index, and NBRO landslide alert."""
+    """Predicts flood category, flood risk score, and NBRO landslide alert from daily weather data."""
     result = predict_disaster_risk(
         district=payload.district,
-        monthly_rainfall=payload.monthly_rainfall,
-        peak_24h_rain=payload.peak_24h_rain_mm or 0.0,
-        annual_rainfall=payload.annual_rainfall_mm
+        climatic_zone=payload.climatic_zone,
+        precipitation_sum=payload.precipitation_sum,
+        rain_sum=payload.rain_sum,
+        soil_moisture_0_to_7cm=payload.soil_moisture_0_to_7cm,
+        soil_moisture_7_to_28cm=payload.soil_moisture_7_to_28cm,
+        temperature_2m_max=payload.temperature_2m_max,
+        wind_speed_10m_max=payload.wind_speed_10m_max,
+        rain_24h=payload.rain_24h,
+        rain_48h=payload.rain_48h,
+        rain_72h=payload.rain_72h,
+        soil_saturation_index=payload.soil_saturation_index,
     )
     if "error" in result:
         raise HTTPException(status_code=400, detail=result)
