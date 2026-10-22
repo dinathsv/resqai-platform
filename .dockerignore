@@ -6,7 +6,16 @@ __pycache__
 env/
 venv/
 .venv/
+**/.venv/
+**/venv/
+**/__pycache__/
 **/node_modules/
 node_modules/
 .git
 .env
+ai-service/
+ml-models/
+backend/
+mobile/
+resqai-admin/
+

@@ -1,0 +1,12 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+**/.venv/
+.git
+datasets/sri_lanka_flood_risk_modeled.csv
+notebooks/
