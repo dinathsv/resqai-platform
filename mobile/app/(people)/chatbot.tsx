@@ -32,6 +32,29 @@ interface Message {
   timestamp: Date;
 }
 
+type WebSpeechRecognition = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  maxAlternatives: number;
+  onstart: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+};
+
+type WebSpeechRecognitionConstructor = new () => WebSpeechRecognition;
+
+declare global {
+  interface Window {
+    SpeechRecognition?: WebSpeechRecognitionConstructor;
+    webkitSpeechRecognition?: WebSpeechRecognitionConstructor;
+  }
+}
+
 const INITIAL_MESSAGE: Message = {
   id: 'initial',
   role: 'assistant',
@@ -58,6 +81,10 @@ export default function ChatbotScreen() {
   const [voiceLanguage, setVoiceLanguage] = useState('en-US');
   const [, setDetectedLang] = useState('en');
   const flatListRef = useRef<FlatList>(null);
+  const webRecognitionRef = useRef<WebSpeechRecognition | null>(null);
+  const webListeningRef = useRef(false);
+  const webTranscriptRef = useRef('');
+  const webRestartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useSpeechRecognitionEvent('start', () => setIsListening(true));
   useSpeechRecognitionEvent('end', () => setIsListening(false));
@@ -89,6 +116,17 @@ export default function ChatbotScreen() {
       }
     }
     checkAuth();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      webListeningRef.current = false;
+      if (webRestartTimerRef.current) {
+        clearTimeout(webRestartTimerRef.current);
+      }
+      webRecognitionRef.current?.abort();
+      webRecognitionRef.current = null;
+    };
   }, []);
 
   const sendMessageText = async (textToSend: string) => {
@@ -169,11 +207,94 @@ export default function ChatbotScreen() {
 
   const toggleVoiceInput = async () => {
     if (isListening) {
-      ExpoSpeechRecognitionModule.stop();
+      if (Platform.OS === 'web') {
+        webListeningRef.current = false;
+        if (webRestartTimerRef.current) {
+          clearTimeout(webRestartTimerRef.current);
+          webRestartTimerRef.current = null;
+        }
+        webRecognitionRef.current?.stop();
+      } else {
+        ExpoSpeechRecognitionModule.stop();
+      }
       return;
     }
 
     try {
+      if (Platform.OS === 'web') {
+        const SpeechRecognition =
+          window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+          Alert.alert(
+            'Voice input unavailable',
+            'Use Chrome or Edge to use voice input in the browser.',
+          );
+          return;
+        }
+
+        const recognition = new SpeechRecognition();
+        webRecognitionRef.current = recognition;
+        webListeningRef.current = true;
+        webTranscriptRef.current = '';
+        recognition.lang = voiceLanguage;
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => setIsListening(true);
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+          let finalText = webTranscriptRef.current;
+          let interimText = '';
+
+          for (let index = event.resultIndex; index < event.results.length; index += 1) {
+            const text = event.results[index][0]?.transcript ?? '';
+            if (event.results[index].isFinal) {
+              finalText += `${text} `;
+            } else {
+              interimText += text;
+            }
+          }
+
+          webTranscriptRef.current = finalText;
+          setInput(`${finalText}${interimText}`.trim());
+        };
+        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+          if (
+            event.error === 'not-allowed' ||
+            event.error === 'service-not-allowed'
+          ) {
+            webListeningRef.current = false;
+            setIsListening(false);
+            Alert.alert('Microphone access needed', 'Allow microphone access in your browser.');
+          } else if (event.error === 'network') {
+            setIsListening(true);
+          } else if (event.error !== 'aborted' && event.error !== 'no-speech') {
+            webListeningRef.current = false;
+            setIsListening(false);
+            console.warn('Web voice input stopped:', event.error);
+          }
+        };
+        recognition.onend = () => {
+          if (webListeningRef.current && webRecognitionRef.current === recognition) {
+            webRestartTimerRef.current = setTimeout(() => {
+              if (webListeningRef.current && webRecognitionRef.current === recognition) {
+                try {
+                  recognition.start();
+                } catch {
+                  setIsListening(true);
+                }
+              }
+            }, 150);
+          } else {
+            setIsListening(false);
+          }
+        };
+
+        recognition.start();
+        return;
+      }
+
       const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
       if (!permission.granted) {
         Alert.alert('Microphone access needed', 'Allow microphone access to use voice input.');
@@ -188,6 +309,7 @@ export default function ChatbotScreen() {
       ExpoSpeechRecognitionModule.start({
         lang: voiceLanguage,
         interimResults: true,
+        continuous: true,
         maxAlternatives: 1,
         addsPunctuation: true,
       });
@@ -568,10 +690,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 18,
     borderRadius: 14,
     marginBottom: 8,
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 4px 8px rgba(220, 38, 38, 0.25)' } as any)
+      : {
+          shadowColor: '#DC2626',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.25,
+          shadowRadius: 8,
+        }),
     elevation: 3,
   },
   banner1990Text: {

@@ -961,9 +961,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 14,
     alignItems: 'center',
-    shadowOpacity: 0.22,
-    shadowRadius: 7,
-    shadowOffset: { width: 0, height: 0 },
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 0 7px rgba(0, 0, 0, 0.22)' } as any)
+      : {
+          shadowOpacity: 0.22,
+          shadowRadius: 7,
+          shadowOffset: { width: 0, height: 0 },
+        }),
     elevation: 3,
   },
   closeBtnGradient: {

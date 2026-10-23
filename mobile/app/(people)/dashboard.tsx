@@ -84,7 +84,7 @@ const getWeatherColors = (main: string, isDark: boolean): { bg: string; accent: 
 
 function EmergencyGlow() {
   return (
-    <View style={[styles.emergencyGlow, { pointerEvents: 'none' } as any]}>
+    <View style={[styles.emergencyGlow, { pointerEvents: 'none' }]}>
       <View style={[styles.glowCircle, styles.glowOuter]}>
         <View style={[styles.glowCircle, styles.glowMiddle]}>
           <View style={[styles.glowCircle, styles.glowInner]}>

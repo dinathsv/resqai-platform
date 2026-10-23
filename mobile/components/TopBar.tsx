@@ -315,10 +315,14 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     paddingVertical: 12,
     paddingHorizontal: 12,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 12px 24px rgba(15, 23, 42, 0.1)' } as any)
+      : {
+          shadowColor: '#0F172A',
+          shadowOffset: { width: 0, height: 12 },
+          shadowOpacity: 0.1,
+          shadowRadius: 24,
+        }),
     elevation: 10,
   },
   menuDivider: {
