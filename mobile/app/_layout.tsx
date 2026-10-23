@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Slot, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as Location from 'expo-location';
 import { useNetworkSync } from '../hooks/useNetworkSync';
 import { initDB } from '../services/offlineStorage';
 import {
@@ -17,6 +18,7 @@ import {
   setupNotificationListeners,
 } from '../services/notificationService';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 LogBox.ignoreLogs([
   /props\.pointerEvents is deprecated\. Use style\.pointerEvents/,
@@ -43,6 +45,14 @@ function AppLayout() {
     registerForPushNotifications();
     const cleanup = setupNotificationListeners(router);
     return cleanup;
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+
+    Location.requestForegroundPermissionsAsync().catch((error) => {
+      console.warn('Location permission request failed:', error);
+    });
   }, []);
 
 
@@ -80,9 +90,11 @@ function AppLayout() {
 export default function RootLayout() {
   useWebMobileFrame();
   return (
-    <ThemeProvider>
-      <AppLayout />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AppLayout />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 

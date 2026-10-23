@@ -38,7 +38,13 @@ export default function AppearanceSettings({ visible, onClose }: AppearanceSetti
       onRequestClose={onClose}
     >
       <TouchableOpacity
-        style={[styles.backdrop, { backgroundColor: Platform.OS === 'web' ? 'transparent' : theme.overlay, alignItems: 'center' }]}
+        style={[
+          styles.backdrop,
+          {
+            backgroundColor: Platform.OS === 'web' ? 'transparent' : theme.overlay,
+            alignItems: 'center',
+          },
+        ]}
         activeOpacity={1}
         onPress={onClose}
       >

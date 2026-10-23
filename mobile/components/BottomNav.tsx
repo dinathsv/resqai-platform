@@ -15,6 +15,7 @@ import { useTheme } from '../context/ThemeContext';
 import AppearanceSettings from './AppearanceSettings';
 import { apiFetch } from '../config/api';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export type NavTab = 'home' | 'alerts' | 'activities' | 'profile';
 
@@ -85,6 +86,7 @@ function ProfileIcon({ active, color }: { active: boolean; color: string }) {
 export default function BottomNav({ currentTab }: BottomNavProps) {
   const router = useRouter();
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [appearanceVisible, setAppearanceVisible] = useState(false);
@@ -340,6 +342,9 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
           {
             backgroundColor: theme.navBar,
             borderTopColor: theme.navBarBorder,
+            height: 62 + insets.bottom,
+            paddingBottom: insets.bottom + 6,
+            marginBottom: -insets.bottom,
           },
           Platform.OS === 'web' && ({
             borderTopWidth: 1,
@@ -440,7 +445,10 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
               {/* Appearance Menu Item with icon */}
               <TouchableOpacity
                 style={[styles.profileMenuItem, { borderBottomColor: theme.borderSubtle }]}
-                onPress={() => setAppearanceVisible(true)}
+                onPress={() => {
+                  setProfileModalVisible(false);
+                  setTimeout(() => setAppearanceVisible(true), 180);
+                }}
                 activeOpacity={0.7}
               >
                 <Ionicons name="color-palette-outline" size={20} color={theme.textPrimary} style={{ marginRight: 12 }} />
@@ -705,7 +713,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-around',
     paddingHorizontal: 12,
-    paddingBottom: Platform.OS === 'ios' ? 14 : 6,
+    paddingBottom: 6,
     paddingTop: 6,
   },
   navItem: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 4 },

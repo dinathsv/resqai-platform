@@ -15,16 +15,12 @@ import {
   ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { requireOptionalNativeModule } from 'expo';
 import { useRouter } from 'expo-router';
 import { aiFetch } from '../../config/api';
 import { Colors, Fonts } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import TopBar from '../../components/TopBar';
-import {
-  ExpoSpeechRecognitionModule,
-  useSpeechRecognitionEvent,
-} from 'expo-speech-recognition';
-
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -47,6 +43,44 @@ type WebSpeechRecognition = {
 };
 
 type WebSpeechRecognitionConstructor = new () => WebSpeechRecognition;
+
+interface NativeSpeechRecognitionModule {
+  addListener: (
+    eventName: string,
+    listener: (event: NativeSpeechEvent) => void,
+  ) => { remove: () => void };
+  requestPermissionsAsync: () => Promise<{ granted: boolean }>;
+  isRecognitionAvailable: () => boolean;
+  start: (options: {
+    lang: string;
+    interimResults: boolean;
+    continuous: boolean;
+    maxAlternatives: number;
+    addsPunctuation: boolean;
+  }) => void;
+  stop: () => void;
+}
+
+interface NativeSpeechEvent {
+  error?: string;
+  results?: Array<{ transcript?: string }>;
+}
+
+const nativeSpeechRecognition =
+  Platform.OS === 'web'
+    ? null
+    : requireOptionalNativeModule<NativeSpeechRecognitionModule>('ExpoSpeechRecognition');
+
+function useNativeSpeechRecognitionEvent(
+  eventName: string,
+  listener: (event: NativeSpeechEvent) => void,
+) {
+  useEffect(() => {
+    if (!nativeSpeechRecognition) return undefined;
+    const subscription = nativeSpeechRecognition.addListener(eventName, listener);
+    return () => subscription.remove();
+  }, [eventName, listener]);
+}
 
 declare global {
   interface Window {
@@ -86,15 +120,15 @@ export default function ChatbotScreen() {
   const webTranscriptRef = useRef('');
   const webRestartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useSpeechRecognitionEvent('start', () => setIsListening(true));
-  useSpeechRecognitionEvent('end', () => setIsListening(false));
-  useSpeechRecognitionEvent('result', (event) => {
-    const transcript = event.results[0]?.transcript;
+  useNativeSpeechRecognitionEvent('start', () => setIsListening(true));
+  useNativeSpeechRecognitionEvent('end', () => setIsListening(false));
+  useNativeSpeechRecognitionEvent('result', (event) => {
+    const transcript = event.results?.[0]?.transcript;
     if (transcript) {
       setInput(transcript);
     }
   });
-  useSpeechRecognitionEvent('error', (event) => {
+  useNativeSpeechRecognitionEvent('error', (event) => {
     setIsListening(false);
     if (event.error !== 'aborted') {
       Alert.alert(
@@ -215,7 +249,7 @@ export default function ChatbotScreen() {
         }
         webRecognitionRef.current?.stop();
       } else {
-        ExpoSpeechRecognitionModule.stop();
+        nativeSpeechRecognition?.stop();
       }
       return;
     }
@@ -295,18 +329,23 @@ export default function ChatbotScreen() {
         return;
       }
 
-      const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+      if (!nativeSpeechRecognition) {
+        console.warn('Voice input requires a development build on native platforms.');
+        return;
+      }
+
+      const permission = await nativeSpeechRecognition.requestPermissionsAsync();
       if (!permission.granted) {
         Alert.alert('Microphone access needed', 'Allow microphone access to use voice input.');
         return;
       }
 
-      if (!ExpoSpeechRecognitionModule.isRecognitionAvailable()) {
+      if (!nativeSpeechRecognition.isRecognitionAvailable()) {
         Alert.alert('Voice input unavailable', 'Speech recognition is not available on this device.');
         return;
       }
 
-      ExpoSpeechRecognitionModule.start({
+      nativeSpeechRecognition.start({
         lang: voiceLanguage,
         interimResults: true,
         continuous: true,
@@ -388,7 +427,7 @@ export default function ChatbotScreen() {
         <KeyboardAvoidingView
           style={styles.chatArea}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={0}
+          keyboardVerticalOffset={72}
         >
           <FlatList
             ref={flatListRef as any}
@@ -507,8 +546,12 @@ export default function ChatbotScreen() {
 
               {/* Microphone icon button */}
               <TouchableOpacity
-                style={styles.micButton}
+                style={[
+                  styles.micButton,
+                  !nativeSpeechRecognition && Platform.OS !== 'web' && styles.micButtonDisabled,
+                ]}
                 onPress={toggleVoiceInput}
+                disabled={!nativeSpeechRecognition && Platform.OS !== 'web'}
                 activeOpacity={0.7}
                 accessibilityLabel={isListening ? 'Stop voice input' : 'Start voice input'}
               >
@@ -772,6 +815,9 @@ const styles = StyleSheet.create({
   micButton: {
     paddingHorizontal: 8,
     paddingVertical: 6,
+  },
+  micButtonDisabled: {
+    opacity: 0.45,
   },
   micIcon: {
     fontSize: 18,
