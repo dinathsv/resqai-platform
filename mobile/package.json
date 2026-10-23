@@ -23,6 +23,7 @@
     "expo-location": "~18.0.0",
     "expo-notifications": "~57.0.10",
     "expo-router": "~57.0.12",
+    "expo-speech-recognition": "^58.0.0",
     "expo-sqlite": "~57.0.1",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",

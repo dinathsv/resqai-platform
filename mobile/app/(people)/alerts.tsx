@@ -37,6 +37,7 @@ export interface AlertNotification {
 }
 
 const ACK_STORAGE_KEY = '@resqai_acknowledged_alerts';
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 function getDisasterMeta(type: string) {
   const lower = (type || '').toLowerCase();
@@ -89,6 +90,7 @@ export default function AlertsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'present' | 'past'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [liveBanner, setLiveBanner] = useState<string | null>(null);
 
@@ -97,8 +99,8 @@ export default function AlertsScreen() {
   useEffect(() => {
     const animation = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.25, duration: 800, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1.25, duration: 800, useNativeDriver: USE_NATIVE_DRIVER }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: USE_NATIVE_DRIVER }),
       ])
     );
     animation.start();
@@ -337,9 +339,6 @@ export default function AlertsScreen() {
               <Text style={[styles.screenTitle, { color: theme.textPrimary }]}>
                 Emergency Alerts
               </Text>
-              <Text style={[styles.screenSubtitle, { color: theme.textSecondary }]}>
-                Real-time disaster warnings, civil defense notices & history
-              </Text>
             </View>
             <View style={[styles.totalBadge, { backgroundColor: theme.surfaceElevated }]}>
               <Text style={[styles.totalBadgeCount, { color: theme.brandActive }]}>
@@ -367,14 +366,25 @@ export default function AlertsScreen() {
         </View>
 
         {/* Search Bar */}
-        <View style={[styles.searchContainer, { backgroundColor: theme.surface, borderColor: theme.borderSubtle }]}>
+        <View
+          style={[
+            styles.searchContainer,
+            {
+              backgroundColor: isSearchFocused ? theme.surfaceElevated : theme.surface,
+              borderColor: isSearchFocused ? theme.brandActive : theme.borderSubtle,
+            },
+            isSearchFocused && styles.searchContainerFocused,
+          ]}
+        >
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={[styles.searchInput, { color: theme.textPrimary }]}
-            placeholder="Search notifications, disaster type, location..."
+            placeholder="Search alerts"
             placeholderTextColor={theme.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
             clearButtonMode="while-editing"
           />
           {searchQuery.length > 0 && (
@@ -789,14 +799,9 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     fontFamily: Fonts.bold,
+    fontWeight: '700',
     fontSize: 22,
     letterSpacing: -0.3,
-  },
-  screenSubtitle: {
-    fontFamily: Fonts.regular,
-    fontSize: 13,
-    marginTop: 2,
-    lineHeight: 18,
   },
   totalBadge: {
     paddingHorizontal: 12,
@@ -846,6 +851,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 20,
     height: 48,
+  },
+  searchContainerFocused: {
+    borderWidth: 2,
+    paddingHorizontal: 13,
   },
   searchIcon: {
     fontSize: 14,

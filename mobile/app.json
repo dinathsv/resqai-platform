@@ -39,7 +39,8 @@
     "plugins": [
       "expo-sqlite",
       "expo-router",
-      "expo-location"
+      "expo-location",
+      "expo-speech-recognition"
     ]
   }
 }

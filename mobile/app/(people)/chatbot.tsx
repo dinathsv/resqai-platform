@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Linking,
+  Alert,
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
@@ -19,6 +20,10 @@ import { aiFetch } from '../../config/api';
 import { Colors, Fonts } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import TopBar from '../../components/TopBar';
+import {
+  ExpoSpeechRecognitionModule,
+  useSpeechRecognitionEvent,
+} from 'expo-speech-recognition';
 
 interface Message {
   id: string;
@@ -49,8 +54,30 @@ export default function ChatbotScreen() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [show1990, setShow1990] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [voiceLanguage, setVoiceLanguage] = useState('en-US');
   const [, setDetectedLang] = useState('en');
   const flatListRef = useRef<FlatList>(null);
+
+  useSpeechRecognitionEvent('start', () => setIsListening(true));
+  useSpeechRecognitionEvent('end', () => setIsListening(false));
+  useSpeechRecognitionEvent('result', (event) => {
+    const transcript = event.results[0]?.transcript;
+    if (transcript) {
+      setInput(transcript);
+    }
+  });
+  useSpeechRecognitionEvent('error', (event) => {
+    setIsListening(false);
+    if (event.error !== 'aborted') {
+      Alert.alert(
+        'Voice input',
+        event.error === 'not-allowed'
+          ? 'Allow microphone access to use voice input.'
+          : 'Voice input is not available. Please try again.',
+      );
+    }
+  });
 
   useEffect(() => {
     async function checkAuth() {
@@ -140,6 +167,36 @@ export default function ChatbotScreen() {
     sendMessageText(input);
   };
 
+  const toggleVoiceInput = async () => {
+    if (isListening) {
+      ExpoSpeechRecognitionModule.stop();
+      return;
+    }
+
+    try {
+      const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Microphone access needed', 'Allow microphone access to use voice input.');
+        return;
+      }
+
+      if (!ExpoSpeechRecognitionModule.isRecognitionAvailable()) {
+        Alert.alert('Voice input unavailable', 'Speech recognition is not available on this device.');
+        return;
+      }
+
+      ExpoSpeechRecognitionModule.start({
+        lang: voiceLanguage,
+        interimResults: true,
+        maxAlternatives: 1,
+        addsPunctuation: true,
+      });
+    } catch (error) {
+      console.error('Voice input error:', error);
+      Alert.alert('Voice input error', 'Could not start voice input. Please try again.');
+    }
+  };
+
   const handleBack = () => {
     if (router.canGoBack()) {
       router.back();
@@ -164,7 +221,12 @@ export default function ChatbotScreen() {
         <View
           style={[
             styles.messageCard,
-            isUser ? styles.userMessageCard : { backgroundColor: theme.isDark ? theme.backgroundDeep : '#FFFFFF', borderColor: theme.border },
+            isUser
+              ? styles.userMessageCard
+              : {
+                  backgroundColor: theme.surfaceElevated,
+                  borderColor: theme.border,
+                },
           ]}
         >
           <Text
@@ -192,7 +254,7 @@ export default function ChatbotScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Midnight Navy Top Header with Back and 3-Dot Navigation Menu */}
       <TopBar
-        title="AI First-Aid Assistant"
+        title="First aid"
         showBack
         onBack={handleBack}
         theme={theme.isDark ? 'dark' : 'light'}
@@ -220,8 +282,8 @@ export default function ChatbotScreen() {
 
           {loading && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#160B3F" />
-              <Text style={styles.loadingText}>
+              <ActivityIndicator size="small" color={theme.accent} />
+                <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
                 Assistant is preparing guidance...
               </Text>
             </View>
@@ -229,7 +291,7 @@ export default function ChatbotScreen() {
 
           {show1990 && (
             <TouchableOpacity
-              style={styles.banner1990}
+              style={[styles.banner1990, { backgroundColor: theme.error }]}
               onPress={() => Linking.openURL('tel:1990')}
               activeOpacity={0.8}
             >
@@ -240,7 +302,7 @@ export default function ChatbotScreen() {
           )}
 
           {/* Quick Suggestion Pills matching Image 1 */}
-          <View style={styles.suggestionsWrapper}>
+          <View style={[styles.suggestionsWrapper, { backgroundColor: theme.surface }]}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -249,19 +311,67 @@ export default function ChatbotScreen() {
               {SUGGESTIONS.map((suggestion, idx) => (
                 <TouchableOpacity
                   key={idx}
-                  style={styles.suggestionPill}
+                  style={[
+                    styles.suggestionPill,
+                    { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
+                  ]}
                   onPress={() => sendMessageText(suggestion)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.suggestionText}>{suggestion}</Text>
+                  <Text style={[styles.suggestionText, { color: theme.textSecondary }]}>
+                    {suggestion}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
           </View>
 
           {/* Floating Pill Input Box matching Image 1 */}
-          <View style={styles.inputContainer}>
-            <View style={styles.inputCapsule}>
+          <View style={[styles.inputContainer, { backgroundColor: theme.surface }]}>
+            <View style={styles.voiceLanguageRow}>
+              {[
+                { label: 'English', value: 'en-US' },
+                { label: 'Sinhala', value: 'si-LK' },
+                { label: 'Tamil', value: 'ta-LK' },
+              ].map((language) => (
+                <TouchableOpacity
+                  key={language.value}
+                  style={[
+                    styles.voiceLanguageButton,
+                    {
+                      backgroundColor:
+                        voiceLanguage === language.value
+                          ? theme.accent
+                          : theme.surfaceElevated,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                  onPress={() => setVoiceLanguage(language.value)}
+                  disabled={isListening}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.voiceLanguageText,
+                      {
+                        color:
+                          voiceLanguage === language.value
+                            ? theme.white
+                            : theme.textSecondary,
+                      },
+                    ]}
+                  >
+                    {language.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View
+              style={[
+                styles.inputCapsule,
+                { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
+              ]}
+            >
               <TextInput
                 style={[styles.textInput, { color: theme.textPrimary }]}
                 value={input}
@@ -276,12 +386,13 @@ export default function ChatbotScreen() {
               {/* Microphone icon button */}
               <TouchableOpacity
                 style={styles.micButton}
-                onPress={() => {
-                  setInput('My friend is bleeding heavily, what should i do?');
-                }}
+                onPress={toggleVoiceInput}
                 activeOpacity={0.7}
+                accessibilityLabel={isListening ? 'Stop voice input' : 'Start voice input'}
               >
-                <Text style={styles.micIcon}>🎙️</Text>
+                <Text style={[styles.micIcon, { opacity: theme.isDark ? 0.8 : 1 }]}>
+                  {isListening ? '■' : '🎙️'}
+                </Text>
               </TouchableOpacity>
 
               {/* Dark navy/indigo send arrow button */}
@@ -301,11 +412,10 @@ export default function ChatbotScreen() {
           </View>
 
           {/* Bottom Medical Disclaimer Pill matching Image 1 */}
-          <View style={[styles.disclaimerContainer, { backgroundColor: theme.isDark ? theme.surface : '#FFFFFF' }]}>
-            <View style={[styles.disclaimerPill, { backgroundColor: theme.isDark ? theme.backgroundDeep : '#EFECE6' }]}>
+          <View style={[styles.disclaimerContainer, { backgroundColor: theme.surface }]}>
+            <View style={[styles.disclaimerPill, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}>
               <Text style={[styles.disclaimerText, { color: theme.isDark ? theme.textSecondary : '#4B4844' }]}>
-                Disclaimer: This AI provides general first-aid guidance only and
-                does not replace professional medical advice
+                General first-aid tips only. Not medical advice.
               </Text>
             </View>
           </View>
@@ -367,8 +477,8 @@ const styles = StyleSheet.create({
   sheetContainer: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
     overflow: 'hidden',
   },
   chatArea: {
@@ -499,7 +609,22 @@ const styles = StyleSheet.create({
   inputContainer: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: 'transparent',
+    backgroundColor: '#FFFFFF',
+  },
+  voiceLanguageRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 6,
+  },
+  voiceLanguageButton: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  voiceLanguageText: {
+    fontSize: 11,
+    fontFamily: Fonts.medium,
   },
   inputCapsule: {
     flexDirection: 'row',
@@ -550,6 +675,8 @@ const styles = StyleSheet.create({
   },
   disclaimerPill: {
     backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 14,

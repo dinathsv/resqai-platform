@@ -173,9 +173,6 @@ export default function ActivitiesScreen() {
             <Text style={[styles.greetingText, { color: theme.textPrimary }]}>
               Hello, {userName || 'Citizen'}!
             </Text>
-            <Text style={[styles.greetingSubText, { color: theme.textSecondary }]}>
-              Sri Lanka Disaster Relief Network
-            </Text>
           </View>
         </View>
 

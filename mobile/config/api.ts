@@ -31,10 +31,34 @@ export const AI_BASE = resolveBaseUrl(process.env.EXPO_PUBLIC_AI_URL);
 export const SOCKET_URL =
   process.env.EXPO_PUBLIC_SOCKET_URL || `http://${LOCALHOST}:5000`;
 
+function isExpiredJwt(token: string): boolean {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload || typeof globalThis.atob !== 'function') return false;
+
+    const decoded = globalThis.atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    const { exp } = JSON.parse(decoded) as { exp?: number };
+    return typeof exp === 'number' && exp * 1000 <= Date.now();
+  } catch {
+    // A token that is not a JWT is left for the API to validate.
+    return false;
+  }
+}
+
 export async function getToken(): Promise<string | null> {
-  const token = await AsyncStorage.getItem('token');
-  if (token) return token;
-  return AsyncStorage.getItem('guest_token');
+  for (const key of ['token', 'guest_token'] as const) {
+    const token = await AsyncStorage.getItem(key);
+    if (!token) continue;
+
+    if (isExpiredJwt(token)) {
+      await AsyncStorage.removeItem(key);
+      continue;
+    }
+
+    return token;
+  }
+
+  return null;
 }
 
 export async function apiFetch(

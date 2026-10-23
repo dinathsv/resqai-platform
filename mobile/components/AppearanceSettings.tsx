@@ -19,7 +19,7 @@ type Option = { mode: ThemeMode; label: string; icon: string };
 
 const OPTIONS: Option[] = [
   { mode: 'light',  label: 'Light',  icon: '☀' },
-  { mode: 'dark',   label: 'Dark',   icon: '🌙' },
+  { mode: 'dark',   label: 'Dark',   icon: '☾' },
   { mode: 'system', label: 'System', icon: '◐' },
 ];
 
@@ -219,6 +219,7 @@ const styles = StyleSheet.create({
   },
   segmentIcon: {
     fontSize: 15,
+    color: '#000000',
   },
   segmentLabel: {
     fontSize: 14,

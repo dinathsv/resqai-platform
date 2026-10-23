@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../constants/theme';
+import { getToken } from '../config/api';
 
 /**
  * Entry point: check for stored auth token.
@@ -18,10 +18,9 @@ export default function Index() {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const token = await AsyncStorage.getItem('token');
-        const guestToken = await AsyncStorage.getItem('guest_token');
+        const token = await getToken();
 
-        if (token || guestToken) {
+        if (token) {
           router.replace('/(people)/dashboard');
         } else {
           router.replace('/(auth)/login');

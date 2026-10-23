@@ -11,8 +11,8 @@ from fastapi import APIRouter, Depends
 import langdetect
 from pydantic import BaseModel
 
-from app.services.ai_service import call_llm
-from app.database import get_db
+from ..services.ai_service import call_llm
+from ..database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 

@@ -228,6 +228,7 @@ export const Fonts = {
   medium:   SYSTEM_FONT,
   semiBold: SYSTEM_FONT,
   bold:     SYSTEM_FONT,
+  mono:     Platform.select({ ios: 'Menlo', android: 'monospace', web: 'monospace' }) as string,
 } as const;
 
 // ---------------------------------------------

@@ -5,7 +5,7 @@ from email.mime.text import MIMEText
 
 import httpx
 
-from app.config import settings
+from ..config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ class EmailOTPSender(OTPSender):
             return False
 
 
-from app.services.sms_service import normalize_phone_number, sms_gateway
+from .sms_service import normalize_phone_number, sms_gateway
 
 
 class SMSlenzOTPSender(OTPSender):

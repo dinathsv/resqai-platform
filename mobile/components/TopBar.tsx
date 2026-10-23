@@ -38,7 +38,7 @@ export default function TopBar({
   const pathname = usePathname();
   const [menuVisible, setMenuVisible] = useState(false);
   const { theme: appTheme } = useTheme();
-  const isDark = theme === 'dark' || theme === 'red';
+  const isDark = appTheme.isDark || theme === 'dark' || theme === 'red';
 
   const handleDefaultBack = () => {
     if (router.canGoBack()) {
@@ -91,7 +91,7 @@ export default function TopBar({
                   isDark && styles.backButtonTextDark,
                 ]}
               >
-                ← Back
+                ←
               </Text>
             </TouchableOpacity>
           ) : (
@@ -171,125 +171,15 @@ export default function TopBar({
           <View style={styles.modalOverlay}>
             <View style={styles.modalContentWrapper}>
               <Pressable>
-                <View style={styles.menuDropdown}>
+                <View
+                  style={[
+                    styles.menuDropdown,
+                    { backgroundColor: appTheme.surface, borderColor: appTheme.border },
+                  ]}
+                >
                   {/* Navigation Items */}
-                <TouchableOpacity
-                  style={[
-                    styles.menuItem,
-                    pathname === '/(people)/dashboard' && styles.menuItemActive,
-                  ]}
-                  onPress={() => handleNavigate('/(people)/dashboard')}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="home-outline" size={16} color={pathname === '/(people)/dashboard' ? appTheme.brandActive : appTheme.textPrimary} />
-                  <Text
-                    style={[
-                      styles.menuItemLabel,
-                      pathname === '/(people)/dashboard' && styles.menuItemLabelActive,
-                    ]}
-                  >
-                    Dashboard Home
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.menuItem,
-                    pathname === '/(people)/alerts' && styles.menuItemActive,
-                  ]}
-                  onPress={() => handleNavigate('/(people)/alerts')}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="notifications-outline" size={16} color={pathname === '/(people)/alerts' ? appTheme.brandActive : appTheme.textPrimary} />
-                  <Text
-                    style={[
-                      styles.menuItemLabel,
-                      pathname === '/(people)/alerts' && styles.menuItemLabelActive,
-                    ]}
-                  >
-                    Alerts & Notifications
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.menuItem,
-                    pathname === '/(people)/activities' && styles.menuItemActive,
-                  ]}
-                  onPress={() => handleNavigate('/(people)/activities')}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="person-outline" size={16} color={pathname === '/(people)/activities' ? appTheme.brandActive : appTheme.textPrimary} />
-                  <Text
-                    style={[
-                      styles.menuItemLabel,
-                      pathname === '/(people)/activities' && styles.menuItemLabelActive,
-                    ]}
-                  >
-                    Profile & Activities
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.menuItem,
-                    pathname === '/(people)/help' && styles.menuItemActive,
-                  ]}
-                  onPress={() => handleNavigate('/(people)/help')}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="medkit-outline" size={16} color={pathname === '/(people)/help' ? appTheme.brandActive : appTheme.textPrimary} />
-                  <Text
-                    style={[
-                      styles.menuItemLabel,
-                      pathname === '/(people)/help' && styles.menuItemLabelActive,
-                    ]}
-                  >
-                    Emergency Help Center
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.menuItem,
-                    pathname === '/(people)/locator' && styles.menuItemActive,
-                  ]}
-                  onPress={() => handleNavigate('/(people)/locator')}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="location-outline" size={16} color={pathname === '/(people)/locator' ? appTheme.brandActive : appTheme.textPrimary} />
-                  <Text
-                    style={[
-                      styles.menuItemLabel,
-                      pathname === '/(people)/locator' && styles.menuItemLabelActive,
-                    ]}
-                  >
-                    Find Hospitals & Care
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.menuItem,
-                    pathname === '/(people)/chatbot' && styles.menuItemActive,
-                  ]}
-                  onPress={() => handleNavigate('/(people)/chatbot')}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="chatbubbles-outline" size={16} color={pathname === '/(people)/chatbot' ? appTheme.brandActive : appTheme.textPrimary} />
-                  <Text
-                    style={[
-                      styles.menuItemLabel,
-                      pathname === '/(people)/chatbot' && styles.menuItemLabelActive,
-                    ]}
-                  >
-                    AI First-Aid Guidance
-                  </Text>
-                </TouchableOpacity>
-
                 <View style={styles.menuDivider} />
 
-                {/* Sign Out Action */}
                 <TouchableOpacity
                   style={styles.menuItemSignOut}
                   onPress={handleSignOut}
@@ -390,8 +280,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   headerBarDark: {
-    backgroundColor: 'transparent',
-    borderBottomColor: 'transparent',
+    backgroundColor: '#18181B',
+    borderBottomColor: '#27272A',
   },
   backButtonTextDark: {
     color: '#FFFFFF',

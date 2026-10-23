@@ -17,7 +17,7 @@
     },
     {
       "root": "app",
-      "extraPaths": ["app"]
+      "extraPaths": ["."]
     },
     {
       "root": ".",
@@ -26,4 +26,3 @@
   ],
   "reportPrivateImportUsage": false
 }
-

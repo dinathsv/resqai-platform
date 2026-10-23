@@ -7,9 +7,6 @@ import {
   Modal,
   Platform,
   Image,
-  TextInput,
-  ActivityIndicator,
-  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,7 +14,6 @@ import { Fonts } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
 import AppearanceSettings from './AppearanceSettings';
 import { apiFetch } from '../config/api';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
 export type NavTab = 'home' | 'alerts' | 'activities' | 'profile';
@@ -92,18 +88,13 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
 
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [appearanceVisible, setAppearanceVisible] = useState(false);
+  const [avatarActionsVisible, setAvatarActionsVisible] = useState(false);
+  const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
   const [avatarPickerVisible, setAvatarPickerVisible] = useState(false);
 
   // User Profile State
   const [profileName, setProfileName] = useState<string>('Sriranjan Kirushajithan');
-  const [profileEmail, setProfileEmail] = useState<string>('');
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
-
-  // Edit Name State
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editNameText, setEditNameText] = useState('');
-  const [savingName, setSavingName] = useState(false);
-  const [statusNotice, setStatusNotice] = useState<string | null>(null);
   const [unreadAlertsCount, setUnreadAlertsCount] = useState<number>(0);
 
   const activeColor = theme.emergency;
@@ -113,11 +104,9 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
   const loadProfile = async () => {
     try {
       const cachedName = await AsyncStorage.getItem('user_name');
-      const cachedEmail = await AsyncStorage.getItem('user_email');
       const cachedAvatar = await AsyncStorage.getItem('user_avatar');
 
       if (cachedName) setProfileName(cachedName);
-      if (cachedEmail) setProfileEmail(cachedEmail);
       if (cachedAvatar) setProfileAvatar(cachedAvatar);
 
       const res = await apiFetch('/api/auth/me');
@@ -126,10 +115,6 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
         if (data.full_name) {
           setProfileName(data.full_name);
           await AsyncStorage.setItem('user_name', data.full_name);
-        }
-        if (data.email) {
-          setProfileEmail(data.email);
-          await AsyncStorage.setItem('user_email', data.email);
         }
         if (data.avatar_url) {
           setProfileAvatar(data.avatar_url);
@@ -180,30 +165,6 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
     router.replace('/');
   };
 
-  // Save Name Handler
-  const handleSaveName = async () => {
-    const trimmed = editNameText.trim();
-    if (!trimmed) return;
-    setSavingName(true);
-    try {
-      setProfileName(trimmed);
-      await AsyncStorage.setItem('user_name', trimmed);
-
-      await apiFetch('/api/auth/me', {
-        method: 'PATCH',
-        body: JSON.stringify({ full_name: trimmed }),
-      });
-
-      setIsEditingName(false);
-      showNotice('Profile name updated!');
-    } catch (err) {
-      console.warn('Update name notice:', err);
-      setIsEditingName(false);
-    } finally {
-      setSavingName(false);
-    }
-  };
-
   // Save Avatar Handler
   const handleSaveAvatar = async (newAvatar: string | null) => {
     try {
@@ -220,7 +181,6 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
       });
 
       setAvatarPickerVisible(false);
-      showNotice('Profile picture updated!');
     } catch (err) {
       console.warn('Update avatar notice:', err);
       setAvatarPickerVisible(false);
@@ -248,13 +208,6 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
       };
       input.click();
     }
-  };
-
-  const showNotice = (msg: string) => {
-    setStatusNotice(msg);
-    setTimeout(() => {
-      setStatusNotice(null);
-    }, 3500);
   };
 
   // Render Avatar Helper
@@ -427,7 +380,6 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
         animationType="slide"
         onRequestClose={() => {
           setProfileModalVisible(false);
-          setIsEditingName(false);
         }}
       >
         <TouchableOpacity
@@ -435,7 +387,6 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
           activeOpacity={1}
           onPress={() => {
             setProfileModalVisible(false);
-            setIsEditingName(false);
           }}
         >
           <View style={[styles.webFrameConstraint, { backgroundColor: Platform.OS === 'web' ? theme.overlay : 'transparent' }]}>
@@ -457,25 +408,12 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 } as any),
               ]}
             >
-            {/* Sheet Top Controls: Theme Switcher Icon & Close Button */}
+            {/* Close control */}
             <View style={styles.sheetTopControls}>
-              <TouchableOpacity
-                style={styles.appearanceHeaderIconBtn}
-                onPress={() => setAppearanceVisible(true)}
-                activeOpacity={0.7}
-                accessibilityLabel="Change Theme Appearance"
-              >
-                <Ionicons name={theme.isDark ? 'moon-outline' : 'sunny-outline'} size={14} color={theme.textSecondary} />
-                <Text style={[styles.appearanceHeaderText, { color: theme.textSecondary }]}>
-                  Appearance
-                </Text>
-              </TouchableOpacity>
-
               <TouchableOpacity
                 style={[styles.closeIconTouch, { backgroundColor: theme.surfaceSubtle }]}
                 onPress={() => {
                   setProfileModalVisible(false);
-                  setIsEditingName(false);
                 }}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
@@ -483,21 +421,12 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
               </TouchableOpacity>
             </View>
 
-            {/* Status Notice Toast */}
-            {statusNotice && (
-              <View style={[styles.noticeBadge, { backgroundColor: theme.successLight }]}>
-                <Text style={[styles.noticeBadgeText, { color: theme.success }]}>
-                  ✓ {statusNotice}
-                </Text>
-              </View>
-            )}
-
-            {/* Avatar with Camera Badge */}
+            {/* Avatar actions */}
             <View style={styles.avatarWrapper}>
               <TouchableOpacity
-                onPress={() => setAvatarPickerVisible(true)}
+                onPress={() => setAvatarActionsVisible(true)}
                 activeOpacity={0.8}
-                accessibilityLabel="Change Profile Picture"
+                accessibilityLabel="Profile photo options"
               >
                 {renderAvatarContent(76)}
                 <View style={[styles.cameraBadge, { backgroundColor: theme.brandActive, borderColor: theme.navBar }]}>
@@ -506,90 +435,8 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
               </TouchableOpacity>
             </View>
 
-            {/* Profile Name (Display or Edit Form) */}
-            {isEditingName ? (
-              <View style={styles.nameEditBox}>
-                <TextInput
-                  style={[
-                    styles.nameInput,
-                    {
-                      color: theme.textPrimary,
-                      backgroundColor: theme.inputBg,
-                      borderColor: theme.brandActive,
-                    },
-                  ]}
-                  value={editNameText}
-                  onChangeText={setEditNameText}
-                  placeholder="Enter full name"
-                  placeholderTextColor={theme.textMuted}
-                  autoFocus
-                />
-                <View style={styles.nameActionButtonsRow}>
-                  <TouchableOpacity
-                    style={[styles.saveNameBtn, { backgroundColor: theme.brandActive }]}
-                    onPress={handleSaveName}
-                    disabled={savingName}
-                    activeOpacity={0.8}
-                  >
-                    {savingName ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Text style={styles.saveNameBtnText}>Save</Text>
-                    )}
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.cancelNameBtn, { borderColor: theme.borderSubtle }]}
-                    onPress={() => setIsEditingName(false)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.cancelNameBtnText, { color: theme.textMuted }]}>Cancel</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.nameDisplayRow}>
-                <Text style={[styles.profileTitle, { color: theme.textPrimary }]} numberOfLines={1}>
-                  {profileName}
-                </Text>
-                <TouchableOpacity
-                  style={[styles.editPencilBtn, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]}
-                  onPress={() => {
-                    setEditNameText(profileName);
-                    setIsEditingName(true);
-                  }}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  accessibilityLabel="Edit Profile Name"
-                >
-                  <Ionicons name="pencil" size={14} color={theme.textPrimary} />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Profile Subtitle / Verified Badge */}
-            <View style={styles.subInfoRow}>
-              <Text style={[styles.profileSub, { color: theme.textMuted }]}>
-                {profileEmail || 'Citizen • Emergency & Relief Platform'}
-              </Text>
-              <View style={[styles.verifiedChip, { backgroundColor: 'rgba(38, 116, 95, 0.12)' }]}>
-                <Text style={[styles.verifiedChipText, { color: theme.brandActive }]}>
-                  ✓ Active Citizen
-                </Text>
-              </View>
-            </View>
-
-            {/* Quick Photo Change Hint */}
-            <TouchableOpacity
-              onPress={() => setAvatarPickerVisible(true)}
-              style={styles.changePhotoTextBtn}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.changePhotoText, { color: theme.brandActive }]}>
-                Change Profile Picture
-              </Text>
-            </TouchableOpacity>
-
             {/* Profile Menu Actions */}
-            <View style={[styles.profileMenu, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]}>
+            <View style={[styles.profileMenu, { backgroundColor: theme.surface, borderColor: theme.borderSubtle }]}>
               {/* Appearance Menu Item with icon */}
               <TouchableOpacity
                 style={[styles.profileMenuItem, { borderBottomColor: theme.borderSubtle }]}
@@ -597,13 +444,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 activeOpacity={0.7}
               >
                 <Ionicons name="color-palette-outline" size={20} color={theme.textPrimary} style={{ marginRight: 12 }} />
-                <View style={styles.menuTextCol}>
-                  <Text style={[styles.profileMenuText, { color: theme.textPrimary }]}>Appearance & Theme</Text>
-                  <Text style={[styles.profileMenuDesc, { color: theme.textMuted }]}>
-                    Current: {theme.isDark ? 'Dark Mode' : 'Light Mode'}
-                  </Text>
-                </View>
-                <Ionicons name={theme.isDark ? 'moon-outline' : 'sunny-outline'} size={16} color={theme.textMuted} style={{ marginRight: 6 }} />
+                <Text style={[styles.profileMenuText, { color: theme.textPrimary, flex: 1 }]}>Appearance</Text>
                 <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
               </TouchableOpacity>
 
@@ -613,10 +454,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 activeOpacity={0.7}
               >
                 <Ionicons name="help-buoy-outline" size={20} color={theme.textPrimary} style={{ marginRight: 12 }} />
-                <View style={styles.menuTextCol}>
-                  <Text style={[styles.profileMenuText, { color: theme.textPrimary }]}>Disaster Preparedness Quiz</Text>
-                  <Text style={[styles.profileMenuDesc, { color: theme.textMuted }]}>Earn emergency readiness score</Text>
-                </View>
+                <Text style={[styles.profileMenuText, { color: theme.textPrimary, flex: 1 }]}>Quiz</Text>
                 <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
               </TouchableOpacity>
 
@@ -626,10 +464,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 activeOpacity={0.7}
               >
                 <Ionicons name="heart-outline" size={20} color={theme.textPrimary} style={{ marginRight: 12 }} />
-                <View style={styles.menuTextCol}>
-                  <Text style={[styles.profileMenuText, { color: theme.textPrimary }]}>Relief Fund Donations</Text>
-                  <Text style={[styles.profileMenuDesc, { color: theme.textMuted }]}>Support flood & disaster victims</Text>
-                </View>
+                <Text style={[styles.profileMenuText, { color: theme.textPrimary, flex: 1 }]}>Donation</Text>
                 <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
               </TouchableOpacity>
 
@@ -639,37 +474,82 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 activeOpacity={0.7}
               >
                 <Ionicons name="log-out-outline" size={20} color={theme.emergency} style={{ marginRight: 12 }} />
-                <View style={styles.menuTextCol}>
-                  <Text style={[styles.signOutText, { color: theme.emergency }]}>Sign Out</Text>
-                  <Text style={[styles.profileMenuDesc, { color: theme.textMuted }]}>Disconnect this session</Text>
-                </View>
+                <Text style={[styles.signOutText, { color: theme.emergency, flex: 1 }]}>Sign Out</Text>
                 <Ionicons name="chevron-forward" size={16} color={theme.emergency} />
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              style={[styles.closeBtn, {
-                shadowColor: theme.emergency,
-              }]}
-              onPress={() => {
-                setProfileModalVisible(false);
-                setIsEditingName(false);
-              }}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={['#DC3545', '#E8434A', '#EF5350']}
-                locations={[0, 0.48, 1]}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0.5 }}
-                style={styles.closeBtnGradient}
-              >
-                <View style={[styles.closeBtnHighlight, { pointerEvents: 'none' }]} />
-                <Text style={[styles.closeBtnText, { color: theme.white }]}>Close</Text>
-              </LinearGradient>
-            </TouchableOpacity>
           </TouchableOpacity>
           </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={avatarActionsVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAvatarActionsVisible(false)}
+      >
+        <TouchableOpacity
+          style={[styles.modalBackdrop, { backgroundColor: theme.overlay, alignItems: 'center' }]}
+          activeOpacity={1}
+          onPress={() => setAvatarActionsVisible(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={[styles.avatarActionSheet, { backgroundColor: theme.navBar, borderColor: theme.border }]}
+          >
+            <TouchableOpacity
+              style={[styles.avatarActionButton, { borderBottomColor: theme.borderSubtle }]}
+              onPress={() => {
+                setAvatarActionsVisible(false);
+                setAvatarPreviewVisible(true);
+              }}
+            >
+              <Text style={[styles.avatarActionText, { color: theme.textPrimary }]}>View Photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.avatarActionButton, { borderBottomColor: theme.borderSubtle }]}
+              onPress={() => {
+                setAvatarActionsVisible(false);
+                setAvatarPickerVisible(true);
+              }}
+            >
+              <Text style={[styles.avatarActionText, { color: theme.brandActive }]}>Change Photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.avatarActionButton}
+              onPress={() => setAvatarActionsVisible(false)}
+            >
+              <Text style={[styles.avatarActionText, { color: theme.textMuted }]}>Cancel</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={avatarPreviewVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAvatarPreviewVisible(false)}
+      >
+        <TouchableOpacity
+          style={[styles.modalBackdrop, { backgroundColor: theme.overlay, alignItems: 'center', justifyContent: 'center' }]}
+          activeOpacity={1}
+          onPress={() => setAvatarPreviewVisible(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={[styles.avatarPreviewSheet, { backgroundColor: theme.navBar, borderColor: theme.border }]}
+          >
+            {renderAvatarContent(180)}
+            <TouchableOpacity
+              style={[styles.previewDoneButton, { backgroundColor: theme.surfaceSubtle }]}
+              onPress={() => setAvatarPreviewVisible(false)}
+            >
+              <Text style={[styles.avatarActionText, { color: theme.textPrimary }]}>Done</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 
@@ -853,7 +733,7 @@ const styles = StyleSheet.create({
   sheetTopControls: {
     width: '100%',
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     marginBottom: 8,
   },
@@ -875,6 +755,37 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarActionSheet: {
+    width: '82%',
+    maxWidth: 340,
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  avatarActionButton: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  avatarActionText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 15,
+  },
+  avatarPreviewSheet: {
+    width: '82%',
+    maxWidth: 340,
+    alignItems: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 24,
+  },
+  previewDoneButton: {
+    width: '100%',
+    alignItems: 'center',
+    borderRadius: 10,
+    paddingVertical: 12,
+    marginTop: 20,
   },
 
   noticeBadge: {

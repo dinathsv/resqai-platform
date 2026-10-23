@@ -30,6 +30,7 @@ const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV
 const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 // ── Color palette (clean mobile) ──
 const C = {
@@ -61,6 +62,7 @@ const C = {
 export default function PredictionScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const cardTheme = { backgroundColor: theme.surface, borderColor: theme.border };
 
   // --- State ---
   const [districts, setDistricts] = useState<string[]>([]);
@@ -134,8 +136,8 @@ export default function PredictionScreen() {
     if (result && ((result.nbro_landslide_alert?.level ?? 0) >= 2 || isMajor)) {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.04, duration: 900, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1.04, duration: 900, useNativeDriver: USE_NATIVE_DRIVER }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 900, useNativeDriver: USE_NATIVE_DRIVER }),
         ])
       ).start();
     }
@@ -145,8 +147,8 @@ export default function PredictionScreen() {
     fadeAnim.setValue(0);
     slideAnim.setValue(30);
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 450, useNativeDriver: true }),
-      Animated.spring(slideAnim, { toValue: 0, friction: 8, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 450, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.spring(slideAnim, { toValue: 0, friction: 8, useNativeDriver: USE_NATIVE_DRIVER }),
     ]).start();
   }, []);
 
@@ -219,6 +221,13 @@ export default function PredictionScreen() {
     return C.green;
   };
   const getFloodBg = (status?: string) => {
+    if (theme.isDark) {
+      if (!status) return 'rgba(5, 150, 105, 0.18)';
+      if (status.includes('Critical') || status === 'Major Flood') return 'rgba(220, 38, 38, 0.18)';
+      if (status.includes('High') || status === 'Minor Flood') return 'rgba(245, 158, 11, 0.18)';
+      if (status.includes('Advisory')) return 'rgba(234, 179, 8, 0.18)';
+      return 'rgba(5, 150, 105, 0.18)';
+    }
     if (!status) return C.greenLight;
     if (status.includes('Critical') || status === 'Major Flood') return C.redLight;
     if (status.includes('High') || status === 'Minor Flood') return C.amberLight;
@@ -226,6 +235,7 @@ export default function PredictionScreen() {
     return C.greenLight;
   };
   const getFloodBorder = (status?: string) => {
+    if (theme.isDark) return getFloodColor(status);
     if (!status) return C.greenBorder;
     if (status.includes('Critical') || status === 'Major Flood') return C.redBorder;
     if (status.includes('High') || status === 'Minor Flood') return C.amberBorder;
@@ -378,7 +388,7 @@ export default function PredictionScreen() {
     const hasLocation = userLocation !== null;
 
     return (
-      <View style={[s.card, { backgroundColor: theme.surface }]}>
+      <View style={[s.card, cardTheme]}>
         <View style={s.mapHeader}>
           <View style={{ flex: 1 }}>
             <Text style={[s.cardTitle, { color: theme.textPrimary }]}>
@@ -397,7 +407,7 @@ export default function PredictionScreen() {
             {loadingLocation ? (
               <ActivityIndicator size="small" color={C.brandActive} />
             ) : (
-              <Text style={s.refreshGpsText}>🔄 Refresh</Text>
+              <Text style={[s.refreshGpsText, { color: theme.textSecondary }]}>🔄 Refresh</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -418,12 +428,12 @@ export default function PredictionScreen() {
             {loadingLocation ? (
               <>
                 <ActivityIndicator size="large" color={C.brandActive} />
-                <Text style={s.mapLoadingText}>Detecting GPS...</Text>
+                <Text style={[s.mapLoadingText, { color: theme.textMuted }]}>Detecting GPS...</Text>
               </>
             ) : (
               <>
                 <Text style={{ fontSize: 36, marginBottom: 6 }}>🗺️</Text>
-                <Text style={s.mapNativeText}>
+                <Text style={[s.mapNativeText, { color: theme.textSecondary }]}>
                   {result ? `${result.district}, ${result.province}` : hasLocation ? 'Location detected' : 'Tap Refresh to detect GPS'}
                 </Text>
               </>
@@ -456,17 +466,17 @@ export default function PredictionScreen() {
     const maxProb = probValues.length > 0 ? Math.max(...probValues) : 0;
 
     return (
-      <View style={[s.card, { backgroundColor: theme.surface }]}>
-        <Text style={s.cardTitle}>{getFloodEmoji(flood_status)} Flood Assessment</Text>
+      <View style={[s.card, cardTheme]}>
+        <Text style={[s.cardTitle, { color: theme.textPrimary }]}>{getFloodEmoji(flood_status)} Flood Assessment</Text>
         <View style={[s.statusBadge, { backgroundColor: statusBg, borderColor: statusBorder }]}>
           <Text style={[s.statusBadgeText, { color: statusColor }]}>{flood_status}</Text>
         </View>
 
-        <Text style={s.sectionSubtitle}>Flood Probabilities</Text>
+        <Text style={[s.sectionSubtitle, { color: theme.textMuted }]}>Flood Probabilities</Text>
         {Object.entries(flood_probabilities).map(([label, pct]) => (
           <View key={label} style={s.probRow}>
-            <Text style={s.probLabel} numberOfLines={1}>{label}</Text>
-            <View style={s.probBarBg}>
+            <Text style={[s.probLabel, { color: theme.textSecondary }]} numberOfLines={1}>{label}</Text>
+            <View style={[s.probBarBg, { backgroundColor: theme.surfaceSubtle }]}>
               <View
                 style={[
                   s.probBarFill,
@@ -474,7 +484,7 @@ export default function PredictionScreen() {
                 ]}
               />
             </View>
-            <Text style={s.probPct}>{pct}%</Text>
+            <Text style={[s.probPct, { color: theme.textPrimary }]}>{pct}%</Text>
           </View>
         ))}
       </View>
@@ -493,10 +503,10 @@ export default function PredictionScreen() {
     const hazardPct = hazard_index > 2 ? Math.min(hazard_index, 100) : (hazard_index / 2) * 100;
 
     return (
-      <View style={[s.card, { backgroundColor: theme.surface }]}>
-        <Text style={s.cardTitle}>⚡ Overall Hazard Level</Text>
+      <View style={[s.card, cardTheme]}>
+        <Text style={[s.cardTitle, { color: theme.textPrimary }]}>⚡ Overall Hazard Level</Text>
         <View style={s.gaugeContainer}>
-          <View style={s.gaugeTrack}>
+          <View style={[s.gaugeTrack, { backgroundColor: theme.surfaceSubtle }]}>
             <View style={[s.gaugeFill, { width: `${Math.max(hazardPct, 8)}%`, backgroundColor: hazardColor }]} />
           </View>
           <View style={s.gaugeLabels}>
@@ -523,20 +533,20 @@ export default function PredictionScreen() {
     const CardWrapper = isUrgent ? Animated.View : View;
     const urgentStyle = isUrgent
       ? [s.urgentCard, { transform: [{ scale: pulseAnim }] }]
-      : [s.card];
+      : [s.card, cardTheme];
 
     return (
       <CardWrapper style={urgentStyle as any}>
-        <Text style={[s.cardTitle, isUrgent && { color: C.white }]}>
+        <Text style={[s.cardTitle, { color: isUrgent ? C.white : theme.textPrimary }]}>
           {getNBROEmoji(alert.level)} NBRO Landslide Alert
         </Text>
 
         <View style={s.nbroLevelRow}>
           <View style={[s.nbroDot, { backgroundColor: isUrgent ? C.white : alertColor }]} />
-          <Text style={[s.nbroStatus, isUrgent && { color: C.white }]}>{alert.status}</Text>
+          <Text style={[s.nbroStatus, { color: isUrgent ? C.white : theme.textPrimary }]}>{alert.status}</Text>
         </View>
 
-        <Text style={[s.nbroMessage, isUrgent && { color: 'rgba(255,255,255,0.85)' }]}>
+        <Text style={[s.nbroMessage, { color: isUrgent ? 'rgba(255,255,255,0.85)' : theme.textSecondary }]}>
           {alert.message}
         </Text>
 
@@ -549,7 +559,7 @@ export default function PredictionScreen() {
           ].map((t, i) => (
             <View key={i} style={s.nbroThresholdItem}>
               <View style={[s.nbroThresholdDot, { backgroundColor: isUrgent ? 'rgba(255,255,255,0.7)' : t.color }]} />
-              <Text style={[s.nbroThresholdText, isUrgent && { color: 'rgba(255,255,255,0.6)' }]}>{t.label}mm</Text>
+              <Text style={[s.nbroThresholdText, { color: isUrgent ? 'rgba(255,255,255,0.6)' : theme.textMuted }]}>{t.label}mm</Text>
             </View>
           ))}
         </View>
@@ -583,12 +593,12 @@ export default function PredictionScreen() {
     }
 
     return (
-      <View style={[s.card, { backgroundColor: theme.surface }]}>
-        <Text style={s.cardTitle}>🏛️ District Profile</Text>
+      <View style={[s.card, cardTheme]}>
+        <Text style={[s.cardTitle, { color: theme.textPrimary }]}>🏛️ District Profile</Text>
         {profileItems.map(({ label, value }, i, arr) => (
-          <View key={label} style={[s.profileRow, i === arr.length - 1 && { borderBottomWidth: 0 }]}>
-            <Text style={s.profileLabel}>{label}</Text>
-            <Text style={s.profileValue}>{value}</Text>
+          <View key={label} style={[s.profileRow, { borderBottomColor: theme.border }, i === arr.length - 1 && { borderBottomWidth: 0 }]}>
+            <Text style={[s.profileLabel, { color: theme.textMuted }]}>{label}</Text>
+            <Text style={[s.profileValue, { color: theme.textPrimary }]}>{value}</Text>
           </View>
         ))}
       </View>
@@ -606,12 +616,12 @@ export default function PredictionScreen() {
       (result.nbro_landslide_alert?.level ?? 0) >= 2;
 
     return (
-      <View style={isUrgent ? s.urgentCard : s.card}>
-        <Text style={[s.cardTitle, isUrgent && { color: C.white }]}>📢 Actionable Guidance</Text>
+      <View style={isUrgent ? s.urgentCard : [s.card, cardTheme]}>
+        <Text style={[s.cardTitle, { color: isUrgent ? C.white : theme.textPrimary }]}>📢 Actionable Guidance</Text>
         {result.actionable_guidance.map((msg, i) => (
           <View key={i} style={s.guidanceItem}>
-            <Text style={[s.guidanceBullet, isUrgent && { color: C.white }]}>▸</Text>
-            <Text style={[s.guidanceText, isUrgent && { color: 'rgba(255,255,255,0.9)' }]}>{msg}</Text>
+            <Text style={[s.guidanceBullet, { color: isUrgent ? C.white : C.red }]}>▸</Text>
+            <Text style={[s.guidanceText, { color: isUrgent ? 'rgba(255,255,255,0.9)' : theme.textSecondary }]}>{msg}</Text>
           </View>
         ))}
       </View>
@@ -624,19 +634,19 @@ export default function PredictionScreen() {
     const contacts = result.emergency_contacts;
 
     return (
-      <View style={[s.card, { backgroundColor: theme.surface }]}>
-        <Text style={s.cardTitle}>🆘 Emergency Contacts</Text>
+      <View style={[s.card, cardTheme]}>
+        <Text style={[s.cardTitle, { color: theme.textPrimary }]}>🆘 Emergency Contacts</Text>
         {Object.entries(contacts).map(([key, value], i, arr) => {
           const phoneMatch = value.match(/[\d\-\s\/]+/);
           const phone = phoneMatch ? phoneMatch[0].trim().split('/')[0].trim().replace(/\s/g, '') : '';
           return (
             <TouchableOpacity
               key={key}
-              style={[s.contactRow, i === arr.length - 1 && { borderBottomWidth: 0 }]}
+              style={[s.contactRow, { borderBottomColor: theme.border }, i === arr.length - 1 && { borderBottomWidth: 0 }]}
               onPress={() => phone && Linking.openURL(`tel:${phone}`)}
               activeOpacity={0.7}
             >
-              <Text style={s.contactLabel}>{value}</Text>
+              <Text style={[s.contactLabel, { color: theme.textPrimary }]}>{value}</Text>
               {phone ? (
                 <View style={s.callChip}>
                   <Text style={s.callChipText}>📞 Call</Text>
@@ -665,17 +675,8 @@ export default function PredictionScreen() {
           <View style={[s.healthDot, {
             backgroundColor: apiHealthy === true ? C.green : apiHealthy === false ? C.red : C.textLight,
           }]} />
-          <Text style={s.healthText}>
+          <Text style={[s.healthText, { color: theme.textMuted }]}>
             ML Engine {apiHealthy === true ? 'Online' : apiHealthy === false ? 'Offline' : 'Checking...'}
-          </Text>
-        </View>
-
-        {/* Hero */}
-        <View style={[s.heroCard, { backgroundColor: theme.surface }]}>
-          <Text style={s.heroEmoji}>🛡️</Text>
-          <Text style={[s.heroTitle, { color: theme.textPrimary }]}>AI Disaster Risk Analysis</Text>
-          <Text style={[s.heroSub, { color: theme.textMuted }]}>
-            Powered by ML models trained on Sri Lanka's 25 districts, monsoon patterns, and NBRO landslide thresholds
           </Text>
         </View>
 
@@ -684,7 +685,7 @@ export default function PredictionScreen() {
 
         {/* Form */}
         {!result && (
-          <View style={[s.card, { backgroundColor: theme.surface }]}>
+          <View style={[s.card, cardTheme]}>
             <Text style={[s.formTitle, { color: theme.textPrimary }]}>Configure Prediction</Text>
 
             {renderDistrictPicker()}
@@ -729,8 +730,8 @@ export default function PredictionScreen() {
             {renderDistrictProfileCard()}
             {renderEmergencyContactsCard()}
 
-            <TouchableOpacity style={s.resetButton} onPress={handleReset} activeOpacity={0.7}>
-              <Text style={s.resetButtonText}>🔄 New Prediction</Text>
+            <TouchableOpacity style={[s.resetButton, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={handleReset} activeOpacity={0.7}>
+              <Text style={[s.resetButtonText, { color: theme.textPrimary }]}>🔄 New Prediction</Text>
             </TouchableOpacity>
           </Animated.View>
         )}
@@ -751,15 +752,6 @@ const s = StyleSheet.create({
   healthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 6, paddingHorizontal: 4 },
   healthDot: { width: 7, height: 7, borderRadius: 4, marginRight: 5 },
   healthText: { fontSize: 11, fontFamily: Fonts.medium, color: C.textLight },
-
-  // Hero
-  heroCard: {
-    alignItems: 'center', paddingVertical: 22, paddingHorizontal: 20, marginBottom: 14,
-    backgroundColor: C.white, borderRadius: 12, borderWidth: 1, borderColor: C.border,
-  },
-  heroEmoji: { fontSize: 40, marginBottom: 8 },
-  heroTitle: { fontSize: 20, fontFamily: Fonts.bold, fontWeight: '800', textAlign: 'center', marginBottom: 6, color: C.textDark },
-  heroSub: { fontSize: 12.5, fontFamily: Fonts.medium, textAlign: 'center', lineHeight: 18, color: C.textMid },
 
   // Card (shared)
   card: {

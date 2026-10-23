@@ -10,10 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from sqlalchemy import text
-from app.config import settings
-from app.database import engine, Base
-from app.routers import ai, alerts, auth, donations, missions, requests, quiz
-import app.routers.auth as auth_router
+from .config import settings
+from .database import engine, Base
+from .routers import ai, alerts, auth, donations, missions, requests, quiz
+from .routers import auth as auth_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -71,7 +71,7 @@ async def lifespan(app: FastAPI):
     if auth_router._redis_pool:
         await auth_router._redis_pool.close()
 
-    from app.services.ai_service import close
+    from .services.ai_service import close
     await close()
 
 app = FastAPI(

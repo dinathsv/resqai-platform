@@ -84,7 +84,7 @@ const getWeatherColors = (main: string, isDark: boolean): { bg: string; accent: 
 
 function EmergencyGlow() {
   return (
-    <View style={styles.emergencyGlow} pointerEvents="none">
+    <View style={[styles.emergencyGlow, { pointerEvents: 'none' } as any]}>
       <View style={[styles.glowCircle, styles.glowOuter]}>
         <View style={[styles.glowCircle, styles.glowMiddle]}>
           <View style={[styles.glowCircle, styles.glowInner]}>
@@ -614,9 +614,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   sectionTitle: {
-    fontSize: 15,
-    fontFamily: Fonts.semiBold,
-    letterSpacing: -0.2,
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
 
   /* Quick Actions */
@@ -636,11 +637,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    elevation: 2,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 4px 12px rgba(15, 23, 42, 0.04)' } as any) : {
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.04,
+      shadowRadius: 12,
+      elevation: 2,
+    }),
   },
   actionIconCardWrap: {
     width: 56,
@@ -669,11 +672,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 24,
     borderWidth: 1,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    elevation: 3,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 6px 16px rgba(15, 23, 42, 0.05)' } as any) : {
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.05,
+      shadowRadius: 16,
+      elevation: 3,
+    }),
   },
   mapGridBackground: {
     flex: 1,
@@ -776,11 +781,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
     borderWidth: 1,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
+    ...(Platform.OS === 'web' ? ({ boxShadow: '0 4px 10px rgba(15, 23, 42, 0.04)' } as any) : {
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.04,
+      shadowRadius: 10,
+      elevation: 2,
+    }),
     alignItems: 'center',
     justifyContent: 'center',
     padding: 4,

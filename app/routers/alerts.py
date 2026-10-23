@@ -21,10 +21,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy import desc, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
-from app.middleware.auth import get_current_user, get_optional_user, require_role
-from app.models.emergency_alert import EmergencyAlert
-from app.services.sms_service import sms_gateway
+from ..database import get_db
+from ..middleware.auth import get_current_user, get_optional_user, require_role
+from ..models.emergency_alert import EmergencyAlert
+from ..services.sms_service import sms_gateway
 
 logger = logging.getLogger("resqai.alerts")
 router = APIRouter(tags=["Alerts"])

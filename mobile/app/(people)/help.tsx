@@ -168,11 +168,11 @@ export default function HelpScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <TopBar title="Help Center" showBack onBack={handleBack} />
+      <TopBar title="Help" showBack onBack={handleBack} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
 
-        <Text style={styles.subtitle}>
-          Select an emergency response channel based on immediate threat level
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+          Choose what you need.
         </Text>
 
         {/* Priority 1: Call 1990 Ambulance (Immediate Threat) */}
@@ -191,13 +191,13 @@ export default function HelpScreen() {
           </View>
           <View style={styles.optionContent}>
             <View style={styles.badgeCritical}>
-              <Text style={styles.badgeCriticalText}>IMMEDIATE THREAT</Text>
+              <Text style={styles.badgeCriticalText}>URGENT</Text>
             </View>
             <Text style={[styles.optionTitle, styles.emergencyTitle]}>
-              Call 1990 Ambulance
+              Call 1990
             </Text>
             <Text style={[styles.optionDesc, styles.emergencyDesc]}>
-              Connect with Suwa Seriya & automatically transmit live GPS triage coordinates
+              Call an ambulance now.
             </Text>
           </View>
           <View style={styles.emergencyChevronWrap}>
@@ -207,46 +207,41 @@ export default function HelpScreen() {
 
         {/* Priority 2: AI First-Aid Chatbot */}
         <TouchableOpacity
-          style={styles.optionCard}
+          style={[styles.optionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
           onPress={() => router.push('/(people)/chatbot')}
           activeOpacity={0.75}
         >
-          <View style={[styles.optionIcon, { backgroundColor: Colors.ctaLight }]}>
+          <View style={[styles.optionIcon, { backgroundColor: theme.accentSubtle }]}>
             <Text style={styles.emoji}>💬</Text>
           </View>
           <View style={styles.optionContent}>
-            <Text style={styles.optionTitle}>AI First-Aid Guidance</Text>
-            <Text style={styles.optionDesc}>
-              Instant step-by-step instructions for CPR, bleeding, burns, or shock
-            </Text>
+            <Text style={[styles.optionTitle, { color: theme.textPrimary }]}>First aid</Text>
+            <Text style={[styles.optionDesc, { color: theme.textSecondary }]}>Get quick steps for common injuries.</Text>
           </View>
-          <Text style={styles.chevron}>›</Text>
+          <Text style={[styles.chevron, { color: theme.textMuted }]}>›</Text>
         </TouchableOpacity>
 
         {/* Priority 3: Submit a Help Request */}
         <TouchableOpacity
-          style={styles.optionCard}
+          style={[styles.optionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
           onPress={() => setShowRequestForm(true)}
           activeOpacity={0.75}
         >
-          <View style={[styles.optionIcon, { backgroundColor: Colors.infoLight }]}>
+          <View style={[styles.optionIcon, { backgroundColor: theme.accentSubtle }]}>
             <Text style={styles.emoji}>📝</Text>
           </View>
           <View style={styles.optionContent}>
-            <Text style={styles.optionTitle}>Log Community Rescue Request</Text>
-            <Text style={styles.optionDesc}>
-              Report trapped victims, supply needs, or flood levels for coordinator dispatch
-            </Text>
+            <Text style={[styles.optionTitle, { color: theme.textPrimary }]}>Rescue request</Text>
+            <Text style={[styles.optionDesc, { color: theme.textSecondary }]}>Share a need with the rescue team.</Text>
           </View>
-          <Text style={styles.chevron}>›</Text>
+          <Text style={[styles.chevron, { color: theme.textMuted }]}>›</Text>
         </TouchableOpacity>
 
         {/* Official Hotline Callout */}
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>Sri Lanka National Disaster Protocol</Text>
-          <Text style={styles.infoText}>
-            For critical, life-threatening conditions, always dial 1990 first.{'\n'}
-            ResQAI coordinates automatically with Disaster Management Centre (DMC) dispatchers.
+        <View style={[styles.infoBox, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}>
+          <Text style={[styles.infoTitle, { color: theme.textPrimary }]}>Emergency number</Text>
+          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+            For serious danger, call 1990 first.
           </Text>
         </View>
       </ScrollView>

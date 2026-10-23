@@ -4,11 +4,12 @@ Centralised async function for calling the Gemini API.
 """
 
 import logging
+import random
 
 from google import genai
 from google.genai import types
 
-from app.config import settings
+from ..config import settings
 
 logger = logging.getLogger("resqai.ai_service")
 
@@ -42,7 +43,7 @@ async def call_llm(
     client = _get_client()
 
     for model_name in candidate_models:
-        max_attempts = 2
+        max_attempts = 3
         for attempt in range(max_attempts):
             try:
                 response = await client.aio.models.generate_content(
@@ -58,35 +59,44 @@ async def call_llm(
             except Exception as exc:
                 exc_str = str(exc)
                 is_rate_limit = "429" in exc_str or "RESOURCE_EXHAUSTED" in exc_str
+                is_transient = any(
+                    signal in exc_str
+                    for signal in ("503", "UNAVAILABLE", "500", "504", "Timeout", "NameResolutionError")
+                )
 
-                if is_rate_limit:
+                if is_rate_limit or is_transient:
                     # Daily quota exhaustion - immediately fail over to next model
-                    if "PerDay" in exc_str or "quotaValue': '20'" in exc_str or "limit: 20" in exc_str:
+                    if is_rate_limit and (
+                        "PerDay" in exc_str or "quotaValue': '20'" in exc_str or "limit: 20" in exc_str
+                    ):
                         logger.warning(
                             "Model %s daily quota exhausted. Failing over to next model...",
                             model_name
                         )
                         break
 
-                    # Minute rate limit - brief pause on first attempt, then fail over
+                    # Retry temporary overloads with exponential backoff before
+                    # moving to the next available model.
                     if attempt < max_attempts - 1:
-                        retry_delay = 2.0
-                        delay_match = re.search(r"retry in ([\d\.]+)s", exc_str)
-                        if delay_match:
+                        retry_delay = min(2 ** attempt, 4) + random.uniform(0, 0.5)
+                        delay_match = re.search(r"retry in ([\d\.]+)s", exc_str, re.IGNORECASE)
+                        if is_rate_limit and delay_match:
                             try:
-                                retry_delay = min(float(delay_match.group(1)), 3.0)
+                                retry_delay = min(float(delay_match.group(1)), 4.0)
                             except ValueError:
                                 pass
                         logger.warning(
-                            "Rate limit hit (429) for %s. Retrying in %.1fs...",
-                            model_name, retry_delay
+                            "Temporary Gemini API failure for %s. Retrying in %.1fs...",
+                            model_name,
+                            retry_delay,
                         )
                         await asyncio.sleep(retry_delay)
                         continue
                     else:
                         logger.warning(
-                            "Rate limit hit for %s on all attempts. Failing over...",
-                            model_name
+                            "Gemini API remains unavailable for %s after %d attempts. Failing over...",
+                            model_name,
+                            max_attempts,
                         )
                         break
                 else:
