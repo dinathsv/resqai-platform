@@ -101,6 +101,14 @@ async def register(
 
     # Send OTP via SMS to mobile number
     delivery = await send_otp(email=req.email, phone=req.phone_number, otp=otp)
+    if req.phone_number and delivery.get("sms") is not True:
+        await redis_client.delete(f"otp:{new_user.user_id}")
+        await db.delete(new_user)
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="We could not send the OTP. Please check the SMS sender configuration and try again.",
+        )
 
     return {
         "user_id": str(new_user.user_id),
@@ -146,6 +154,12 @@ async def resend_otp(
 
     # Send OTP via SMS to mobile number
     delivery = await send_otp(email=user.email, phone=user.phone_number, otp=otp)
+    if user.phone_number and delivery.get("sms") is not True:
+        await redis_client.delete(f"otp:{req.user_id}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="We could not send the OTP. Please check the SMS sender configuration and try again.",
+        )
 
     return {"message": "OTP resent successfully", "delivery": delivery}
 
