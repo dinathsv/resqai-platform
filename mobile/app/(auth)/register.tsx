@@ -49,7 +49,7 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={20}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={{ alignItems: 'center', marginBottom: 28 }}>
             <Image 
@@ -115,7 +115,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 32 },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 32, paddingBottom: 56 },
   headerTitle: { fontSize: 28, fontFamily: Fonts.bold, marginBottom: 6 },
   subtitle: { fontSize: 14, fontFamily: Fonts.regular, marginBottom: 24 },
   card: { padding: 24, marginBottom: 20, borderRadius: 12 },

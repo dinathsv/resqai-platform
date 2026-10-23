@@ -4,7 +4,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  SafeAreaView, ActivityIndicator, KeyboardAvoidingView, Platform,
+  SafeAreaView, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -50,8 +50,8 @@ export default function GuestScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={styles.content}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={20}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <TouchableOpacity style={styles.backLink} onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(auth)/login'); }} activeOpacity={0.7}>
             <Text style={[styles.backText, { color: theme.brandActive }]}>← Back to Sign In</Text>
           </TouchableOpacity>
@@ -90,7 +90,7 @@ export default function GuestScreen() {
               Guest sessions expire after 30 minutes.{'\n'}Register for full access to all features.
             </Text>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -99,7 +99,7 @@ export default function GuestScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
-  content: { flex: 1, paddingHorizontal: 24, justifyContent: 'center', alignItems: 'center' },
+  content: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 32, paddingBottom: 56, justifyContent: 'center', alignItems: 'center' },
   backLink: { alignSelf: 'flex-start', marginBottom: 24 },
   backText: { fontSize: 14, fontFamily: Fonts.semiBold },
   iconCircle: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },

@@ -4,7 +4,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  SafeAreaView, ActivityIndicator, Platform,
+  SafeAreaView, ActivityIndicator, Platform, KeyboardAvoidingView, ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -55,7 +55,16 @@ export default function VerifyOtpScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.content}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={20}
+      >
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <View style={[styles.iconCircle, { backgroundColor: theme.successLight }]}>
           <Ionicons name="shield-checkmark-outline" size={36} color={theme.success} />
         </View>
@@ -106,14 +115,16 @@ export default function VerifyOtpScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { flex: 1, paddingHorizontal: 24, justifyContent: 'center', alignItems: 'center' },
+  flex: { flex: 1 },
+  content: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 32, justifyContent: 'center', alignItems: 'center' },
   iconCircle: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
   iconText: { fontSize: 36 },
   title: { fontSize: 24, fontFamily: Fonts.bold, marginBottom: 8 },
