@@ -963,11 +963,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...(Platform.OS === 'web'
       ? ({ boxShadow: '0 0 7px rgba(0, 0, 0, 0.22)' } as any)
-      : {
-          shadowOpacity: 0.22,
-          shadowRadius: 7,
-          shadowOffset: { width: 0, height: 0 },
-        }),
+      : {}),
     elevation: 3,
   },
   closeBtnGradient: {
@@ -1001,17 +997,9 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 'auto',
     marginTop: 'auto',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 6,
-      },
-    }),
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 4px 10px rgba(0, 0, 0, 0.15)' } as any)
+      : { elevation: 6 }),
   },
   pickerHeader: {
     flexDirection: 'row',

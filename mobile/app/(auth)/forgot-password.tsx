@@ -89,7 +89,7 @@ export default function ForgotPasswordScreen() {
                 placeholderTextColor={theme.textMuted} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} editable={!loading} onSubmitEditing={handleRequestReset} />
             </View>
 
-            <TouchableOpacity style={[styles.actionButton, { backgroundColor: theme.brandActive, shadowColor: theme.brandActive }, loading && styles.buttonDisabled]}
+            <TouchableOpacity style={[styles.actionButton, { backgroundColor: theme.brandActive }, Platform.OS === 'web' ? { boxShadow: `0 4px 8px ${theme.brandActive}40` } : { shadowColor: theme.brandActive }, loading && styles.buttonDisabled]}
               onPress={handleRequestReset} disabled={loading} activeOpacity={0.8}>
               {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.actionButtonText}>Send OTP</Text>}
             </TouchableOpacity>

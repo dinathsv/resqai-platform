@@ -81,7 +81,7 @@ export default function GuestScreen() {
                 editable={!loading} onSubmitEditing={handleVerifyNic} maxLength={12} />
             </View>
 
-            <TouchableOpacity style={[styles.verifyButton, { backgroundColor: theme.brandActive, shadowColor: theme.brandActive }, loading && styles.buttonDisabled]}
+            <TouchableOpacity style={[styles.verifyButton, { backgroundColor: theme.brandActive }, Platform.OS === 'web' ? { boxShadow: `0 4px 8px ${theme.brandActive}40` } : { shadowColor: theme.brandActive }, loading && styles.buttonDisabled]}
               onPress={handleVerifyNic} disabled={loading} activeOpacity={0.7}>
               {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.verifyButtonText}>Verify & Continue</Text>}
             </TouchableOpacity>

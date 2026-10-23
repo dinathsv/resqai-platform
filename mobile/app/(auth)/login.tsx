@@ -95,7 +95,7 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            <TouchableOpacity style={[styles.loginButton, { backgroundColor: theme.brandActive, shadowColor: theme.brandActive }, loading && styles.buttonDisabled]}
+            <TouchableOpacity style={[styles.loginButton, { backgroundColor: theme.brandActive }, Platform.OS === 'web' ? { boxShadow: `0 4px 8px ${theme.brandActive}40` } : { shadowColor: theme.brandActive }, loading && styles.buttonDisabled]}
               onPress={handleLogin} disabled={loading} activeOpacity={0.8}>
               {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.loginButtonText}>Sign In</Text>}
             </TouchableOpacity>

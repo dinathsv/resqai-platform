@@ -247,15 +247,9 @@ export function makeCardStyles(theme: ThemeTokens) {
       borderWidth: 1,
       borderColor: theme.border,
       borderRadius: 12,
-      ...(Platform.OS === 'web' ? ({
-        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-      } as any) : {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
-      }),
+      ...(Platform.OS === 'web'
+        ? ({ boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)' } as any)
+        : { elevation: 1 }),
     },
     input: {
       backgroundColor: theme.inputBg,

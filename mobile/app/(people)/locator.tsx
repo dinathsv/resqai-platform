@@ -831,10 +831,14 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     padding: 20,
     alignItems: 'center',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 4px 12px rgba(15, 23, 42, 0.05)' } as any)
+      : {
+          shadowColor: '#0F172A',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.05,
+          shadowRadius: 12,
+        }),
     elevation: 2,
   },
   noLocationIcon: {
@@ -874,10 +878,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 12,
     padding: 14,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 4px 12px rgba(15, 23, 42, 0.05)' } as any)
+      : {
+          shadowColor: '#0F172A',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.05,
+          shadowRadius: 12,
+        }),
     elevation: 2,
     ...(Platform.OS === 'web'
       ? ({
@@ -1063,10 +1071,14 @@ const styles = StyleSheet.create({
     padding: 14,
     marginHorizontal: 16,
     marginBottom: 10,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)' } as any)
+      : {
+          shadowColor: '#0F172A',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.04,
+          shadowRadius: 8,
+        }),
     elevation: 1,
   },
   hospitalInfo: {
@@ -1134,10 +1146,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 4px 8px rgba(220, 38, 38, 0.25)' } as any)
+      : {
+          shadowColor: '#DC2626',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.25,
+          shadowRadius: 8,
+        }),
     elevation: 3,
     ...(Platform.OS === 'web'
       ? ({

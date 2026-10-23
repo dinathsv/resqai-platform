@@ -4,7 +4,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  SafeAreaView, ActivityIndicator,
+  SafeAreaView, ActivityIndicator, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -94,7 +94,7 @@ export default function VerifyOtpScreen() {
             onSubmitEditing={handleVerify}
           />
 
-          <TouchableOpacity style={[styles.verifyButton, { backgroundColor: theme.brandActive, shadowColor: theme.brandActive }, loading && styles.buttonDisabled]}
+          <TouchableOpacity style={[styles.verifyButton, { backgroundColor: theme.brandActive }, Platform.OS === 'web' ? { boxShadow: `0 4px 8px ${theme.brandActive}40` } : { shadowColor: theme.brandActive }, loading && styles.buttonDisabled]}
             onPress={handleVerify} disabled={loading} activeOpacity={0.7}>
             {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.verifyButtonText}>Verify OTP</Text>}
           </TouchableOpacity>

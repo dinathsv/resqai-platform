@@ -18,6 +18,12 @@ import {
 } from '../services/notificationService';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 
+LogBox.ignoreLogs([
+  /props\.pointerEvents is deprecated\. Use style\.pointerEvents/,
+  /shadow\* style props are deprecated/,
+  /TouchableWithoutFeedback is deprecated/,
+]);
+
 const isWeb = Platform.OS === 'web';
 
 function useWebMobileFrame() {
@@ -73,11 +79,6 @@ function AppLayout() {
 
 export default function RootLayout() {
   useWebMobileFrame();
-  LogBox.ignoreLogs([
-    '"shadow*" style props are deprecated',
-    'props.pointerEvents is deprecated',
-    'TouchableWithoutFeedback is deprecated'
-  ]);
   return (
     <ThemeProvider>
       <AppLayout />
