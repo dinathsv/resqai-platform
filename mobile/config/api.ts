@@ -1,9 +1,16 @@
 
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 const LOCALHOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+
+function getDevelopmentHost(): string | null {
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (!hostUri) return null;
+  return hostUri.split(':')[0] || null;
+}
 
 function resolveBaseUrl(envValue?: string, fallbackHost = LOCALHOST, port = '8000') {
   if (envValue) {
@@ -17,7 +24,8 @@ function resolveBaseUrl(envValue?: string, fallbackHost = LOCALHOST, port = '800
     }
   }
 
-  return `http://${fallbackHost}:${port}`;
+  const developmentHost = Platform.OS !== 'web' ? getDevelopmentHost() : null;
+  return `http://${developmentHost || fallbackHost}:${port}`;
 }
 
 // Python FastAPI — primary API (auth, requests, donations, alerts)
@@ -29,7 +37,8 @@ export const AI_BASE = resolveBaseUrl(process.env.EXPO_PUBLIC_AI_URL);
 
 // Node.js Backend — real-time events & Socket.IO
 export const SOCKET_URL =
-  process.env.EXPO_PUBLIC_SOCKET_URL || `http://${LOCALHOST}:5000`;
+  process.env.EXPO_PUBLIC_SOCKET_URL ||
+  `http://${getDevelopmentHost() || LOCALHOST}:5000`;
 
 function isExpiredJwt(token: string): boolean {
   try {

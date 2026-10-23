@@ -2,7 +2,7 @@ import * as Device from 'expo-device'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import axios from 'axios'
 import { Platform } from 'react-native'
-import { BASE_URL } from '../constants/api'
+import { API_BASE } from '../config/api'
 
 let Notifications: any = null
 if (Platform.OS !== 'web') {
@@ -27,15 +27,14 @@ export async function registerForPushNotifications(): Promise<string | null> {
   try {
     token = (await Notifications.getExpoPushTokenAsync({ projectId: '00000000-0000-0000-0000-000000000000' })).data
   } catch (error) {
-    console.warn("Could not fetch Expo push token (ensure EAS projectId is valid). Using dummy token.");
-    token = "dummy-expo-push-token";
+    console.warn('Could not fetch Expo push token. A development build with a valid EAS project ID is required.');
   }
 
   const authToken = await AsyncStorage.getItem('token')
   if (authToken && token) {
     try {
       await axios.post(
-        `${BASE_URL}/api/users/push-token`,
+        `${API_BASE}/api/users/push-token`,
         { push_token: token },
         { headers: { Authorization: `Bearer ${authToken}` } }
       )

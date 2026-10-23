@@ -4,10 +4,14 @@
  */
 
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 const LOCALHOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+const DEVELOPMENT_HOST =
+  Constants.expoConfig?.hostUri?.split(':')[0] || LOCALHOST;
 export const ML_API_BASE =
-  process.env.EXPO_PUBLIC_ML_API_URL || `http://${LOCALHOST}:5005`;
+  process.env.EXPO_PUBLIC_ML_API_URL ||
+  `http://${Platform.OS === 'web' ? LOCALHOST : DEVELOPMENT_HOST}:5005`;
 
 // --------------- Types ---------------
 
@@ -106,11 +110,18 @@ export async function fetchDistricts(): Promise<string[]> {
 export async function predictDisasterRisk(
   payload: PredictionRequest
 ): Promise<PredictionResult> {
-  const res = await fetch(`${ML_API_BASE}/predict`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${ML_API_BASE}/predict`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new Error(
+      `Could not connect to the prediction service at ${ML_API_BASE}. Make sure your phone and computer are on the same network.`,
+    );
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err?.detail?.error || `Prediction failed: ${res.status}`);
