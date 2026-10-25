@@ -12,10 +12,13 @@ import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { Fonts, makeGlass } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
+import LanguageSelector from '../../components/LanguageSelector';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { t, setLanguage } = useLanguage();
   const glass = useMemo(() => makeGlass(theme), [theme]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,28 +29,43 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
-    if (!trimmedEmail || !trimmedPassword) { setError('Please enter both email and password'); return; }
-    setError(''); setLoading(true);
+    if (!trimmedEmail || !trimmedPassword) {
+      setError(t('auth.requiredFields'));
+      return;
+    }
+    setError('');
+    setLoading(true);
     try {
-      const res = await apiFetch('/api/auth/login', { method: 'POST', body: JSON.stringify({ email: trimmedEmail, password: trimmedPassword }) });
+      const res = await apiFetch('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email: trimmedEmail, password: trimmedPassword }),
+      });
       const data = await res.json();
       if (res.ok) {
         await AsyncStorage.setItem('token', data.access_token);
+        // If user has a saved language preference in backend, apply it
+        if (data.user?.language_pref && (data.user.language_pref === 'en' || data.user.language_pref === 'ta' || data.user.language_pref === 'si')) {
+          await setLanguage(data.user.language_pref);
+        }
         router.replace('/(people)/dashboard');
       } else {
-        if (res.status === 401) setError('Invalid email or password');
-        else if (res.status === 403) setError('Account not verified. Please complete OTP verification.');
-        else if (res.status === 429) setError('Too many failed attempts. Account locked for 15 minutes.');
+        if (res.status === 401) setError(t('auth.invalidCredentials'));
+        else if (res.status === 403) setError(t('auth.accountNotVerified'));
+        else if (res.status === 429) setError(t('auth.accountLocked'));
         else {
           const detail = data.detail;
           if (typeof detail === 'string') setError(detail);
           else if (Array.isArray(detail)) setError(detail.map((d: any) => d.msg || JSON.stringify(d)).join('; '));
           else if (detail && typeof detail === 'object') setError(detail.msg || JSON.stringify(detail));
-          else setError('Login failed. Please try again.');
+          else setError(t('common.error'));
         }
       }
-    } catch (err) { console.error('Login error:', err); setError('Connection error. Please check your internet connection.'); }
-    finally { setLoading(false); }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError(t('auth.connectionError'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -57,59 +75,114 @@ export default function LoginScreen() {
           <View style={styles.logoSection}>
             <Image 
               source={require('../../assets/resqai_logo.png')} 
-              style={{ width: 140, height: 140, marginBottom: 16 }} 
+              style={{ width: 130, height: 130, marginBottom: 12 }} 
               resizeMode="contain" 
             />
+            <Text style={[styles.appTitle, { color: theme.textPrimary }]}>
+              {t('common.appName')}
+            </Text>
+            <Text style={[styles.appSubtitle, { color: theme.textMuted }]}>
+              {t('common.appTagline')}
+            </Text>
           </View>
 
           <View style={[styles.card, glass.card]}>
-            <Text style={[styles.cardTitle, { color: theme.textPrimary, marginBottom: 20 }]}>Sign In</Text>
+            {/* Trilingual Language Selector during onboarding */}
+            <LanguageSelector variant="segmented" style={{ marginBottom: 16 }} />
+
+            <Text style={[styles.cardTitle, { color: theme.textPrimary, marginBottom: 20 }]}>
+              {t('auth.signIn')}
+            </Text>
 
             {error ? (
               <View style={[styles.errorBox, { backgroundColor: theme.emergencyLight, borderColor: theme.emergency }]}>
-                <Text style={[styles.errorText, { color: theme.isDark ? '#FFFFFF' : theme.emergency }]}>⚠ {error}</Text>
+                <Text style={[styles.errorText, { color: theme.isDark ? '#FFFFFF' : theme.emergency }]}>
+                  ⚠ {error}
+                </Text>
               </View>
             ) : null}
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>Email Address</Text>
-              <TextInput style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary }]}
-                value={email} onChangeText={setEmail} placeholder="citizen@example.com"
-                placeholderTextColor={theme.textMuted} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} editable={!loading} />
+              <Text style={[styles.label, { color: theme.textSecondary }]}>
+                {t('auth.emailAddress')}
+              </Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary }]}
+                value={email}
+                onChangeText={setEmail}
+                placeholder={t('auth.emailPlaceholder')}
+                placeholderTextColor={theme.textMuted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+              />
             </View>
 
             <View style={styles.inputGroup}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <Text style={[styles.label, { color: theme.textSecondary, marginBottom: 0 }]}>Password</Text>
+                <Text style={[styles.label, { color: theme.textSecondary, marginBottom: 0 }]}>
+                  {t('auth.password')}
+                </Text>
                 <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')} activeOpacity={0.7}>
-                  <Text style={[styles.linkBold, { color: theme.brandActive, fontSize: 12 }]}>Forgot Password?</Text>
+                  <Text style={[styles.linkBold, { color: theme.brandActive, fontSize: 12 }]}>
+                    {t('auth.forgotPassword')}
+                  </Text>
                 </TouchableOpacity>
               </View>
               <View style={{ position: 'relative', justifyContent: 'center' }}>
-                <TextInput style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary, paddingRight: 40 }]}
-                  value={password} onChangeText={setPassword} placeholder="••••••••••••"
-                  placeholderTextColor={theme.textMuted} secureTextEntry={!showPassword} editable={!loading} onSubmitEditing={handleLogin} />
+                <TextInput
+                  style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary, paddingRight: 40 }]}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="••••••••••••"
+                  placeholderTextColor={theme.textMuted}
+                  secureTextEntry={!showPassword}
+                  editable={!loading}
+                  onSubmitEditing={handleLogin}
+                />
                 <TouchableOpacity style={{ position: 'absolute', right: 14 }} onPress={() => setShowPassword(!showPassword)}>
                   <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color={theme.textMuted} />
                 </TouchableOpacity>
               </View>
             </View>
 
-            <TouchableOpacity style={[styles.loginButton, { backgroundColor: theme.brandActive }, Platform.OS === 'web' ? { boxShadow: `0 4px 8px ${theme.brandActive}40` } : { shadowColor: theme.brandActive }, loading && styles.buttonDisabled]}
-              onPress={handleLogin} disabled={loading} activeOpacity={0.8}>
-              {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.loginButtonText}>Sign In</Text>}
+            <TouchableOpacity
+              style={[
+                styles.loginButton,
+                { backgroundColor: theme.brandActive },
+                Platform.OS === 'web' ? { boxShadow: `0 4px 8px ${theme.brandActive}40` } : { shadowColor: theme.brandActive },
+                loading && styles.buttonDisabled,
+              ]}
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.loginButtonText}>{t('auth.signIn')}</Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.linkButton} onPress={() => router.push('/(auth)/register')} activeOpacity={0.7}>
-              <Text style={[styles.linkText, { color: theme.textMuted }]}>
-                Need to register? <Text style={[styles.linkBold, { color: theme.brandActive }]}>Create Account</Text>
+              <Text style={[styles.linkText, { color: theme.brandActive }]}>
+                {t('auth.needAccount')}
               </Text>
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={[styles.guestButton, { borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(22,79,67,0.05)' }]}
-            onPress={() => router.push('/(auth)/guest')} activeOpacity={0.7}>
-            <Text style={[styles.guestText, { color: theme.textPrimary }]}>Continue as Anonymous Guest</Text>
+          <TouchableOpacity
+            style={[
+              styles.guestButton,
+              { borderColor: theme.border, backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(22,79,67,0.05)' },
+            ]}
+            onPress={() => router.push('/(auth)/guest')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.guestText, { color: theme.textPrimary }]}>
+              {t('auth.guestSignIn')}
+            </Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -120,19 +193,12 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
-  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 36 },
-  logoSection: { alignItems: 'center', marginBottom: 28 },
-  badgeWrapper: { flexDirection: 'row', alignItems: 'center', paddingVertical: 5, paddingHorizontal: 12, borderRadius: 20, marginBottom: 10, borderWidth: 1 },
-  brandIconCircle: { marginRight: 6 },
-  brandIcon: { fontSize: 14 },
-  brandTag: { fontSize: 11, fontFamily: Fonts.bold, letterSpacing: 0.8 },
-  titleRow: { flexDirection: 'row', alignItems: 'center' },
-  logoTextPrimary: { fontSize: 38, fontFamily: Fonts.bold, letterSpacing: -0.5 },
-  logoTextAccent: { fontSize: 38, fontFamily: Fonts.bold, letterSpacing: -0.5 },
-  tagline: { fontSize: 14, fontFamily: Fonts.semiBold, marginTop: 4 },
-  card: { padding: 24, marginBottom: 16, borderRadius: 12 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 28 },
+  logoSection: { alignItems: 'center', marginBottom: 20 },
+  appTitle: { fontSize: 26, fontFamily: Fonts.bold, letterSpacing: -0.5 },
+  appSubtitle: { fontSize: 13, fontFamily: Fonts.regular, textAlign: 'center', marginTop: 4, paddingHorizontal: 16 },
+  card: { padding: 22, marginBottom: 16, borderRadius: 12 },
   cardTitle: { fontSize: 20, fontFamily: Fonts.bold, textAlign: 'center' },
-  cardSubtitle: { fontSize: 13, fontFamily: Fonts.semiBold, textAlign: 'center', marginTop: 2, marginBottom: 20 },
   errorBox: { borderRadius: 8, padding: 12, marginBottom: 16, borderWidth: 1 },
   errorText: { fontSize: 13, fontFamily: Fonts.bold, textAlign: 'center' },
   inputGroup: { marginBottom: 16 },
@@ -141,9 +207,9 @@ const styles = StyleSheet.create({
   loginButton: { paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 8 },
   buttonDisabled: { opacity: 0.6 },
   loginButtonText: { color: '#FFFFFF', fontSize: 15, fontFamily: Fonts.bold },
-  linkButton: { alignItems: 'center', marginTop: 18 },
-  linkText: { fontSize: 13, fontFamily: Fonts.regular },
+  linkButton: { alignItems: 'center', marginTop: 16 },
+  linkText: { fontSize: 13, fontFamily: Fonts.semiBold, textAlign: 'center' },
   linkBold: { fontFamily: Fonts.bold },
   guestButton: { alignItems: 'center', paddingVertical: 12, borderRadius: 8, borderWidth: 1 },
-  guestText: { fontSize: 14, fontFamily: Fonts.bold },
+  guestText: { fontSize: 14, fontFamily: Fonts.semiBold },
 });

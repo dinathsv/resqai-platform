@@ -39,11 +39,13 @@ import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { Colors, Fonts, Glass } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import BottomNav from '../../components/BottomNav';
 import TopBar from '../../components/TopBar';
 
 export default function HelpScreen() {
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [message, setMessage] = useState('');
@@ -168,11 +170,11 @@ export default function HelpScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <TopBar title="Help" showBack onBack={handleBack} />
+      <TopBar title={t('help.title')} showBack onBack={handleBack} />
       <ScrollView contentContainerStyle={styles.scrollContent}>
 
         <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-          Choose what you need.
+          {t('help.subtitle')}
         </Text>
 
         {/* Priority 1: Call 1990 Ambulance (Immediate Threat) */}
@@ -191,13 +193,13 @@ export default function HelpScreen() {
           </View>
           <View style={styles.optionContent}>
             <View style={styles.badgeCritical}>
-              <Text style={styles.badgeCriticalText}>URGENT</Text>
+              <Text style={styles.badgeCriticalText}>{t('help.urgentBadge')}</Text>
             </View>
             <Text style={[styles.optionTitle, styles.emergencyTitle]}>
-              Call 1990
+              {t('help.call1990')}
             </Text>
             <Text style={[styles.optionDesc, styles.emergencyDesc]}>
-              Call an ambulance now.
+              {t('help.call1990Desc')}
             </Text>
           </View>
           <View style={styles.emergencyChevronWrap}>
@@ -215,8 +217,8 @@ export default function HelpScreen() {
             <Text style={styles.emoji}>💬</Text>
           </View>
           <View style={styles.optionContent}>
-            <Text style={[styles.optionTitle, { color: theme.textPrimary }]}>First aid</Text>
-            <Text style={[styles.optionDesc, { color: theme.textSecondary }]}>Get quick steps for common injuries.</Text>
+            <Text style={[styles.optionTitle, { color: theme.textPrimary }]}>{t('help.firstAidTitle')}</Text>
+            <Text style={[styles.optionDesc, { color: theme.textSecondary }]}>{t('help.firstAidDesc')}</Text>
           </View>
           <Text style={[styles.chevron, { color: theme.textMuted }]}>›</Text>
         </TouchableOpacity>
@@ -231,17 +233,17 @@ export default function HelpScreen() {
             <Text style={styles.emoji}>📝</Text>
           </View>
           <View style={styles.optionContent}>
-            <Text style={[styles.optionTitle, { color: theme.textPrimary }]}>Rescue request</Text>
-            <Text style={[styles.optionDesc, { color: theme.textSecondary }]}>Share a need with the rescue team.</Text>
+            <Text style={[styles.optionTitle, { color: theme.textPrimary }]}>{t('help.rescueTitle')}</Text>
+            <Text style={[styles.optionDesc, { color: theme.textSecondary }]}>{t('help.rescueDesc')}</Text>
           </View>
           <Text style={[styles.chevron, { color: theme.textMuted }]}>›</Text>
         </TouchableOpacity>
 
         {/* Official Hotline Callout */}
         <View style={[styles.infoBox, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}>
-          <Text style={[styles.infoTitle, { color: theme.textPrimary }]}>Emergency number</Text>
+          <Text style={[styles.infoTitle, { color: theme.textPrimary }]}>{t('help.emergencyNumberTitle')}</Text>
           <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-            For serious danger, call 1990 first.
+            {t('help.emergencyNumberDesc')}
           </Text>
         </View>
       </ScrollView>
@@ -262,14 +264,14 @@ export default function HelpScreen() {
             >
               <View style={[styles.modalHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
                 <TouchableOpacity onPress={() => setShowRequestForm(false)}>
-                  <Text style={styles.modalCancel}>Cancel</Text>
+                  <Text style={styles.modalCancel}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
-                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Help Request</Text>
+                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{t('help.title')}</Text>
                 <View style={{ width: 60 }} />
               </View>
 
               <ScrollView style={styles.modalBody}>
-                <Text style={[styles.formLabel, { color: theme.textPrimary }]}>Describe your emergency</Text>
+                <Text style={[styles.formLabel, { color: theme.textPrimary }]}>{t('help.describeEmergency')}</Text>
                 <TextInput
                   style={[styles.messageInput, {
                     backgroundColor: theme.inputBg,
@@ -278,7 +280,7 @@ export default function HelpScreen() {
                   }]}
                   value={message}
                   onChangeText={setMessage}
-                  placeholder="Tell us what happened, where you are, and what help you need..."
+                  placeholder={t('help.describePlaceholder')}
                   placeholderTextColor={Colors.textMuted}
                   multiline
                   numberOfLines={6}
@@ -294,7 +296,9 @@ export default function HelpScreen() {
                     ]}
                     onPress={() => setRequestType('help_rescue')}
                   >
-                    <Text style={{ color: requestType === 'help_rescue' ? '#FFFFFF' : theme.textSecondary, fontFamily: Fonts.bold, textAlign: 'center' }}>Help & Rescue</Text>
+                    <Text style={{ color: requestType === 'help_rescue' ? '#FFFFFF' : theme.textSecondary, fontFamily: Fonts.bold, textAlign: 'center' }}>
+                      {t('help.helpRescueType')}
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
@@ -303,12 +307,14 @@ export default function HelpScreen() {
                     ]}
                     onPress={() => setRequestType('donation')}
                   >
-                    <Text style={{ color: requestType === 'donation' ? '#FFFFFF' : theme.textSecondary, fontFamily: Fonts.bold, textAlign: 'center' }}>Donation</Text>
+                    <Text style={{ color: requestType === 'donation' ? '#FFFFFF' : theme.textSecondary, fontFamily: Fonts.bold, textAlign: 'center' }}>
+                      {t('help.donationType')}
+                    </Text>
                   </TouchableOpacity>
                 </View>
 
                 <Text style={styles.formHint}>
-                  📍 Your location will be automatically included.
+                  {t('help.gpsAutoNotice')}
                 </Text>
 
                 <TouchableOpacity
@@ -320,7 +326,7 @@ export default function HelpScreen() {
                   {submitting ? (
                     <ActivityIndicator size="small" color={Colors.white} />
                   ) : (
-                    <Text style={styles.submitButtonText}>Submit Request</Text>
+                    <Text style={styles.submitButtonText}>{t('help.sendRequest')}</Text>
                   )}
                 </TouchableOpacity>
               </ScrollView>
@@ -341,19 +347,21 @@ export default function HelpScreen() {
             <View style={styles.successIconWrap}>
               <Text style={{ fontSize: 36 }}>✅</Text>
             </View>
-            <Text style={[styles.successTitle, { color: theme.textPrimary }]}>Request Received</Text>
+            <Text style={[styles.successTitle, { color: theme.textPrimary }]}>{t('help.requestReceivedTitle')}</Text>
             <Text style={[styles.successText, { color: theme.textSecondary }]}>
-              Your {successData?.type === 'donation' ? 'Donation' : 'Help & Rescue'} request has been successfully submitted.
+              {t('help.requestReceivedDesc', {
+                type: successData?.type === 'donation' ? t('help.donationType') : t('help.helpRescueType')
+              })}
             </Text>
             <View style={styles.requestIdBox}>
-              <Text style={[styles.requestIdLabel, { color: theme.textMuted }]}>Request ID</Text>
+              <Text style={[styles.requestIdLabel, { color: theme.textMuted }]}>{t('help.requestIdLabel')}</Text>
               <Text style={[styles.requestIdValue, { color: theme.textPrimary }]}>{successData?.id}</Text>
             </View>
             <TouchableOpacity
               style={styles.successBtn}
               onPress={() => setSuccessData(null)}
             >
-              <Text style={styles.successBtnText}>OK</Text>
+              <Text style={styles.successBtnText}>{t('common.done')}</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { apiFetch } from '../../../config/api';
 import { Fonts, ThemeTokens } from '../../../constants/theme';
 import { useTheme } from '../../../context/ThemeContext';
+import { useLanguage } from '../../../context/LanguageContext';
 import TopBar from '../../../components/TopBar';
 
 interface AlertDetail {
@@ -32,6 +33,7 @@ interface AlertDetail {
 export default function AlertDetailScreen() {
   const { id } = useLocalSearchParams() as { id: string };
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const styles = React.useMemo(() => createStyles(theme), [theme]);
   const router = useRouter();
   const [alert, setAlert] = useState<AlertDetail | null>(null);
@@ -107,11 +109,11 @@ export default function AlertDetailScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack}>
-            <Text style={styles.backButton}>← Back</Text>
+            <Text style={styles.backButton}>← {t('common.back')}</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.centered}>
-          <Text style={styles.errorText}>Alert not found</Text>
+          <Text style={styles.errorText}>{t('alerts.alertNotFound')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -122,13 +124,13 @@ export default function AlertDetailScreen() {
   return (
     <SafeAreaView style={styles.container}>
 
-      <TopBar title="Alert Details" showBack onBack={handleBack} />
+      <TopBar title={t('alerts.alertDetails')} showBack onBack={handleBack} />
 
       <ScrollView style={styles.content}>
 
         {isCritical && (
           <View style={styles.criticalBar}>
-            <Text style={styles.criticalBarText}>⚠ Critical Emergency</Text>
+            <Text style={styles.criticalBarText}>{t('alerts.criticalEmergency')}</Text>
           </View>
         )}
 
@@ -136,14 +138,12 @@ export default function AlertDetailScreen() {
           <Text style={styles.title}>
             {alert.disaster_type.charAt(0).toUpperCase() +
               alert.disaster_type.slice(1)}{' '}
-            Alert
+            {t('alerts.title')}
           </Text>
-
-
         </View>
 
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionHeading}>What To Do:</Text>
+          <Text style={styles.sectionHeading}>{t('alerts.whatToDo')}</Text>
           {Array.isArray(alert.work_plan) && alert.work_plan.length > 0 ? (
             alert.work_plan.map((step: string, index: number) => (
               <View key={index} style={styles.stepRow}>
@@ -154,19 +154,19 @@ export default function AlertDetailScreen() {
               </View>
             ))
           ) : (
-            <Text style={styles.noContent}>No instructions available</Text>
+            <Text style={styles.noContent}>{t('alerts.noInstructions')}</Text>
           )}
         </View>
 
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionHeading}>Affected Area:</Text>
+          <Text style={styles.sectionHeading}>{t('alerts.affectedArea')}</Text>
           <Text style={styles.zoneDescription}>
             {alert.zone_description || alert.district || 'Not specified'}
           </Text>
         </View>
 
         <Text style={styles.issuedTime}>
-          Issued: {formatTime(alert.created_at)}
+          {t('alerts.issued', { time: formatTime(alert.created_at) })}
         </Text>
 
         <TouchableOpacity
@@ -182,7 +182,7 @@ export default function AlertDetailScreen() {
             <ActivityIndicator size="small" color={theme.white} />
           ) : (
             <Text style={styles.acknowledgeText}>
-              {acknowledged ? 'Acknowledged ✓' : 'Acknowledge'}
+              {acknowledged ? t('alerts.acknowledged') : t('alerts.acknowledge')}
             </Text>
           )}
         </TouchableOpacity>

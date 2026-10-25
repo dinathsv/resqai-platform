@@ -6,25 +6,29 @@ import {
   StyleSheet,
   Modal,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Fonts } from '../constants/theme';
+import LanguageSelector from './LanguageSelector';
 
 interface AppearanceSettingsProps {
   visible: boolean;
   onClose: () => void;
 }
 
-type Option = { mode: ThemeMode; label: string; icon: string };
+type Option = { mode: ThemeMode; labelKey: string; icon: string };
 
-const OPTIONS: Option[] = [
-  { mode: 'light',  label: 'Light',  icon: '☀' },
-  { mode: 'dark',   label: 'Dark',   icon: '☾' },
-  { mode: 'system', label: 'System', icon: '◐' },
+const THEME_OPTIONS: Option[] = [
+  { mode: 'light',  labelKey: 'settings.themeLight',  icon: '☀' },
+  { mode: 'dark',   labelKey: 'settings.themeDark',   icon: '☾' },
+  { mode: 'system', labelKey: 'settings.themeSystem', icon: '◐' },
 ];
 
 export default function AppearanceSettings({ visible, onClose }: AppearanceSettingsProps) {
   const { theme, themeMode, setThemeMode } = useTheme();
+  const { t } = useLanguage();
 
   const handleSelect = (mode: ThemeMode) => {
     setThemeMode(mode);
@@ -76,80 +80,92 @@ export default function AppearanceSettings({ visible, onClose }: AppearanceSetti
             {/* Handle */}
             <View style={[styles.handle, { backgroundColor: theme.border }]} />
 
-          <Text style={[styles.title, { color: theme.textPrimary }]}>
-            Appearance
-          </Text>
-          <Text style={[styles.subtitle, { color: theme.textMuted }]}>
-            Choose your preferred theme
-          </Text>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
+              {/* Language Section */}
+              <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
+                {t('settings.languageTitle')}
+              </Text>
+              <Text style={[styles.subtitle, { color: theme.textMuted }]}>
+                {t('settings.languageSubtitle')}
+              </Text>
+              <LanguageSelector variant="list" style={{ marginBottom: 24 }} />
 
-          {/* Segmented control */}
-          <View
-            style={[
-              styles.segmentContainer,
-              {
-                backgroundColor: theme.isDark
-                  ? 'rgba(255,255,255,0.06)'
-                  : 'rgba(22,79,67,0.07)',
-                borderColor: theme.border,
-              },
-              Platform.OS === 'web' && ({
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-              } as any),
-            ]}
-          >
-            {OPTIONS.map((opt, idx) => {
-              const isActive = themeMode === opt.mode;
-              return (
-                <TouchableOpacity
-                  key={opt.mode}
-                  style={[
-                    styles.segment,
-                      isActive && [
-                        styles.segmentActive,
-                        {
-                          backgroundColor: theme.brandActive,
-                          borderColor: theme.brandActive,
-                        },
-                      ],
-                    idx === 0 && styles.segmentFirst,
-                    idx === OPTIONS.length - 1 && styles.segmentLast,
-                  ]}
-                  onPress={() => handleSelect(opt.mode)}
-                  activeOpacity={0.75}
-                >
-                  <Text style={styles.segmentIcon}>{opt.icon}</Text>
-                  <Text
-                    style={[
-                      styles.segmentLabel,
-                      {
-                        color: isActive
-                          ? '#FFFFFF'
-                          : theme.textSecondary,
-                        fontFamily: isActive ? Fonts.bold : Fonts.semiBold,
-                      },
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+              {/* Theme Section */}
+              <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
+                {t('settings.appearanceTitle')}
+              </Text>
+              <Text style={[styles.subtitle, { color: theme.textMuted }]}>
+                {t('settings.appearanceSubtitle')}
+              </Text>
 
+              {/* Segmented control */}
+              <View
+                style={[
+                  styles.segmentContainer,
+                  {
+                    backgroundColor: theme.isDark
+                      ? 'rgba(255,255,255,0.06)'
+                      : 'rgba(22,79,67,0.07)',
+                    borderColor: theme.border,
+                  },
+                  Platform.OS === 'web' && ({
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                  } as any),
+                ]}
+              >
+                {THEME_OPTIONS.map((opt, idx) => {
+                  const isActive = themeMode === opt.mode;
+                  return (
+                    <TouchableOpacity
+                      key={opt.mode}
+                      style={[
+                        styles.segment,
+                        isActive && [
+                          styles.segmentActive,
+                          {
+                            backgroundColor: theme.brandActive,
+                            borderColor: theme.brandActive,
+                          },
+                        ],
+                        idx === 0 && styles.segmentFirst,
+                        idx === THEME_OPTIONS.length - 1 && styles.segmentLast,
+                      ]}
+                      onPress={() => handleSelect(opt.mode)}
+                      activeOpacity={0.75}
+                    >
+                      <Text style={styles.segmentIcon}>{opt.icon}</Text>
+                      <Text
+                        style={[
+                          styles.segmentLabel,
+                          {
+                            color: isActive
+                              ? '#FFFFFF'
+                              : theme.textSecondary,
+                            fontFamily: isActive ? Fonts.bold : Fonts.semiBold,
+                          },
+                        ]}
+                      >
+                        {t(opt.labelKey)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
 
-
-          <TouchableOpacity
-            style={[
-              styles.closeBtn,
-              { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
-            ]}
-            onPress={onClose}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.closeBtnText, { color: theme.textPrimary }]}>Done</Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.closeBtn,
+                  { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
+                ]}
+                onPress={onClose}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.closeBtnText, { color: theme.textPrimary }]}>
+                  {t('common.done')}
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -171,75 +187,78 @@ const styles = StyleSheet.create({
   sheet: {
     width: '100%',
     maxWidth: 480,
+    maxHeight: '85%',
     alignSelf: 'center',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     borderTopWidth: 1,
     paddingHorizontal: 24,
     paddingTop: 12,
-    paddingBottom: 40,
-    alignItems: 'center',
+    paddingBottom: 24,
+  },
+  scrollBody: {
+    paddingBottom: 20,
   },
   handle: {
     width: 36,
     height: 4,
     borderRadius: 2,
-    marginBottom: 20,
+    alignSelf: 'center',
+    marginBottom: 16,
   },
-  title: {
-    fontSize: 20,
+  sectionTitle: {
+    fontSize: 18,
     fontFamily: Fonts.bold,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 13,
     fontFamily: Fonts.regular,
-    marginBottom: 24,
+    marginBottom: 14,
   },
   segmentContainer: {
     flexDirection: 'row',
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
-    padding: 4,
-    width: '100%',
-    marginBottom: 20,
+    padding: 3,
+    marginBottom: 24,
   },
   segment: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingVertical: 10,
+    borderRadius: 9,
     gap: 6,
   },
   segmentFirst: {
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
+    borderTopLeftRadius: 9,
+    borderBottomLeftRadius: 9,
   },
   segmentLast: {
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
+    borderTopRightRadius: 9,
+    borderBottomRightRadius: 9,
   },
   segmentActive: {
+    borderRadius: 9,
   },
   segmentIcon: {
-    fontSize: 15,
-    color: '#000000',
-  },
-  segmentLabel: {
     fontSize: 14,
   },
-
+  segmentLabel: {
+    fontSize: 13,
+  },
   closeBtn: {
     width: '100%',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
+    paddingVertical: 13,
+    borderRadius: 10,
     borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   closeBtnText: {
-    fontSize: 15,
-    fontFamily: Fonts.bold,
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
   },
 });

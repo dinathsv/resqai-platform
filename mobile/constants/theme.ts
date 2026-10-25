@@ -219,7 +219,7 @@ export const Colors = {
 // ---------------------------------------------
 const SYSTEM_FONT = Platform.select({
   ios:     'System',
-  web:     'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+  web:     'Inter, "Noto Sans Sinhala", "Noto Sans Tamil", "Iskoola Pota", "Latha", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif',
   default: 'System',
 }) as string;
 

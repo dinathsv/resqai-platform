@@ -13,10 +13,13 @@ import * as Location from 'expo-location';
 import { apiFetch } from '../../config/api';
 import { Fonts, makeGlass } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
+import LanguageSelector from '../../components/LanguageSelector';
 
 export default function GuestScreen() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const glass = useMemo(() => makeGlass(theme), [theme]);
   const [nic, setNic] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,48 +27,81 @@ export default function GuestScreen() {
 
   const handleVerifyNic = async () => {
     const trimmedNic = nic.trim();
-    if (!trimmedNic) { setError('Please enter your NIC number'); return; }
+    if (!trimmedNic) {
+      setError(t('auth.invalidNic'));
+      return;
+    }
     const nicRegex = /^[0-9]{9}[VvXx]$|^[0-9]{12}$/;
-    if (!nicRegex.test(trimmedNic)) { setError('Invalid NIC format. Use old format (e.g. 123456789V) or new format (12 digits)'); return; }
-    setError(''); setLoading(true);
+    if (!nicRegex.test(trimmedNic)) {
+      setError(t('auth.invalidNic'));
+      return;
+    }
+    setError('');
+    setLoading(true);
     try {
       let lat: number | null = null, lng: number | null = null;
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') { const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }); lat = loc.coords.latitude; lng = loc.coords.longitude; }
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          lat = loc.coords.latitude;
+          lng = loc.coords.longitude;
+        }
       } catch {}
-      const res = await apiFetch('/api/auth/guest/verify-nic', { method: 'POST', body: JSON.stringify({ nic_number: trimmedNic, lat, lng }) });
+      const res = await apiFetch('/api/auth/guest/verify-nic', {
+        method: 'POST',
+        body: JSON.stringify({ nic_number: trimmedNic, lat, lng }),
+      });
       const data = await res.json();
-      if (res.ok) { await AsyncStorage.setItem('guest_token', data.access_token); router.replace('/(people)/dashboard'); }
-      else {
+      if (res.ok) {
+        await AsyncStorage.setItem('guest_token', data.access_token);
+        router.replace('/(people)/dashboard');
+      } else {
         if (res.status === 400) {
-          if (data.detail?.includes('format')) setError('Invalid NIC format. Please check and try again.');
-          else if (data.detail?.includes('registry')) setError('NIC not found in the national registry. Please check your number.');
-          else setError(data.detail || 'NIC verification failed');
-        } else setError(data.detail || 'Verification failed. Please try again.');
+          setError(data.detail || t('auth.invalidNic'));
+        } else {
+          setError(data.detail || t('common.error'));
+        }
       }
-    } catch { console.error('Guest NIC verify error'); setError('Connection error. Please check your internet connection.'); }
-    finally { setLoading(false); }
+    } catch {
+      console.error('Guest NIC verify error');
+      setError(t('auth.connectionError'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={20}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <TouchableOpacity style={styles.backLink} onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(auth)/login'); }} activeOpacity={0.7}>
-            <Text style={[styles.backText, { color: theme.brandActive }]}>← Back to Sign In</Text>
+          <TouchableOpacity
+            style={styles.backLink}
+            onPress={() => {
+              if (router.canGoBack()) router.back();
+              else router.replace('/(auth)/login');
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.backText, { color: theme.brandActive }]}>
+              ← {t('auth.signIn')}
+            </Text>
           </TouchableOpacity>
 
           <View style={[styles.iconCircle, { backgroundColor: theme.successLight }]}>
-            <Ionicons name="person-outline" size={36} color={theme.success} />
+            <Ionicons name="shield-checkmark-outline" size={36} color={theme.success} />
           </View>
 
-          <Text style={[styles.title, { color: theme.textPrimary }]}>Guest Access</Text>
+          <Text style={[styles.title, { color: theme.textPrimary }]}>
+            {t('auth.guestSignIn')}
+          </Text>
           <Text style={[styles.subtitle, { color: theme.textMuted }]}>
-            Enter your NIC number to access emergency help features without an account.
+            {t('auth.guestTagline')}
           </Text>
 
           <View style={[styles.card, glass.card]}>
+            <LanguageSelector variant="segmented" style={{ marginBottom: 16 }} />
+
             {error ? (
               <View style={[styles.errorBox, { backgroundColor: theme.emergencyLight, borderColor: theme.emergency }]}>
                 <Text style={[styles.errorText, { color: theme.isDark ? '#FFFFFF' : theme.emergency }]}>⚠ {error}</Text>
@@ -73,22 +109,43 @@ export default function GuestScreen() {
             ) : null}
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>NIC Number</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>
+                {t('auth.nicNumber')}
+              </Text>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary }]}
-                value={nic} onChangeText={setNic} placeholder="e.g. 200012345678 or 951234567V"
-                placeholderTextColor={theme.textMuted} autoCapitalize="characters" autoCorrect={false}
-                editable={!loading} onSubmitEditing={handleVerifyNic} maxLength={12} />
+                value={nic}
+                onChangeText={setNic}
+                placeholder={t('auth.nicPlaceholder')}
+                placeholderTextColor={theme.textMuted}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                editable={!loading}
+                onSubmitEditing={handleVerifyNic}
+                maxLength={12}
+              />
+              <Text style={[styles.hint, { color: theme.textMuted }]}>
+                {t('auth.nicHint')}
+              </Text>
             </View>
 
-            <TouchableOpacity style={[styles.verifyButton, { backgroundColor: theme.brandActive }, Platform.OS === 'web' ? { boxShadow: `0 4px 8px ${theme.brandActive}40` } : { shadowColor: theme.brandActive }, loading && styles.buttonDisabled]}
-              onPress={handleVerifyNic} disabled={loading} activeOpacity={0.7}>
-              {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.verifyButtonText}>Verify & Continue</Text>}
+            <TouchableOpacity
+              style={[
+                styles.verifyButton,
+                { backgroundColor: theme.brandActive },
+                Platform.OS === 'web' ? { boxShadow: `0 4px 8px ${theme.brandActive}40` } : { shadowColor: theme.brandActive },
+                loading && styles.buttonDisabled,
+              ]}
+              onPress={handleVerifyNic}
+              disabled={loading}
+              activeOpacity={0.7}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.verifyButtonText}>{t('common.confirm')}</Text>
+              )}
             </TouchableOpacity>
-
-            <Text style={[styles.disclaimer, { color: theme.textMuted }]}>
-              Guest sessions expire after 30 minutes.{'\n'}Register for full access to all features.
-            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -99,21 +156,20 @@ export default function GuestScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
-  content: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 32, paddingBottom: 56, justifyContent: 'center', alignItems: 'center' },
-  backLink: { alignSelf: 'flex-start', marginBottom: 24 },
+  content: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 28 },
+  backLink: { marginBottom: 16 },
   backText: { fontSize: 14, fontFamily: Fonts.semiBold },
-  iconCircle: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  iconText: { fontSize: 36 },
-  title: { fontSize: 24, fontFamily: Fonts.bold, marginBottom: 8 },
-  subtitle: { fontSize: 14, fontFamily: Fonts.regular, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
-  card: { padding: 24, width: '100%', borderRadius: 12 },
+  iconCircle: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 14 },
+  title: { fontSize: 24, fontFamily: Fonts.bold, textAlign: 'center', marginBottom: 6 },
+  subtitle: { fontSize: 13, fontFamily: Fonts.regular, textAlign: 'center', marginBottom: 20, paddingHorizontal: 16 },
+  card: { padding: 22, borderRadius: 12 },
   errorBox: { borderRadius: 8, padding: 12, marginBottom: 16, borderWidth: 1 },
-  errorText: { fontSize: 13, fontFamily: Fonts.medium, textAlign: 'center' },
-  inputGroup: { marginBottom: 20 },
-  label: { fontSize: 13, fontFamily: Fonts.medium, marginBottom: 6 },
-  input: { paddingVertical: 12, paddingHorizontal: 14, fontSize: 16, fontFamily: Fonts.medium, letterSpacing: 1, textAlign: 'center', borderRadius: 8, borderWidth: 1 },
-  verifyButton: { paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
+  errorText: { fontSize: 13, fontFamily: Fonts.bold, textAlign: 'center' },
+  inputGroup: { marginBottom: 18 },
+  label: { fontSize: 13, fontFamily: Fonts.semiBold, marginBottom: 6 },
+  input: { paddingVertical: 12, paddingHorizontal: 14, fontSize: 14, fontFamily: Fonts.semiBold, borderRadius: 8, borderWidth: 1 },
+  hint: { fontSize: 11, fontFamily: Fonts.regular, marginTop: 4 },
+  verifyButton: { paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 8 },
   buttonDisabled: { opacity: 0.6 },
-  verifyButtonText: { color: '#FFFFFF', fontSize: 16, fontFamily: Fonts.bold },
-  disclaimer: { fontSize: 12, fontFamily: Fonts.regular, textAlign: 'center', marginTop: 20, lineHeight: 18 },
+  verifyButtonText: { color: '#FFFFFF', fontSize: 15, fontFamily: Fonts.bold },
 });

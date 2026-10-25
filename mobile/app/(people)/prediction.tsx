@@ -16,6 +16,7 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { Fonts } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import TopBar from '../../components/TopBar';
 import BottomNav from '../../components/BottomNav';
 import {
@@ -61,6 +62,7 @@ const C = {
 
 export default function PredictionScreen() {
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
   const cardTheme = { backgroundColor: theme.surface, borderColor: theme.border };
 
@@ -154,7 +156,7 @@ export default function PredictionScreen() {
 
   const handlePredict = async () => {
     if (!selectedDistrict) {
-      setError('Please select a district');
+      setError(t('prediction.selectDistrictPrompt'));
       return;
     }
     setLoading(true);
@@ -279,14 +281,14 @@ export default function PredictionScreen() {
 
   const renderDistrictPicker = () => (
     <View style={{ zIndex: 10, position: 'relative' }}>
-      <Text style={[s.inputLabel, { color: theme.textMuted }]}>District</Text>
+      <Text style={[s.inputLabel, { color: theme.textMuted }]}>{t('prediction.selectDistrict')}</Text>
       <TouchableOpacity
         style={[s.pickerButton, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}
         onPress={() => setShowDistrictPicker(!showDistrictPicker)}
         activeOpacity={0.7}
       >
         <Text style={[s.pickerText, !selectedDistrict ? { color: theme.textMuted } : { color: theme.textPrimary }]}>
-          {selectedDistrict || 'Select a district...'}
+          {selectedDistrict || t('prediction.selectDistrictPrompt')}
         </Text>
         <Text style={[s.pickerChevron, { color: theme.textMuted }]}>{showDistrictPicker ? '▲' : '▼'}</Text>
       </TouchableOpacity>
@@ -322,7 +324,7 @@ export default function PredictionScreen() {
 
   const renderPeakRainInput = () => (
     <View style={s.peakSection}>
-      <Text style={[s.inputLabel, { color: theme.textMuted }]}>Peak 24-Hour Rainfall (mm)</Text>
+      <Text style={[s.inputLabel, { color: theme.textMuted }]}>{t('prediction.peakRainfallInput')}</Text>
       <View style={s.peakRow}>
         <TextInput
           style={[s.textInput, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary }]}
@@ -338,10 +340,10 @@ export default function PredictionScreen() {
             { label: '75 Watch', color: C.yellow },
             { label: '100 Warn', color: C.amber },
             { label: '150+ Evac', color: C.red },
-          ].map((t, i) => (
+          ].map((item, i) => (
             <View key={i} style={s.legendRow}>
-              <View style={[s.legendDot, { backgroundColor: t.color }]} />
-              <Text style={[s.legendText, { color: theme.textMuted }]}>{t.label}</Text>
+              <View style={[s.legendDot, { backgroundColor: item.color }]} />
+              <Text style={[s.legendText, { color: theme.textMuted }]}>{item.label}</Text>
             </View>
           ))}
         </View>
@@ -357,7 +359,7 @@ export default function PredictionScreen() {
         activeOpacity={0.7}
       >
         <Text style={[s.advancedToggleText, { color: theme.textMuted }]}>
-          {showAdvanced ? '▲ Hide' : '▼ Show'} Monthly Rainfall (Optional)
+          {showAdvanced ? '▲' : '▼'} {t('prediction.monthlyRainfallHeader')}
         </Text>
       </TouchableOpacity>
 
@@ -407,7 +409,7 @@ export default function PredictionScreen() {
             {loadingLocation ? (
               <ActivityIndicator size="small" color={C.brandActive} />
             ) : (
-              <Text style={[s.refreshGpsText, { color: theme.textSecondary }]}>🔄 Refresh</Text>
+              <Text style={[s.refreshGpsText, { color: theme.textSecondary }]}>🔄 {t('common.retry')}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -446,7 +448,7 @@ export default function PredictionScreen() {
           onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${center.lat},${center.lng}`)}
           activeOpacity={0.7}
         >
-          <Text style={s.openMapBtnText}>Open in Google Maps 🗺️</Text>
+          <Text style={s.openMapBtnText}>{t('common.directions')} 🗺️</Text>
         </TouchableOpacity>
       </View>
     );
@@ -649,7 +651,7 @@ export default function PredictionScreen() {
               <Text style={[s.contactLabel, { color: theme.textPrimary }]}>{value}</Text>
               {phone ? (
                 <View style={s.callChip}>
-                  <Text style={s.callChipText}>📞 Call</Text>
+                  <Text style={s.callChipText}>📞 {t('common.call')}</Text>
                 </View>
               ) : null}
             </TouchableOpacity>
@@ -662,7 +664,7 @@ export default function PredictionScreen() {
   // ────────────── Main Render ──────────────
   return (
     <SafeAreaView style={[s.container, { backgroundColor: theme.background }]}>
-      <TopBar title="Disaster Prediction" showBack onBack={handleBack} />
+      <TopBar title={t('prediction.title')} showBack onBack={handleBack} />
 
       <ScrollView
         style={s.scroll}
@@ -686,7 +688,7 @@ export default function PredictionScreen() {
         {/* Form */}
         {!result && (
           <View style={[s.card, cardTheme]}>
-            <Text style={[s.formTitle, { color: theme.textPrimary }]}>Configure Prediction</Text>
+            <Text style={[s.formTitle, { color: theme.textPrimary }]}>{t('prediction.title')}</Text>
 
             {renderDistrictPicker()}
             {renderPeakRainInput()}
@@ -707,7 +709,7 @@ export default function PredictionScreen() {
               {loading ? (
                 <ActivityIndicator color={C.white} size="small" />
               ) : (
-                <Text style={s.predictButtonText}>🔍 Analyze Risk</Text>
+                <Text style={s.predictButtonText}>🔍 {t('prediction.predictButton')}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -731,7 +733,7 @@ export default function PredictionScreen() {
             {renderEmergencyContactsCard()}
 
             <TouchableOpacity style={[s.resetButton, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={handleReset} activeOpacity={0.7}>
-              <Text style={[s.resetButtonText, { color: theme.textPrimary }]}>🔄 New Prediction</Text>
+              <Text style={[s.resetButtonText, { color: theme.textPrimary }]}>🔄 {t('common.retry')}</Text>
             </TouchableOpacity>
           </Animated.View>
         )}

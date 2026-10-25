@@ -19,6 +19,7 @@ import { apiFetch } from '../../config/api';
 import { connectSocket, disconnectSocket } from '../../config/socket';
 import { Colors, Fonts } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import BottomNav from '../../components/BottomNav';
 import TopBar from '../../components/TopBar';
 
@@ -98,6 +99,7 @@ function EmergencyGlow() {
 
 export default function DashboardScreen() {
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
   const [userName, setUserName] = useState<string>('');
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
@@ -242,7 +244,7 @@ export default function DashboardScreen() {
           {weatherLoading ? (
             <View style={styles.weatherLoading}>
               <ActivityIndicator size="small" color={theme.accent} />
-              <Text style={[styles.weatherLoadingText, { color: theme.textMuted }]}>Loading weather...</Text>
+              <Text style={[styles.weatherLoadingText, { color: theme.textMuted }]}>{t('common.loading')}</Text>
             </View>
           ) : weatherError ? (
             <View style={styles.weatherLoading}>
@@ -252,7 +254,7 @@ export default function DashboardScreen() {
                 onPress={() => userLocation && fetchWeather(userLocation.lat, userLocation.lng)}
                 style={[styles.weatherRetryBtn, { borderColor: theme.border }]}
               >
-                <Text style={[styles.weatherRetryText, { color: theme.accent }]}>Retry</Text>
+                <Text style={[styles.weatherRetryText, { color: theme.accent }]}>{t('common.retry')}</Text>
               </TouchableOpacity>
             </View>
           ) : weather ? (
@@ -305,7 +307,7 @@ export default function DashboardScreen() {
 
         {/* Quick Actions Section */}
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Quick Actions</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>{t('dashboard.quickActions')}</Text>
         </View>
 
         <View style={styles.quickActionsGrid}>
@@ -323,7 +325,7 @@ export default function DashboardScreen() {
                   resizeMode="contain"
                 />
               </View>
-              <Text style={[styles.actionLabel, { color: theme.textPrimary }]}>Emergency{'\n'}Request</Text>
+              <Text style={[styles.actionLabel, { color: theme.textPrimary }]}>{t('dashboard.requestHelp')}</Text>
             </TouchableOpacity>
 
             {/* Card 2: Nearest Hospitals */}
@@ -339,7 +341,7 @@ export default function DashboardScreen() {
                   resizeMode="contain"
                 />
               </View>
-              <Text style={[styles.actionLabel, { color: theme.textPrimary }]}>Nearest{'\n'}Hospitals</Text>
+              <Text style={[styles.actionLabel, { color: theme.textPrimary }]}>{t('dashboard.hospitals')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -357,7 +359,7 @@ export default function DashboardScreen() {
                   resizeMode="contain"
                 />
               </View>
-              <Text style={[styles.actionLabel, { color: theme.textPrimary }]}>AI First Aid{'\n'}Assistant</Text>
+              <Text style={[styles.actionLabel, { color: theme.textPrimary }]}>{t('dashboard.aiAssistant')}</Text>
             </TouchableOpacity>
 
             {/* Card 4: AI Disaster Prediction */}
@@ -373,7 +375,7 @@ export default function DashboardScreen() {
                   resizeMode="contain"
                 />
               </View>
-              <Text style={[styles.actionLabel, { color: theme.textPrimary }]}>Disaster{'\n'}Prediction</Text>
+              <Text style={[styles.actionLabel, { color: theme.textPrimary }]}>{t('dashboard.floodRisk')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -415,7 +417,7 @@ export default function DashboardScreen() {
 
         {/* Emergency Numbers Section */}
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Emergency Numbers</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>{t('locator.emergencyContactsTitle')}</Text>
         </View>
 
         <View style={styles.emergencyRow}>

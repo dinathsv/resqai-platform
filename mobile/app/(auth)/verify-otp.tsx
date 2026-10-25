@@ -12,10 +12,12 @@ import { apiFetch } from '../../config/api';
 import { Fonts, makeGlass } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function VerifyOtpScreen() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const glass = useMemo(() => makeGlass(theme), [theme]);
   const { userId, email } = useLocalSearchParams() as { userId: string; email: string };
   const [otp, setOtp] = useState('');
@@ -27,30 +29,56 @@ export default function VerifyOtpScreen() {
 
   const handleVerify = async () => {
     const trimmedOtp = otp.trim();
-    if (!trimmedOtp || trimmedOtp.length !== 6) { setError('Please enter the 6-digit OTP code'); return; }
-    setError(''); setSuccessMsg(''); setLoading(true);
+    if (!trimmedOtp || trimmedOtp.length !== 6) {
+      setError(t('auth.enterCode'));
+      return;
+    }
+    setError('');
+    setSuccessMsg('');
+    setLoading(true);
     try {
-      const res = await apiFetch('/api/auth/verify-otp', { method: 'POST', body: JSON.stringify({ user_id: userId, otp: trimmedOtp }) });
+      const res = await apiFetch('/api/auth/verify-otp', {
+        method: 'POST',
+        body: JSON.stringify({ user_id: userId, otp: trimmedOtp }),
+      });
       const data = await res.json();
-      if (res.ok) { await AsyncStorage.setItem('token', data.access_token); router.replace('/(people)/dashboard'); }
-      else {
+      if (res.ok) {
+        await AsyncStorage.setItem('token', data.access_token);
+        router.replace('/(people)/dashboard');
+      } else {
         setOtp('');
-        setError(res.status === 400 ? 'Invalid or expired OTP. Please check the code or request a new one.' : (data.detail || 'Verification failed. Please try again.'));
+        setError(res.status === 400 ? t('auth.invalidCredentials') : (data.detail || t('common.error')));
         inputRef.current?.focus();
       }
-    } catch { setError('Connection error. Please try again.'); }
-    finally { setLoading(false); }
+    } catch {
+      setError(t('auth.connectionError'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleResendOtp = async () => {
-    setError(''); setSuccessMsg(''); setResending(true);
+    setError('');
+    setSuccessMsg('');
+    setResending(true);
     try {
-      const res = await apiFetch('/api/auth/resend-otp', { method: 'POST', body: JSON.stringify({ user_id: userId }) });
+      const res = await apiFetch('/api/auth/resend-otp', {
+        method: 'POST',
+        body: JSON.stringify({ user_id: userId }),
+      });
       const data = await res.json();
-      if (res.ok) { setSuccessMsg('A new OTP has been sent to your phone'); setOtp(''); inputRef.current?.focus(); }
-      else setError(res.status === 429 ? 'Too many resend attempts. Please wait a few minutes.' : (data.detail || 'Failed to resend OTP'));
-    } catch { setError('Connection error. Please try again.'); }
-    finally { setResending(false); }
+      if (res.ok) {
+        setSuccessMsg(t('common.success'));
+        setOtp('');
+        inputRef.current?.focus();
+      } else {
+        setError(res.status === 429 ? t('auth.accountLocked') : (data.detail || t('common.error')));
+      }
+    } catch {
+      setError(t('auth.connectionError'));
+    } finally {
+      setResending(false);
+    }
   };
 
   return (
@@ -60,62 +88,81 @@ export default function VerifyOtpScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={20}
       >
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={[styles.iconCircle, { backgroundColor: theme.successLight }]}>
-          <Ionicons name="shield-checkmark-outline" size={36} color={theme.success} />
-        </View>
-
-        <Text style={[styles.title, { color: theme.textPrimary }]}>Verify Your Account</Text>
-        <Text style={[styles.subtitle, { color: theme.textMuted }]}>
-          We've sent a 6-digit OTP to your phone.{'\n'}
-          {email ? `Registered email: ${email}` : ''}
-        </Text>
-
-        <View style={[styles.card, glass.card]}>
-          {error ? (
-            <View style={[styles.errorBox, { backgroundColor: theme.emergencyLight, borderColor: theme.emergency }]}>
-              <Text style={[styles.errorText, { color: theme.isDark ? '#FFFFFF' : theme.emergency }]}>⚠ {error}</Text>
-            </View>
-          ) : null}
-
-          {successMsg ? (
-            <View style={[styles.successBox, { backgroundColor: theme.successLight, borderColor: theme.success }]}>
-              <Text style={[styles.successText, { color: theme.isDark ? '#FFFFFF' : theme.success }]}>✓ {successMsg}</Text>
-            </View>
-          ) : null}
-
-          <TextInput
-            ref={inputRef}
-            style={[styles.otpInput, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary }]}
-            value={otp}
-            onChangeText={(text) => setOtp(text.replace(/[^0-9]/g, '').slice(0, 6))}
-            placeholder="000000"
-            placeholderTextColor={theme.textMuted}
-            keyboardType="number-pad"
-            maxLength={6}
-            textAlign="center"
-            editable={!loading}
-            autoFocus
-            onSubmitEditing={handleVerify}
-          />
-
-          <TouchableOpacity style={[styles.verifyButton, { backgroundColor: theme.brandActive }, Platform.OS === 'web' ? { boxShadow: `0 4px 8px ${theme.brandActive}40` } : { shadowColor: theme.brandActive }, loading && styles.buttonDisabled]}
-            onPress={handleVerify} disabled={loading} activeOpacity={0.7}>
-            {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.verifyButtonText}>Verify OTP</Text>}
-          </TouchableOpacity>
-
-          <View style={styles.resendRow}>
-            <Text style={[styles.resendLabel, { color: theme.textMuted }]}>Didn't receive the code?</Text>
-            <TouchableOpacity onPress={handleResendOtp} disabled={resending} activeOpacity={0.7}>
-              {resending ? <ActivityIndicator size="small" color={theme.brandActive} /> : <Text style={[styles.resendLink, { color: theme.brandActive }]}>Resend OTP</Text>}
-            </TouchableOpacity>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={[styles.iconCircle, { backgroundColor: theme.successLight }]}>
+            <Ionicons name="shield-checkmark-outline" size={36} color={theme.success} />
           </View>
-        </View>
-      </ScrollView>
+
+          <Text style={[styles.title, { color: theme.textPrimary }]}>
+            {t('auth.verifyOtp')}
+          </Text>
+          <Text style={[styles.subtitle, { color: theme.textMuted }]}>
+            {t('auth.otpSentTo')} {email || ''}
+          </Text>
+
+          <View style={[styles.card, glass.card]}>
+            {error ? (
+              <View style={[styles.errorBox, { backgroundColor: theme.emergencyLight, borderColor: theme.emergency }]}>
+                <Text style={[styles.errorText, { color: theme.isDark ? '#FFFFFF' : theme.emergency }]}>⚠ {error}</Text>
+              </View>
+            ) : null}
+
+            {successMsg ? (
+              <View style={[styles.successBox, { backgroundColor: theme.successLight, borderColor: theme.success }]}>
+                <Text style={[styles.successText, { color: theme.isDark ? '#FFFFFF' : theme.success }]}>✓ {successMsg}</Text>
+              </View>
+            ) : null}
+
+            <TextInput
+              ref={inputRef}
+              style={[styles.otpInput, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary }]}
+              value={otp}
+              onChangeText={(text) => setOtp(text.replace(/[^0-9]/g, '').slice(0, 6))}
+              placeholder="000000"
+              placeholderTextColor={theme.textMuted}
+              keyboardType="number-pad"
+              maxLength={6}
+              textAlign="center"
+              editable={!loading}
+              autoFocus
+              onSubmitEditing={handleVerify}
+            />
+
+            <TouchableOpacity
+              style={[
+                styles.verifyButton,
+                { backgroundColor: theme.brandActive },
+                Platform.OS === 'web' ? { boxShadow: `0 4px 8px ${theme.brandActive}40` } : { shadowColor: theme.brandActive },
+                loading && styles.buttonDisabled,
+              ]}
+              onPress={handleVerify}
+              disabled={loading}
+              activeOpacity={0.7}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.verifyButtonText}>{t('auth.verifyOtp')}</Text>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.resendRow}>
+              <TouchableOpacity onPress={handleResendOtp} disabled={resending} activeOpacity={0.7}>
+                {resending ? (
+                  <ActivityIndicator size="small" color={theme.brandActive} />
+                ) : (
+                  <Text style={[styles.resendLink, { color: theme.brandActive }]}>
+                    {t('auth.resendOtp')}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -126,7 +173,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 32, justifyContent: 'center', alignItems: 'center' },
   iconCircle: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  iconText: { fontSize: 36 },
   title: { fontSize: 24, fontFamily: Fonts.bold, marginBottom: 8 },
   subtitle: { fontSize: 14, fontFamily: Fonts.regular, textAlign: 'center', lineHeight: 20, marginBottom: 28 },
   card: { padding: 24, width: '100%', borderRadius: 12 },
@@ -139,6 +185,5 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.6 },
   verifyButtonText: { color: '#FFFFFF', fontSize: 16, fontFamily: Fonts.bold },
   resendRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 24, gap: 6 },
-  resendLabel: { fontSize: 13, fontFamily: Fonts.regular },
   resendLink: { fontSize: 13, fontFamily: Fonts.bold, textDecorationLine: 'underline' },
 });

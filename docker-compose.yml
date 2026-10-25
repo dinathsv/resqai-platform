@@ -39,8 +39,8 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://resqai_user:resqai_pass@postgres:5432/resqai
       - REDIS_URL=redis://redis:6379
-      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in your environment/.env}
-      - AI_API_KEY=${AI_API_KEY:?Set AI_API_KEY in .env}
+      - SECRET_KEY=${SECRET_KEY:-resqai_super_secret_jwt_key_2026_dev_environment}
+      - AI_API_KEY=${AI_API_KEY:-dummy_key}
       - AI_MODEL=${AI_MODEL:-gemini-3.5-flash-lite}
       - SMSLENZ_USER_ID=${SMSLENZ_USER_ID:-2462}
       - SMSLENZ_API_KEY=${SMSLENZ_API_KEY:-3ef7d7d9-1ae3-4615-b43c-b795f67375e7}
@@ -76,8 +76,8 @@ services:
     environment:
       - DATABASE_URL=postgres://resqai_user:resqai_pass@postgres:5432/resqai
       - PORT=5000
-      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in your environment/.env}
-      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in your environment/.env}
+      - JWT_SECRET=${JWT_SECRET:-resqai_super_secret_jwt_key_2026_dev_environment}
+      - SECRET_KEY=${SECRET_KEY:-resqai_super_secret_jwt_key_2026_dev_environment}
       - REDIS_URL=redis://redis:6379
       - SMSLENZ_USER_ID=${SMSLENZ_USER_ID:-2462}
       - SMSLENZ_API_KEY=${SMSLENZ_API_KEY:-3ef7d7d9-1ae3-4615-b43c-b795f67375e7}
@@ -113,7 +113,7 @@ services:
       - EXPO_WEB_PORT=8081
       - HOST=0.0.0.0
       - WEB_HOST=0.0.0.0
-      - EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=${EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}
+      - EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=${EXPO_PUBLIC_GOOGLE_MAPS_API_KEY:-}
     depends_on:
       - python-api
       - ml-models

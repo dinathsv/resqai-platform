@@ -18,6 +18,7 @@ import MinimalButton from '../../components/MinimalButton'
 import MinimalInput from '../../components/MinimalInput'
 import { Fonts } from '../../constants/theme'
 import { useTheme } from '../../context/ThemeContext'
+import { useLanguage } from '../../context/LanguageContext'
 
 interface Mission {
   mission_id: string
@@ -32,6 +33,7 @@ type PaymentStep = 'details' | 'payment' | 'success'
 
 export default function DonateScreen() {
   const { theme } = useTheme()
+  const { t } = useLanguage()
 
   const [missions, setMissions] = useState<Mission[]>([])
   const [selectedMission, setSelectedMission] = useState<Mission | null>(null)
@@ -115,11 +117,11 @@ export default function DonateScreen() {
             <View style={[styles.progressInner, { width: `${percentage}%`, backgroundColor: theme.accent }]} />
           </View>
           <Text style={[styles.progressText, { color: theme.accent }]}>
-            {Math.round(percentage)}% funded
+            {t('donate.fundedPercent', { percent: Math.round(percentage) })}
           </Text>
         </View>
         <MinimalButton
-          title="Donate"
+          title={t('donate.donateButton')}
           variant="cta"
           small
           onPress={() => selectMission(item)}
@@ -138,11 +140,11 @@ export default function DonateScreen() {
             <View style={[styles.successIconCircle, { backgroundColor: theme.accent }]}>
               <Text style={styles.successCheck}>✓</Text>
             </View>
-            <Text style={[styles.successTitle, { color: theme.textPrimary }]}>Donation confirmed</Text>
+            <Text style={[styles.successTitle, { color: theme.textPrimary }]}>{t('donate.donationConfirmed')}</Text>
             <Text style={[styles.successAmount, { color: theme.accent }]}>{amount} LKR</Text>
             <Text style={[styles.successMission, { color: theme.textSecondary }]}>{selectedMission.title}</Text>
             <View style={{ marginTop: 32, width: '100%' }}>
-              <MinimalButton title="Done" variant="cta" onPress={closeModal} />
+              <MinimalButton title={t('common.done')} variant="cta" onPress={closeModal} />
             </View>
           </View>
         </View>
@@ -156,10 +158,10 @@ export default function DonateScreen() {
           style={styles.modalBody}
         >
           <ScrollView>
-            <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Secure Payment</Text>
+            <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{t('donate.securePayment')}</Text>
 
             <MinimalInput
-              label="Card Number"
+              label={t('donate.cardNumber')}
               value={cardNumber}
               onChangeText={setCardNumber}
               keyboardType="numeric"
@@ -170,7 +172,7 @@ export default function DonateScreen() {
             <View style={styles.row}>
               <View style={styles.halfInput}>
                 <MinimalInput
-                  label="Expiry"
+                  label={t('donate.expiry')}
                   value={expiry}
                   onChangeText={setExpiry}
                   placeholder="MM/YY"
@@ -179,7 +181,7 @@ export default function DonateScreen() {
               </View>
               <View style={styles.halfInput}>
                 <MinimalInput
-                  label="CVV"
+                  label={t('donate.cvv')}
                   value={cvv}
                   onChangeText={setCvv}
                   keyboardType="numeric"
@@ -191,11 +193,11 @@ export default function DonateScreen() {
             </View>
 
             <Text style={[styles.securityNote, { color: theme.textMuted }]}>
-              Payments processed securely — card not stored
+              {t('donate.securityNote')}
             </Text>
 
             <MinimalButton
-              title={`Confirm ${amount} LKR`}
+              title={t('donate.confirmAmountLkr', { amount })}
               variant="cta"
               onPress={confirmPayment}
             />
@@ -216,20 +218,20 @@ export default function DonateScreen() {
           </Text>
 
           <MinimalInput
-            label="Amount (LKR)"
+            label={t('donate.selectAmount')}
             value={amount}
             onChangeText={setAmount}
             keyboardType="numeric"
             placeholder="Enter amount"
           />
 
-          <MinimalButton title="Proceed to Payment" onPress={proceedToPayment} />
+          <MinimalButton title={t('donate.proceedToPayment')} onPress={proceedToPayment} />
 
           <TouchableOpacity
             onPress={closeModal}
             style={styles.cancelLink}
           >
-            <Text style={[styles.cancelText, { color: theme.accent }]}>Cancel</Text>
+            <Text style={[styles.cancelText, { color: theme.accent }]}>{t('common.cancel')}</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -238,12 +240,12 @@ export default function DonateScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <Text style={[styles.header, { color: theme.textPrimary }]}>Donate Relief Funds</Text>
+      <Text style={[styles.header, { color: theme.textPrimary }]}>{t('donate.donateReliefFunds')}</Text>
 
       {error ? <Text style={[styles.errorText, { color: theme.error }]}>{error}</Text> : null}
 
       {loading ? (
-        <Text style={[styles.loadingText, { color: theme.textMuted }]}>Loading...</Text>
+        <Text style={[styles.loadingText, { color: theme.textMuted }]}>{t('common.loading')}</Text>
       ) : (
         <FlatList
           data={missions}
@@ -251,7 +253,7 @@ export default function DonateScreen() {
           renderItem={renderMission}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
-            <Text style={[styles.emptyText, { color: theme.textMuted }]}>No active missions</Text>
+            <Text style={[styles.emptyText, { color: theme.textMuted }]}>{t('donate.noActiveMissions')}</Text>
           }
         />
       )}
