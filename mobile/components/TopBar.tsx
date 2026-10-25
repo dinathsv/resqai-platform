@@ -8,6 +8,8 @@ import {
   Modal,
   Platform,
   Pressable,
+  Animated,
+  Easing,
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -39,9 +41,11 @@ export default function TopBar({
   const router = useRouter();
   const pathname = usePathname();
   const [menuVisible, setMenuVisible] = useState(false);
+  const [languageMenuVisible, setLanguageMenuVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
+  const languageMenuAnimation = React.useRef(new Animated.Value(0)).current;
   const { theme: appTheme } = useTheme();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, options, t } = useLanguage();
   const isDark = appTheme.isDark || theme === 'dark' || theme === 'red';
 
   const handleDefaultBack = () => {
@@ -68,13 +72,37 @@ export default function TopBar({
     router.replace('/');
   };
 
-  const cycleLanguage = () => {
-    const nextLang = language === 'en' ? 'ta' : language === 'ta' ? 'si' : 'en';
-    setLanguage(nextLang);
+  const openLanguageMenu = () => {
+    setLanguageMenuVisible(true);
+    Animated.timing(languageMenuAnimation, {
+      toValue: 1,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
   };
 
-  const currentLangLabel =
-    language === 'ta' ? 'தமிழ்' : language === 'si' ? 'සිංහල' : 'EN';
+  const closeLanguageMenu = (afterClose?: () => void) => {
+    Animated.timing(languageMenuAnimation, {
+      toValue: 0,
+      duration: 160,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) {
+        setLanguageMenuVisible(false);
+        afterClose?.();
+      }
+    });
+  };
+
+  const selectLanguage = (nextLanguage: typeof language) => {
+    closeLanguageMenu(() => {
+      if (nextLanguage !== language) {
+        setLanguage(nextLanguage);
+      }
+    });
+  };
 
   return (
     <>
@@ -144,13 +172,12 @@ export default function TopBar({
           ) : null}
         </View>
 
-        {/* Right Side: Quick Language Switch & 3-Dot Button */}
+        {/* Right Side: Language picker & 3-Dot Button */}
         <View style={styles.rightContainer}>
           {rightAction ? (
             rightAction
           ) : (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              {/* Quick Language Toggle Pill */}
               <TouchableOpacity
                 style={[
                   styles.langPill,
@@ -161,17 +188,19 @@ export default function TopBar({
                     borderColor: appTheme.border,
                   },
                 ]}
-                onPress={cycleLanguage}
+                onPress={openLanguageMenu}
                 activeOpacity={0.7}
-                accessibilityLabel="Switch Language"
+                accessibilityLabel="Choose language"
+                accessibilityState={{ expanded: languageMenuVisible }}
               >
+                <Ionicons name="globe-outline" size={15} color={appTheme.accent} />
                 <Text
                   style={[
                     styles.langPillText,
                     { color: appTheme.accent },
                   ]}
                 >
-                  {currentLangLabel}
+                  {t('nav.language')}
                 </Text>
               </TouchableOpacity>
 
@@ -198,6 +227,104 @@ export default function TopBar({
           )}
         </View>
       </View>
+
+      <Modal
+        visible={languageMenuVisible}
+        transparent
+        animationType="none"
+        onRequestClose={() => closeLanguageMenu()}
+      >
+        <Pressable style={styles.languageOverlay} onPress={() => closeLanguageMenu()}>
+          <Animated.View
+            style={[
+              styles.languageMenuWrapper,
+              {
+                opacity: languageMenuAnimation,
+                transform: [
+                  {
+                    translateY: languageMenuAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-8, 0],
+                    }),
+                  },
+                  {
+                    scale: languageMenuAnimation.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.96, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <Pressable
+              style={[
+                styles.languageMenu,
+                { backgroundColor: appTheme.surface, borderColor: appTheme.border },
+              ]}
+              onPress={(event) => event.stopPropagation()}
+            >
+              <View style={styles.languageMenuHeader}>
+                <View style={styles.languageMenuHeading}>
+                  <Text style={[styles.languageMenuTitle, { color: appTheme.textPrimary }]}>
+                    {t('nav.language')}
+                  </Text>
+                </View>
+              </View>
+              {options.map((option) => {
+                const selected = option.code === language;
+                return (
+                  <TouchableOpacity
+                    key={option.code}
+                    style={[
+                      styles.languageOption,
+                      {
+                        borderColor: selected ? appTheme.accent : appTheme.border,
+                        backgroundColor: selected
+                          ? appTheme.isDark
+                            ? 'rgba(10, 132, 255, 0.16)'
+                            : 'rgba(10, 132, 255, 0.08)'
+                          : appTheme.isDark
+                            ? 'rgba(255, 255, 255, 0.04)'
+                            : '#FFFFFF',
+                      },
+                    ]}
+                    onPress={() => selectLanguage(option.code)}
+                    activeOpacity={0.7}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                  >
+                    <View style={styles.languageOptionText}>
+                      <Text
+                        style={[
+                          styles.languageNativeName,
+                          { color: selected ? appTheme.accent : appTheme.textPrimary },
+                        ]}
+                      >
+                        {option.nativeName}
+                      </Text>
+                      <Text style={[styles.languageEnglishName, { color: appTheme.textMuted }]}>
+                        {option.label} · {option.code.toUpperCase()}
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.languageCheck,
+                        {
+                          borderColor: selected ? appTheme.accent : appTheme.border,
+                          backgroundColor: selected ? appTheme.accent : 'transparent',
+                        },
+                      ]}
+                    >
+                      {selected && <View style={styles.languageCheckDot} />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </Pressable>
+          </Animated.View>
+        </Pressable>
+      </Modal>
 
       {/* Sleek Top-Right Navigation Dropdown Menu */}
       <Modal
@@ -358,6 +485,82 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
   },
+  languageOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: 'rgba(15, 23, 42, 0.16)',
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+        } as any)
+      : {}),
+  },
+  languageMenuWrapper: {
+    width: '100%',
+    maxWidth: 250,
+    transformOrigin: 'center',
+  } as any,
+  languageMenu: {
+    width: '100%',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 10,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 10px 24px rgba(15, 23, 42, 0.14)' } as any)
+      : {}),
+    elevation: 10,
+  },
+  languageMenuHeader: {
+    marginBottom: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  languageMenuHeading: {
+    flex: 1,
+  },
+  languageMenuTitle: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+  },
+  languageOption: {
+    minHeight: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 11,
+    marginTop: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  languageOptionText: {
+    flex: 1,
+    gap: 1,
+  },
+  languageNativeName: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+  },
+  languageEnglishName: {
+    fontSize: 10,
+    fontFamily: Fonts.regular,
+  },
+  languageCheck: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  languageCheckDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
+  },
   modalContentWrapper: {
     width: '100%',
     maxWidth: 480,
@@ -421,15 +624,18 @@ const styles = StyleSheet.create({
     color: '#DC2626',
   },
   langPill: {
-    paddingVertical: 5,
+    minHeight: 34,
+    paddingVertical: 6,
     paddingHorizontal: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
+    flexDirection: 'row',
+    gap: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
   langPillText: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: Fonts.semiBold,
   },
 });

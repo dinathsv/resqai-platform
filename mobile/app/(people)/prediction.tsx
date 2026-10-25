@@ -110,6 +110,31 @@ export default function PredictionScreen() {
   const fetchUserLocation = async () => {
     setLoadingLocation(true);
     try {
+      if (Platform.OS === 'web') {
+        if (!navigator.geolocation) {
+          console.warn('Browser geolocation is not available.');
+          return;
+        }
+
+        await new Promise<void>((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            ({ coords }) => {
+              setUserLocation({
+                lat: coords.latitude,
+                lng: coords.longitude,
+              });
+              resolve();
+            },
+            (locationError) => {
+              console.warn('Browser location unavailable:', locationError.message);
+              resolve();
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+          );
+        });
+        return;
+      }
+
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setLoadingLocation(false);
@@ -123,7 +148,7 @@ export default function PredictionScreen() {
         lng: location.coords.longitude,
       });
     } catch (err) {
-      console.error('Location error:', err);
+      console.warn('Location error:', err);
     } finally {
       setLoadingLocation(false);
     }

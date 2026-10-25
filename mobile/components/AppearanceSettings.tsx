@@ -48,6 +48,12 @@ export default function AppearanceSettings({ visible, onClose }: AppearanceSetti
             backgroundColor: Platform.OS === 'web' ? 'transparent' : theme.overlay,
             alignItems: 'center',
           },
+          Platform.OS === 'web' &&
+            ({
+              backgroundColor: 'rgba(15, 23, 42, 0.16)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+            } as any),
         ]}
         activeOpacity={1}
         onPress={onClose}
@@ -55,7 +61,7 @@ export default function AppearanceSettings({ visible, onClose }: AppearanceSetti
         <View
           style={[
             styles.webFrameConstraint,
-            { backgroundColor: Platform.OS === 'web' ? theme.overlay : 'transparent' },
+            { backgroundColor: 'transparent' },
           ]}
         >
           <TouchableOpacity

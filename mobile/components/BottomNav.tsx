@@ -390,13 +390,19 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
         }}
       >
         <TouchableOpacity
-          style={[styles.modalBackdrop, { backgroundColor: Platform.OS === 'web' ? 'transparent' : theme.overlay, alignItems: 'center' }]}
+          style={[
+            styles.modalBackdrop,
+            {
+              backgroundColor: Platform.OS === 'web' ? 'rgba(15, 23, 42, 0.16)' : theme.overlay,
+              alignItems: 'center',
+            },
+          ]}
           activeOpacity={1}
           onPress={() => {
             setProfileModalVisible(false);
           }}
         >
-          <View style={[styles.webFrameConstraint, { backgroundColor: Platform.OS === 'web' ? theme.overlay : 'transparent' }]}>
+          <View style={[styles.webFrameConstraint, { backgroundColor: 'transparent' }]}>
             <TouchableOpacity
               activeOpacity={1}
               style={[
@@ -573,11 +579,17 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
         onRequestClose={() => setAvatarPickerVisible(false)}
       >
         <TouchableOpacity
-          style={[styles.modalBackdrop, { backgroundColor: Platform.OS === 'web' ? 'transparent' : theme.overlay, alignItems: 'center' }]}
+          style={[
+            styles.modalBackdrop,
+            {
+              backgroundColor: Platform.OS === 'web' ? 'rgba(15, 23, 42, 0.16)' : theme.overlay,
+              alignItems: 'center',
+            },
+          ]}
           activeOpacity={1}
           onPress={() => setAvatarPickerVisible(false)}
         >
-          <View style={[styles.webFrameConstraint, { backgroundColor: Platform.OS === 'web' ? theme.overlay : 'transparent' }]}>
+          <View style={[styles.webFrameConstraint, { backgroundColor: 'transparent' }]}>
             <TouchableOpacity
               activeOpacity={1}
               style={[
@@ -722,7 +734,16 @@ const styles = StyleSheet.create({
   },
   navItem: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 4 },
   navLabel: { fontSize: 11, letterSpacing: -0.2, marginTop: 2 },
-  modalBackdrop: { flex: 1, justifyContent: 'flex-end' },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    ...(Platform.OS === 'web'
+      ? ({
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+        } as any)
+      : {}),
+  },
   webFrameConstraint: {
     width: '100%',
     maxWidth: 480,
