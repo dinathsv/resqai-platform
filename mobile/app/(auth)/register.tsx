@@ -31,7 +31,7 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     setError('');
-    if (!fullName.trim() || !email.trim() || !password.trim()) {
+    if (!fullName.trim() || !email.trim() || !phone.trim() || !password.trim()) {
       setError(t('auth.requiredFields'));
       return;
     }
@@ -50,7 +50,7 @@ export default function RegisterScreen() {
         body: JSON.stringify({
           full_name: fullName.trim(),
           email: email.trim(),
-          phone_number: phone.trim() || null,
+          phone_number: phone.trim(),
           password,
           language_pref: language,
         }),
@@ -59,7 +59,7 @@ export default function RegisterScreen() {
       if (res.ok) {
         router.push({ pathname: '/(auth)/verify-otp', params: { userId: data.user_id, email: email.trim() } });
       } else {
-        if (res.status === 409) setError(t('auth.invalidCredentials'));
+        if (res.status === 409) setError(t('auth.emailAlreadyRegistered'));
         else setError(typeof data.detail === 'string' ? data.detail : t('common.error'));
       }
     } catch (err) {
@@ -130,7 +130,7 @@ export default function RegisterScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>{t('auth.phone')}</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>{t('auth.phone')} *</Text>
               <TextInput
                 style={[styles.input, inputStyle]}
                 value={phone}

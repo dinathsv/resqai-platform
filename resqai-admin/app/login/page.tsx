@@ -23,14 +23,17 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await axios.post(`${AUTH_API_URL}/api/auth/admin/login`, { email, password });
+      const res = await axios.post(`${AUTH_API_URL}/api/auth/admin/login`, {
+        email: email.trim(),
+        password,
+      });
       const { access_token } = res.data;
       Cookies.set('admin_token', access_token, { expires: 7 });
       router.push('/dashboard');
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
-        const axiosErr = err as { response?: { data?: { message?: string } } };
-        setError(axiosErr.response?.data?.message || 'Login failed');
+        const axiosErr = err as { response?: { data?: { detail?: string; message?: string } } };
+        setError(axiosErr.response?.data?.detail || axiosErr.response?.data?.message || 'Login failed');
       } else {
         setError('Network error');
       }

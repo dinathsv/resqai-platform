@@ -40,7 +40,7 @@ async def get_redis():
 class RegisterRequest(BaseModel):
     full_name: str
     email: EmailStr
-    phone_number: str | None = None
+    phone_number: str = Field(..., min_length=9, max_length=20)
     password: str = Field(..., min_length=6)
     language_pref: str = "en"
 
@@ -79,6 +79,12 @@ async def register(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ):
+    phone_number = req.phone_number.strip()
+    if not phone_number:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="A mobile number is required for OTP verification",
+        )
 
     result = await db.execute(select(User).where(User.email == req.email))
     if result.scalars().first():
@@ -87,7 +93,7 @@ async def register(
     new_user = User(
         full_name=req.full_name,
         email=req.email,
-        phone_number=req.phone_number,
+        phone_number=phone_number,
         password_hash=pwd_context.hash(req.password),
         language_pref=req.language_pref,
         is_verified=False,
@@ -100,8 +106,8 @@ async def register(
     await redis_client.set(f"otp:{new_user.user_id}", otp, ex=300)
 
     # Send OTP via SMS to mobile number
-    delivery = await send_otp(email=req.email, phone=req.phone_number, otp=otp)
-    if req.phone_number and delivery.get("sms") is not True:
+    delivery = await send_otp(email=req.email, phone=phone_number, otp=otp)
+    if delivery.get("sms") is not True:
         await redis_client.delete(f"otp:{new_user.user_id}")
         await db.delete(new_user)
         await db.commit()
@@ -154,7 +160,7 @@ async def resend_otp(
 
     # Send OTP via SMS to mobile number
     delivery = await send_otp(email=user.email, phone=user.phone_number, otp=otp)
-    if user.phone_number and delivery.get("sms") is not True:
+    if delivery.get("sms") is not True:
         await redis_client.delete(f"otp:{req.user_id}")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -210,8 +216,11 @@ async def login(
         await redis_client.expire(fail_key, 900)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-    if not user.is_verified:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account not verified")
+    if not user.phone_number or not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Mobile number not verified",
+        )
 
     await redis_client.delete(fail_key)
 

@@ -102,6 +102,7 @@ export const en = {
     resendOtp: 'Resend Code',
     resendIn: 'Resend in {seconds}s',
     invalidCredentials: 'Invalid email or password',
+    emailAlreadyRegistered: 'This email is already registered. Please sign in instead.',
     accountNotVerified: 'Account not verified. Please complete OTP verification.',
     accountLocked: 'Too many failed attempts. Account locked for 15 minutes.',
     loginSuccess: 'Signed in successfully',

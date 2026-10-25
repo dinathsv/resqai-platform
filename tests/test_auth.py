@@ -20,7 +20,8 @@ async def test_register_duplicate_email(client: AsyncClient):
     await client.post('/api/auth/register', json={
         "full_name": "Dup User",
         "email": "dup@example.com",
-        "password": "password123"
+        "password": "password123",
+        "phone_number": "0771234568"
     })
 
     r = await client.post('/api/auth/register', json={
@@ -32,12 +33,22 @@ async def test_register_duplicate_email(client: AsyncClient):
     assert r.json()["detail"] == "Email already registered"
 
 @pytest.mark.asyncio
+async def test_register_requires_mobile_number(client: AsyncClient):
+    r = await client.post('/api/auth/register', json={
+        "full_name": "No Phone",
+        "email": "nophone@example.com",
+        "password": "password123",
+    })
+    assert r.status_code == 422
+
+@pytest.mark.asyncio
 async def test_verify_otp_valid(client: AsyncClient):
 
     r_reg = await client.post('/api/auth/register', json={
         "full_name": "OTP User",
         "email": "otp@example.com",
-        "password": "password123"
+        "password": "password123",
+        "phone_number": "0771234569"
     })
     user_id = r_reg.json()["user_id"]
 
@@ -64,7 +75,8 @@ async def test_verify_otp_wrong(client: AsyncClient):
     r_reg = await client.post('/api/auth/register', json={
         "full_name": "OTP Fail",
         "email": "otpfail@example.com",
-        "password": "password123"
+        "password": "password123",
+        "phone_number": "0771234570"
     })
     user_id = r_reg.json()["user_id"]
 
@@ -82,7 +94,8 @@ async def test_login_valid(client: AsyncClient):
     r_reg = await client.post('/api/auth/register', json={
         "full_name": "Login User",
         "email": "login@example.com",
-        "password": "password123"
+        "password": "password123",
+        "phone_number": "0771234571"
     })
     user_id = r_reg.json()["user_id"]
 

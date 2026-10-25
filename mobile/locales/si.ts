@@ -104,6 +104,7 @@ export const si: Translations = {
     resendOtp: 'නැවත එවන්න',
     resendIn: 'තත්පර {seconds} කින් නැවත යැවිය හැක',
     invalidCredentials: 'වලංගු නොවන විද්‍යුත් තැපෑලක් හෝ මුරපදයක්',
+    emailAlreadyRegistered: 'මෙම විද්‍යුත් තැපෑල දැනටමත් ලියාපදිංචි කර ඇත. කරුණාකර ඇතුල් වන්න.',
     accountNotVerified: 'ගිණුම තහවුරු කර නොමැත. කරුණාකර OTP තහවුරු කිරීම සම්පූර්ණ කරන්න.',
     accountLocked: 'වැරදි උත්සාහයන් වැඩියි. ගිණුම මිනිත්තු 15 කට අත්හිටුවා ඇත.',
     loginSuccess: 'සාර්ථකව ඇතුළු විය',

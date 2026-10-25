@@ -11,6 +11,7 @@ Default credentials:
 
 import os
 import asyncio
+import uuid
 import bcrypt
 import asyncpg
 
@@ -49,9 +50,10 @@ async def main():
 
     await conn.execute(
         """
-        INSERT INTO administrators (full_name, email, agency, district, password_hash, is_active)
-        VALUES ($1, $2, $3, $4, $5, TRUE)
+        INSERT INTO administrators (admin_id, full_name, email, agency, district, password_hash, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6, TRUE)
         """,
+        uuid.uuid4(),
         ADMIN_NAME,
         ADMIN_EMAIL,
         ADMIN_AGENCY,

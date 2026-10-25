@@ -47,7 +47,7 @@ CREATE TABLE users (
     user_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     full_name       VARCHAR(150)    NOT NULL,
     email           VARCHAR(255)    NOT NULL UNIQUE,
-    phone_number    VARCHAR(20),
+    phone_number    VARCHAR(20)    NOT NULL,
     password_hash   VARCHAR(255)    NOT NULL,
     language_pref   language_pref   NOT NULL DEFAULT 'en',
     gps_location    GEOMETRY(POINT, 4326),
