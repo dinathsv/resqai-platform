@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { Colors, Fonts } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import TopBar from '../../components/TopBar';
 import { useCurrentLocation } from '../../hooks/useCurrentLocation';
 
@@ -38,6 +39,7 @@ const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 
 export default function LocatorScreen() {
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
   const [userLocation, setUserLocation] = useState<{
     lat: number;
@@ -375,7 +377,7 @@ export default function LocatorScreen() {
             activeOpacity={0.7}
             style={[styles.mapPinButton, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}
           >
-            <Text style={[styles.mapPinButtonText, { color: theme.textPrimary }]}>🗺️ Map</Text>
+            <Text style={[styles.mapPinButtonText, { color: theme.textPrimary }]}>{t('locator.mapBtn')}</Text>
           </TouchableOpacity>
           {item.phone && (
             <TouchableOpacity
@@ -383,7 +385,7 @@ export default function LocatorScreen() {
               activeOpacity={0.7}
               style={styles.callButtonContainer}
             >
-              <Text style={styles.callButton}>📞 Call</Text>
+              <Text style={styles.callButton}>{t('locator.callBtn')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -401,14 +403,14 @@ export default function LocatorScreen() {
           {loadingLocation ? (
             <View style={[styles.mapPlaceholder, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               <ActivityIndicator size="large" color={Colors.accent} />
-              <Text style={[styles.loadingLocText, { color: theme.textSecondary }]}>Finding location...</Text>
+              <Text style={[styles.loadingLocText, { color: theme.textSecondary }]}>{t('locator.findingLocation')}</Text>
             </View>
           ) : (
             <View style={[styles.noLocationBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               <Text style={styles.noLocationIcon}>📍</Text>
-              <Text style={[styles.noLocationTitle, { color: theme.textPrimary }]}>Location needed</Text>
+              <Text style={[styles.noLocationTitle, { color: theme.textPrimary }]}>{t('locator.locationNeeded')}</Text>
               <Text style={[styles.noLocationSubtitle, { color: theme.textSecondary }]}>
-                Allow GPS or enter a place below.
+                {t('locator.allowGps')}
               </Text>
               <TouchableOpacity
                 style={styles.retryGpsButton}
@@ -416,7 +418,7 @@ export default function LocatorScreen() {
                 disabled={loadingLocation}
                 activeOpacity={0.7}
               >
-                <Text style={styles.retryGpsText}>🔄 Try GPS</Text>
+                <Text style={styles.retryGpsText}>{t('locator.tryGps')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -454,7 +456,7 @@ export default function LocatorScreen() {
             {loadingLocation ? (
               <ActivityIndicator size="small" color={Colors.accent} />
             ) : (
-              <Text style={[styles.refreshLocText, { color: theme.textSecondary }]}>Refresh</Text>
+              <Text style={[styles.refreshLocText, { color: theme.textSecondary }]}>{t('locator.refresh')}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -474,11 +476,11 @@ export default function LocatorScreen() {
             <View style={styles.currentLocBtnInner}>
               <ActivityIndicator size="small" color="#FFFFFF" />
               <Text style={styles.currentLocationButtonText}>
-                Finding location...
+                {t('locator.findingLocation')}
               </Text>
             </View>
           ) : (
-            <Text style={styles.currentLocationButtonText}>📍 Use current location</Text>
+            <Text style={styles.currentLocationButtonText}>{t('locator.useCurrentLocation')}</Text>
           )}
         </TouchableOpacity>
 
@@ -497,20 +499,20 @@ export default function LocatorScreen() {
         {/* ── Accuracy & Coordinates Info Panel ── */}
         {currentDeviceLocation && currentLocStatus === 'success' ? (
           <View style={[styles.accuracyPanel, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}>
-            <Text style={[styles.accuracyTitle, { color: theme.textPrimary }]}>Location</Text>
+            <Text style={[styles.accuracyTitle, { color: theme.textPrimary }]}>{t('locator.title')}</Text>
             <View style={styles.accuracyRow}>
-              <Text style={[styles.accuracyLabel, { color: theme.textSecondary }]}>Latitude</Text>
+              <Text style={[styles.accuracyLabel, { color: theme.textSecondary }]}>{t('locator.latitude')}</Text>
               <Text style={[styles.accuracyValue, { color: theme.textPrimary }]}>{currentDeviceLocation.latitude.toFixed(5)}</Text>
             </View>
             <View style={styles.accuracyRow}>
-              <Text style={[styles.accuracyLabel, { color: theme.textSecondary }]}>Longitude</Text>
+              <Text style={[styles.accuracyLabel, { color: theme.textSecondary }]}>{t('locator.longitude')}</Text>
               <Text style={[styles.accuracyValue, { color: theme.textPrimary }]}>{currentDeviceLocation.longitude.toFixed(5)}</Text>
             </View>
             {currentDeviceLocation.accuracy !== null ? (
               <View style={styles.accuracyRow}>
-                <Text style={[styles.accuracyLabel, { color: theme.textSecondary }]}>Accuracy</Text>
+                <Text style={[styles.accuracyLabel, { color: theme.textSecondary }]}>{t('locator.accuracy')}</Text>
                 <Text style={[styles.accuracyValue, { color: theme.textPrimary }]}>
-                  ~{Math.round(currentDeviceLocation.accuracy)} meters
+                  {t('locator.meters', { count: Math.round(currentDeviceLocation.accuracy) })}
                 </Text>
               </View>
             ) : null}
@@ -590,7 +592,7 @@ export default function LocatorScreen() {
           }}
           activeOpacity={0.7}
         >
-          <Text style={styles.openMapButtonText}>Open in Google Maps 🗺️</Text>
+          <Text style={styles.openMapButtonText}>{t('locator.openGoogleMaps')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -607,7 +609,7 @@ export default function LocatorScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Professional Top Bar with Back and 3-Dot Navigation Menu */}
-      <TopBar title="Find care" showBack onBack={handleBack} />
+      <TopBar title={t('locator.findCare')} showBack onBack={handleBack} />
 
       <FlatList
         data={hospitals}
@@ -666,7 +668,7 @@ export default function LocatorScreen() {
                 activeOpacity={0.8}
               >
                 <Text style={styles.banner1990Text}>
-                  🚑 Call 1990 for emergencies
+                  {t('locator.call1990Banner')}
                 </Text>
               </TouchableOpacity>
             )}
@@ -687,7 +689,7 @@ export default function LocatorScreen() {
                 ]}
                 value={manualArea}
                 onChangeText={setManualArea}
-                placeholder="Search city, town, or address..."
+                placeholder={t('locator.searchPlacePlaceholder')}
                 placeholderTextColor={Colors.textMuted}
                 onSubmitEditing={handleManualSearch}
                 returnKeyType="search"
@@ -701,7 +703,7 @@ export default function LocatorScreen() {
                 {searchingLocation ? (
                   <ActivityIndicator size="small" color={Colors.white} />
                 ) : (
-                  <Text style={styles.searchButtonText}>Set Area</Text>
+                  <Text style={styles.searchButtonText}>{t('locator.setArea')}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -713,8 +715,8 @@ export default function LocatorScreen() {
             {userLocation && (
               <Text style={styles.hospitalHeading}>
                 {loadingHospitals
-                  ? 'Searching nearest facilities...'
-                  : `Nearby care (${hospitals.length})`}
+                  ? t('locator.searchingFacilities')
+                  : t('locator.nearbyCare', { count: hospitals.length })}
               </Text>
             )}
 
@@ -728,7 +730,7 @@ export default function LocatorScreen() {
 
             {!loadingHospitals && userLocation && hospitals.length === 0 && (
               <Text style={[styles.noHospitals, { color: theme.textSecondary }]}>
-                No medical facilities found within range of this location.
+                {t('locator.noFacilitiesRange')}
               </Text>
             )}
           </View>

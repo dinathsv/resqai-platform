@@ -11,9 +11,11 @@ import {
 
 import { apiFetch, API_BASE } from '../../config/api'
 import MinimalButton from '../../components/MinimalButton'
+import TopBar from '../../components/TopBar'
 import { useRouter } from 'expo-router'
 import { Fonts, makeCardStyles } from '../../constants/theme'
 import { useTheme } from '../../context/ThemeContext'
+import { useLanguage } from '../../context/LanguageContext'
 
 interface Option {
   id: string
@@ -38,6 +40,7 @@ interface WrongAnswer {
 export default function QuizScreen() {
   const router = useRouter()
   const { theme } = useTheme()
+  const { t } = useLanguage()
   const cardStyles = useMemo(() => makeCardStyles(theme), [theme])
 
   const [questions, setQuestions] = useState<Question[]>([])
@@ -132,9 +135,17 @@ export default function QuizScreen() {
 
   function getPerformanceText(): string {
     const pct = (score / questions.length) * 100
-    if (pct >= 80) return 'Excellent'
-    if (pct >= 60) return 'Good'
-    return 'Keep Learning'
+    if (pct >= 80) return t('quiz.excellent')
+    if (pct >= 60) return t('quiz.good')
+    return t('quiz.keepLearning')
+  }
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back()
+    } else {
+      router.replace('/(people)/dashboard')
+    }
   }
 
   function getOptionStyle(option: Option) {
@@ -193,7 +204,8 @@ export default function QuizScreen() {
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-        <Text style={[styles.loadingText, { color: theme.textMuted }]}>Loading...</Text>
+        <TopBar title={t('quiz.safetyQuizTitle')} showBack onBack={handleBack} />
+        <Text style={[styles.loadingText, { color: theme.textMuted }]}>{t('quiz.loadingQuiz')}</Text>
       </SafeAreaView>
     )
   }
@@ -201,21 +213,16 @@ export default function QuizScreen() {
   if (error || questions.length === 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        <TopBar title={t('quiz.safetyQuizTitle')} showBack onBack={handleBack} />
         <View style={styles.finishedContainer}>
-          <Text style={[styles.loadingText, { color: theme.textMuted }]}>{error || 'No questions available.'}</Text>
+          <Text style={[styles.loadingText, { color: theme.textMuted }]}>{error || t('common.noResults')}</Text>
           <View style={{ height: 20 }} />
-          <MinimalButton title="Retry" variant="outline" onPress={tryAgain} />
+          <MinimalButton title={t('common.retry')} variant="outline" onPress={tryAgain} />
           <View style={{ height: 12 }} />
           <MinimalButton
-            title="Back to Home"
+            title={t('nav.home')}
             variant="cta"
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/(people)/dashboard');
-              }
-            }}
+            onPress={handleBack}
           />
         </View>
       </SafeAreaView>
@@ -226,6 +233,7 @@ export default function QuizScreen() {
     const pct = (score / questions.length) * 100
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        <TopBar title={t('quiz.safetyQuizTitle')} showBack onBack={handleBack} />
         <ScrollView contentContainerStyle={styles.finishedContainer}>
           <View style={[styles.scoreCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Text style={[styles.scoreText, { color: theme.textPrimary }]}>
@@ -239,7 +247,7 @@ export default function QuizScreen() {
 
           {wrongAnswers.length > 0 && (
             <View style={styles.reviewSection}>
-              <Text style={[styles.reviewHeading, { color: theme.textPrimary }]}>Review Mistakes</Text>
+              <Text style={[styles.reviewHeading, { color: theme.textPrimary }]}>{t('quiz.reviewAnswers')}</Text>
               <FlatList
                 data={wrongAnswers}
                 scrollEnabled={false}
@@ -256,18 +264,12 @@ export default function QuizScreen() {
           )}
 
           <View style={styles.finishedButtons}>
-            <MinimalButton title="Try Again" variant="outline" onPress={tryAgain} />
+            <MinimalButton title={t('quiz.tryAgain')} variant="outline" onPress={tryAgain} />
             <View style={{ height: 12 }} />
             <MinimalButton
-              title="Back to Home"
+              title={t('nav.home')}
               variant="cta"
-              onPress={() => {
-                if (router.canGoBack()) {
-                  router.back();
-                } else {
-                  router.replace('/(people)/dashboard');
-                }
-              }}
+              onPress={handleBack}
             />
           </View>
         </ScrollView>
@@ -281,10 +283,11 @@ export default function QuizScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <TopBar title={t('quiz.safetyQuizTitle')} showBack onBack={handleBack} />
       <ScrollView contentContainerStyle={styles.questionContainer}>
 
         <Text style={[styles.progressLabel, { color: theme.textMuted }]}>
-          Question {currentIndex + 1} of {total}
+          {t('quiz.questionCount', { current: currentIndex + 1, total })}
         </Text>
         <View style={[styles.progressOuter, { backgroundColor: theme.borderSubtle }]}>
           <View style={[styles.progressInner, { width: `${progressPercent}%`, backgroundColor: theme.accent }]} />
@@ -317,7 +320,11 @@ export default function QuizScreen() {
 
         {showFeedback && (
           <View style={styles.nextButtonContainer}>
-            <MinimalButton title="Next →" variant="cta" onPress={nextQuestion} />
+            <MinimalButton
+              title={currentIndex + 1 >= questions.length ? t('quiz.seeResults') : `${t('quiz.nextQuestion')} →`}
+              variant="cta"
+              onPress={nextQuestion}
+            />
           </View>
         )}
       </ScrollView>

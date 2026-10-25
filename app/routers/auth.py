@@ -227,6 +227,7 @@ async def login(
             "full_name": user.full_name,
             "email": user.email,
             "phone_number": user.phone_number,
+            "language_pref": user.language_pref,
         },
     }
 
@@ -260,6 +261,7 @@ async def get_me(
                 "email": user.email,
                 "phone_number": user.phone_number,
                 "avatar_url": user.avatar_url,
+                "language_pref": user.language_pref,
                 "role": role or "people",
             }
     except Exception:
@@ -276,6 +278,7 @@ class UpdateProfileRequest(BaseModel):
     full_name: str | None = None
     avatar_url: str | None = None
     phone_number: str | None = None
+    language_pref: str | None = None
 
 
 @router.patch("/me")
@@ -284,7 +287,7 @@ async def update_me(
     db: AsyncSession = Depends(get_db),
     token: str = Depends(oauth2_scheme),
 ):
-    """Update citizen profile name, avatar, or phone number."""
+    """Update citizen profile name, avatar, phone number, or language preference."""
     from app.middleware.auth import get_current_user
     current_user = await get_current_user(token)
     sub = current_user.get("sub")
@@ -301,6 +304,10 @@ async def update_me(
             user.avatar_url = req.avatar_url
         if req.phone_number is not None:
             user.phone_number = req.phone_number
+        if req.language_pref is not None:
+            pref = req.language_pref.strip().lower()
+            if pref in ("en", "ta", "si"):
+                user.language_pref = pref
 
         await db.commit()
         await db.refresh(user)
@@ -310,6 +317,7 @@ async def update_me(
             "email": user.email,
             "phone_number": user.phone_number,
             "avatar_url": user.avatar_url,
+            "language_pref": user.language_pref,
             "role": current_user.get("role") or "people",
         }
     except HTTPException:

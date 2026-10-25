@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import TopBar from '../../components/TopBar';
 import BottomNav from '../../components/BottomNav';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Fonts } from '../../constants/theme';
 import { apiFetch } from '../../config/api';
 import { connectSocket } from '../../config/socket';
@@ -39,25 +40,27 @@ export interface AlertNotification {
 const ACK_STORAGE_KEY = '@resqai_acknowledged_alerts';
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
-function getDisasterMeta(type: string) {
+function getDisasterMeta(type: string, t?: (k: string) => string) {
   const lower = (type || '').toLowerCase();
-  if (lower.includes('flood')) return { icon: '🌊', name: 'Flood Alert', color: '#1E88E5' };
-  if (lower.includes('landslide')) return { icon: '⛰️', name: 'Landslide Warning', color: '#8D6E63' };
-  if (lower.includes('tsunami')) return { icon: '🌊', name: 'Tsunami Warning', color: '#00ACC1' };
-  if (lower.includes('fire')) return { icon: '🔥', name: 'Fire Hazard', color: '#E53935' };
-  if (lower.includes('earthquake')) return { icon: '🌋', name: 'Earthquake Notice', color: '#6D4C41' };
+  const tr = t || ((k: string) => k);
+  if (lower.includes('flood')) return { icon: '🌊', name: tr('alerts.filterFlood'), color: '#1E88E5' };
+  if (lower.includes('landslide')) return { icon: '⛰️', name: tr('alerts.filterLandslide'), color: '#8D6E63' };
+  if (lower.includes('tsunami')) return { icon: '🌊', name: tr('alerts.filterTsunami'), color: '#00ACC1' };
+  if (lower.includes('fire')) return { icon: '🔥', name: tr('alerts.filterFire'), color: '#E53935' };
+  if (lower.includes('earthquake')) return { icon: '🌋', name: tr('alerts.title'), color: '#6D4C41' };
   if (lower.includes('cyclone') || lower.includes('storm') || lower.includes('wind')) {
-    return { icon: '🌪️', name: 'Severe Storm', color: '#5E35B1' };
+    return { icon: '🌪️', name: tr('alerts.filterWeather'), color: '#5E35B1' };
   }
-  if (lower.includes('medical')) return { icon: '🚑', name: 'Medical Emergency', color: '#D81B60' };
-  return { icon: '⚠️', name: 'Emergency Warning', color: '#E65100' };
+  if (lower.includes('medical')) return { icon: '🚑', name: tr('alerts.filterMedical'), color: '#D81B60' };
+  return { icon: '⚠️', name: tr('alerts.title'), color: '#E65100' };
 }
 
-function getSeverityBadge(severity: number) {
-  if (severity >= 5) return { label: 'CRITICAL', color: '#B51F2A', bg: 'rgba(181, 31, 42, 0.15)' };
-  if (severity >= 4) return { label: 'HIGH SEVERITY', color: '#E65100', bg: 'rgba(230, 81, 0, 0.15)' };
-  if (severity >= 3) return { label: 'MODERATE', color: '#F57C00', bg: 'rgba(245, 124, 0, 0.12)' };
-  return { label: 'ADVISORY', color: '#2E7D32', bg: 'rgba(46, 125, 50, 0.12)' };
+function getSeverityBadge(severity: number, t?: (k: string) => string) {
+  const tr = t || ((k: string) => k);
+  if (severity >= 5) return { label: tr('alerts.severityCritical'), color: '#B51F2A', bg: 'rgba(181, 31, 42, 0.15)' };
+  if (severity >= 4) return { label: tr('alerts.severityHigh'), color: '#E65100', bg: 'rgba(230, 81, 0, 0.15)' };
+  if (severity >= 3) return { label: tr('alerts.severityModerate'), color: '#F57C00', bg: 'rgba(245, 124, 0, 0.12)' };
+  return { label: tr('alerts.severityLow'), color: '#2E7D32', bg: 'rgba(46, 125, 50, 0.12)' };
 }
 
 function formatRelativeTime(dateStr: string) {
@@ -83,6 +86,7 @@ function formatRelativeTime(dateStr: string) {
 export default function AlertsScreen() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { t } = useLanguage();
 
   const [alerts, setAlerts] = useState<AlertNotification[]>([]);
   const [acknowledgedIds, setAcknowledgedIds] = useState<Set<string>>(new Set());
@@ -207,8 +211,8 @@ export default function AlertsScreen() {
             ...prev.filter((a) => a.alert_id !== formattedAlert.alert_id),
           ]);
 
-          const meta = getDisasterMeta(formattedAlert.disaster_type);
-          setLiveBanner(`New broadcast: ${meta.name} issued just now!`);
+          const meta = getDisasterMeta(formattedAlert.disaster_type, t);
+          setLiveBanner(t('alerts.newBroadcastToast', { name: meta.name }));
           setTimeout(() => {
             if (mounted) setLiveBanner(null);
           }, 6000);
@@ -310,7 +314,7 @@ export default function AlertsScreen() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
-      <TopBar title="Alerts & Notifications" showBack={false} showLogo={true} />
+      <TopBar title={t('alerts.title')} showBack={false} showLogo={true} />
 
       {/* Real-time incoming broadcast banner toast */}
       {liveBanner && (
@@ -337,7 +341,7 @@ export default function AlertsScreen() {
           <View style={styles.headerTitleRow}>
             <View style={styles.headerTextGroup}>
               <Text style={[styles.screenTitle, { color: theme.textPrimary }]}>
-                Emergency Alerts
+                {t('alerts.title')}
               </Text>
             </View>
             <View style={[styles.totalBadge, { backgroundColor: theme.surfaceElevated }]}>
@@ -345,7 +349,7 @@ export default function AlertsScreen() {
                 {alerts.length}
               </Text>
               <Text style={[styles.totalBadgeLabel, { color: theme.textMuted }]}>
-                Total
+                {t('common.all')}
               </Text>
             </View>
           </View>
@@ -353,7 +357,7 @@ export default function AlertsScreen() {
           {/* Quick Emergency Assistance Bar */}
           <View style={[styles.quickBar, { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }]}>
             <Text style={[styles.quickBarText, { color: theme.textSecondary }]}>
-              National Disaster Center Hotline
+              {t('alerts.dmcHotline')}
             </Text>
             <TouchableOpacity
               style={[styles.callBtn, { backgroundColor: theme.emergency }]}
@@ -379,7 +383,7 @@ export default function AlertsScreen() {
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={[styles.searchInput, { color: theme.textPrimary }]}
-            placeholder="Search alerts"
+            placeholder={t('alerts.searchPlaceholder')}
             placeholderTextColor={theme.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -411,7 +415,7 @@ export default function AlertsScreen() {
                 activeTab === 'all' && styles.segmentLabelActive,
               ]}
             >
-              All
+              {t('common.all')}
             </Text>
             <View style={[styles.countPill, { backgroundColor: activeTab === 'all' ? theme.brandActive : theme.borderSubtle }]}>
               <Text style={[styles.countPillText, { color: activeTab === 'all' ? '#FFFFFF' : theme.textMuted }]}>
@@ -444,7 +448,7 @@ export default function AlertsScreen() {
                   activeTab === 'present' && styles.segmentLabelActive,
                 ]}
               >
-                Present
+                {t('alerts.presentTab')}
               </Text>
             </View>
             <View
@@ -481,7 +485,7 @@ export default function AlertsScreen() {
                 activeTab === 'past' && styles.segmentLabelActive,
               ]}
             >
-              Past
+              {t('alerts.pastTab')}
             </Text>
             <View style={[styles.countPill, { backgroundColor: activeTab === 'past' ? theme.brandActive : theme.borderSubtle }]}>
               <Text style={[styles.countPillText, { color: activeTab === 'past' ? '#FFFFFF' : theme.textMuted }]}>
@@ -515,16 +519,16 @@ export default function AlertsScreen() {
                   { color: typeFilter === 'all' ? '#FFFFFF' : theme.textSecondary },
                 ]}
               >
-                All Hazards
+                {t('alerts.allHazards')}
               </Text>
             </TouchableOpacity>
 
-            {disasterTypes.map((t) => {
-              const meta = getDisasterMeta(t);
-              const isSelected = typeFilter === t;
+            {disasterTypes.map((hazardType) => {
+              const meta = getDisasterMeta(hazardType, t);
+              const isSelected = typeFilter === hazardType;
               return (
                 <TouchableOpacity
-                  key={t}
+                  key={hazardType}
                   style={[
                     styles.typePill,
                     {
@@ -532,7 +536,7 @@ export default function AlertsScreen() {
                       borderColor: isSelected ? theme.emergency : theme.borderSubtle,
                     },
                   ]}
-                  onPress={() => setTypeFilter(isSelected ? 'all' : t)}
+                  onPress={() => setTypeFilter(isSelected ? 'all' : hazardType)}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.typePillEmoji}>{meta.icon}</Text>
@@ -542,7 +546,7 @@ export default function AlertsScreen() {
                       { color: isSelected ? '#FFFFFF' : theme.textSecondary },
                     ]}
                   >
-                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                    {meta.name}
                   </Text>
                 </TouchableOpacity>
               );
@@ -555,7 +559,7 @@ export default function AlertsScreen() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.brandActive} />
             <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
-              Loading alerts & notifications...
+              {t('common.loading')}
             </Text>
           </View>
         ) : displayedAlerts.length === 0 ? (
@@ -565,15 +569,15 @@ export default function AlertsScreen() {
             </View>
             <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>
               {activeTab === 'present'
-                ? 'No Present Emergency Alerts'
+                ? t('alerts.noPresentAlerts')
                 : activeTab === 'past'
-                ? 'No Past Notifications'
-                : 'No Notifications Found'}
+                ? t('alerts.noPastAlerts')
+                : t('alerts.noAlertsFound')}
             </Text>
             <Text style={[styles.emptySubtitle, { color: theme.textMuted }]}>
               {activeTab === 'present'
-                ? 'All monitored sectors are currently normal. We will notify you immediately if an alert is issued.'
-                : 'There are no notifications matching your current filters.'}
+                ? t('alerts.allNormalNotice')
+                : t('alerts.noAlertsFound')}
             </Text>
           </View>
         ) : (
@@ -589,11 +593,11 @@ export default function AlertsScreen() {
                     ]}
                   />
                   <Text style={[styles.sectionTitle, { color: theme.emergency }]}>
-                    PRESENT NOTIFICATIONS ({presentAlerts.length})
+                    {t('alerts.presentNotifications', { count: presentAlerts.length })}
                   </Text>
                 </View>
                 <Text style={[styles.sectionSubtext, { color: theme.textMuted }]}>
-                  Active emergencies requiring immediate attention
+                  {t('alerts.presentSubtext')}
                 </Text>
               </View>
             )}
@@ -601,8 +605,8 @@ export default function AlertsScreen() {
             {/* Render List */}
             {displayedAlerts.map((alert) => {
               const isPresent = isPresentNotification(alert);
-              const meta = getDisasterMeta(alert.disaster_type);
-              const severity = getSeverityBadge(alert.severity);
+              const meta = getDisasterMeta(alert.disaster_type, t);
+              const severity = getSeverityBadge(alert.severity, t);
               const isAcked = acknowledgedIds.has(alert.alert_id);
 
               return (
@@ -660,7 +664,7 @@ export default function AlertsScreen() {
                           { color: isPresent ? theme.emergency : theme.textMuted },
                         ]}
                       >
-                        {isPresent ? 'ACTIVE' : alert.status ? alert.status.toUpperCase() : 'PAST'}
+                        {isPresent ? t('common.active') : alert.status ? alert.status.toUpperCase() : t('alerts.pastTab')}
                       </Text>
                     </View>
                   </View>
@@ -669,14 +673,14 @@ export default function AlertsScreen() {
                   <View style={styles.chipsRow}>
                     <View style={[styles.severityChip, { backgroundColor: severity.bg }]}>
                       <Text style={[styles.severityChipText, { color: severity.color }]}>
-                        Level {alert.severity} • {severity.label}
+                        {t('alerts.levelWithSeverity', { level: alert.severity, severity: severity.label })}
                       </Text>
                     </View>
 
                     {alert.expires_at && (
                       <View style={[styles.expiresChip, { backgroundColor: theme.surfaceSubtle }]}>
                         <Text style={[styles.expiresChipText, { color: theme.textMuted }]}>
-                          {isPresent ? 'Expires: ' : 'Expired: '}
+                          {isPresent ? t('alerts.expires') : t('alerts.expired')}
                           {new Date(alert.expires_at).toLocaleDateString([], {
                             month: 'short',
                             day: 'numeric',
@@ -716,7 +720,7 @@ export default function AlertsScreen() {
                             { color: isAcked ? theme.textMuted : '#FFFFFF' },
                           ]}
                         >
-                          {isAcked ? '✓ Acknowledged' : 'Acknowledge Alert'}
+                          {isAcked ? t('alerts.acknowledged') : t('alerts.acknowledge')}
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -734,7 +738,7 @@ export default function AlertsScreen() {
                       activeOpacity={0.7}
                     >
                       <Text style={[styles.detailsButtonText, { color: theme.textPrimary }]}>
-                        {isPresent ? 'View Safety Plan →' : 'View Archived Details →'}
+                        {isPresent ? t('alerts.viewSafetyPlan') : t('alerts.viewArchived')}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -746,7 +750,7 @@ export default function AlertsScreen() {
             {activeTab === 'all' && pastAlerts.length > 0 && (
               <View style={styles.historyFooterNote}>
                 <Text style={[styles.historyFooterText, { color: theme.textMuted }]}>
-                  Showing {alerts.length} total notifications ({presentAlerts.length} present, {pastAlerts.length} past)
+                  {t('alerts.showingTotal', { total: alerts.length, present: presentAlerts.length, past: pastAlerts.length })}
                 </Text>
               </View>
             )}

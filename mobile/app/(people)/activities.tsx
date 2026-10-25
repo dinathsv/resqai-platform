@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { Colors, Fonts } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Ionicons } from '@expo/vector-icons';
 import BottomNav from '../../components/BottomNav';
 import TopBar from '../../components/TopBar';
@@ -45,6 +46,7 @@ interface AlertItem {
 
 export default function ActivitiesScreen() {
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
   const [userName, setUserName] = useState<string>('Citizen');
   const [myRequests, setMyRequests] = useState<RescueItem[]>([]);
@@ -171,7 +173,7 @@ export default function ActivitiesScreen() {
           </View>
           <View style={styles.greetingWrap}>
             <Text style={[styles.greetingText, { color: theme.textPrimary }]}>
-              Hello, {userName || 'Citizen'}!
+              {t('activities.helloUser', { name: userName || 'Citizen' })}
             </Text>
           </View>
         </View>
@@ -182,18 +184,18 @@ export default function ActivitiesScreen() {
             <View style={[styles.robotIconCircle, { backgroundColor: theme.emergency }]}>
               <Ionicons name="hardware-chip-outline" size={16} color="#FFFFFF" />
             </View>
-            <Text style={[styles.quizTitle, { color: theme.textPrimary }]}>ResQ-Quiz</Text>
+            <Text style={[styles.quizTitle, { color: theme.textPrimary }]}>{t('activities.resqQuiz')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* My Rescue Section */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>My Rescue</Text>
+          <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>{t('activities.myRescue')}</Text>
           <TouchableOpacity
             onPress={() => router.push('/(people)/help')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.viewAllRed, { color: theme.brandActive }]}>View All</Text>
+            <Text style={[styles.viewAllRed, { color: theme.brandActive }]}>{t('activities.viewAll')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -230,10 +232,9 @@ export default function ActivitiesScreen() {
         ) : (
           <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Ionicons name="folder-open-outline" size={36} color={theme.textSecondary} />
-            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>No Active Rescue Requests</Text>
+            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>{t('activities.noActiveRescue')}</Text>
             <Text style={[styles.emptySub, { color: theme.textSecondary }]}>
-              You have no active emergency requests. If you or someone nearby is
-              in danger, request immediate relief.
+              {t('activities.noActiveRescueDesc')}
             </Text>
             <TouchableOpacity
               style={[styles.emptyActionBtn, { backgroundColor: theme.emergency }]}
@@ -241,7 +242,7 @@ export default function ActivitiesScreen() {
               activeOpacity={0.8}
             >
               <Text style={styles.emptyActionBtnText}>
-                Request Emergency Help
+                {t('activities.requestEmergencyHelp')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -249,12 +250,12 @@ export default function ActivitiesScreen() {
 
         {/* My Donations Section */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>My Donations</Text>
+          <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>{t('activities.myDonations')}</Text>
           <TouchableOpacity
             onPress={() => router.push('/(people)/donate')}
             activeOpacity={0.7}
           >
-            <Text style={[styles.viewAllRed, { color: theme.brandActive }]}>View All</Text>
+            <Text style={[styles.viewAllRed, { color: theme.brandActive }]}>{t('activities.viewAll')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -263,7 +264,7 @@ export default function ActivitiesScreen() {
             <View key={don.donation_id} style={[styles.donationCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               <View style={styles.donationTopRow}>
                 <Text style={[styles.donationId, { color: theme.textMuted }]}>
-                  Donation ID: {don.donation_id}
+                  {t('activities.donationIdLabel', { id: don.donation_id })}
                 </Text>
                 <TouchableOpacity
                   style={[styles.arrowSquareBtn, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}
@@ -284,10 +285,9 @@ export default function ActivitiesScreen() {
         ) : (
           <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Ionicons name="wallet-outline" size={36} color={theme.textSecondary} />
-            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>No Donations Yet</Text>
+            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>{t('activities.noDonationsYet')}</Text>
             <Text style={[styles.emptySub, { color: theme.textSecondary }]}>
-              Contribute essential relief supplies and funds to flood and disaster
-              victims across Sri Lanka.
+              {t('activities.noDonationsDesc')}
             </Text>
             <TouchableOpacity
               style={[styles.emptyActionBtn, { backgroundColor: theme.emergency }]}
@@ -295,7 +295,7 @@ export default function ActivitiesScreen() {
               activeOpacity={0.8}
             >
               <Text style={styles.emptyActionBtnText}>
-                Donate to Relief Fund
+                {t('activities.donateToRelief')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -303,7 +303,7 @@ export default function ActivitiesScreen() {
 
         {/* Recent Alerts Section */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>Recent Alerts</Text>
+          <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>{t('activities.recentAlerts')}</Text>
         </View>
 
         {recentAlerts.length > 0 ? (
@@ -314,7 +314,7 @@ export default function ActivitiesScreen() {
               </View>
               <View style={styles.alertContentTextWrap}>
                 <Text style={[styles.recentAlertTitle, { color: theme.emergency }]}>
-                  {alert.disaster_type.toUpperCase()} Alert
+                  {alert.disaster_type.toUpperCase()} {t('alerts.title')}
                   {alert.district ? ` in ${alert.district}` : ''}
                 </Text>
                 <Text style={styles.recentAlertSub}>
@@ -330,10 +330,9 @@ export default function ActivitiesScreen() {
               <Ionicons name="shield-checkmark-outline" size={24} color="#FFFFFF" />
             </View>
             <View style={styles.alertContentTextWrap}>
-              <Text style={[styles.safeAlertTitle, { color: theme.success }]}>No Active Emergency Alerts</Text>
+              <Text style={[styles.safeAlertTitle, { color: theme.success }]}>{t('activities.noActiveAlertsTitle')}</Text>
               <Text style={[styles.safeAlertSub, { color: theme.textSecondary }]}>
-                All monitored zones are reporting normal conditions. We will notify
-                you immediately if an alert is issued.
+                {t('activities.noActiveAlertsDesc')}
               </Text>
             </View>
           </View>
@@ -346,7 +345,7 @@ export default function ActivitiesScreen() {
             onPress={handleSignOut}
             activeOpacity={0.8}
           >
-            <Text style={[styles.signOutBtnText, { color: theme.white }]}>Sign Out</Text>
+            <Text style={[styles.signOutBtnText, { color: theme.white }]}>{t('activities.signOut')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

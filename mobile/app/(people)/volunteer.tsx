@@ -13,6 +13,7 @@ import axios from 'axios'
 import { BASE_URL } from '../../constants/api'
 import MinimalButton from '../../components/MinimalButton'
 import { Colors, Fonts, Glass } from '../../constants/theme'
+import { useLanguage } from '../../context/LanguageContext'
 
 interface Mission {
   mission_id: string
@@ -33,6 +34,7 @@ interface Assignment {
 type Tab = 'available' | 'mine'
 
 export default function VolunteerScreen() {
+  const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState<Tab>('available')
   const [missions, setMissions] = useState<Mission[]>([])
   const [assignments, setAssignments] = useState<Assignment[]>([])
@@ -62,7 +64,7 @@ export default function VolunteerScreen() {
       })
       setMissions(res.data)
     } catch (e) {
-      setError('Failed to load missions')
+      setError(t('volunteer.failedToLoad'))
     } finally {
       setLoading(false)
     }
@@ -78,7 +80,7 @@ export default function VolunteerScreen() {
       })
       setAssignments(res.data)
     } catch (e) {
-      setError('Failed to load assignments')
+      setError(t('volunteer.failedToLoad'))
     } finally {
       setLoading(false)
     }
@@ -94,14 +96,14 @@ export default function VolunteerScreen() {
       )
       fetchMissions()
     } catch (e) {
-      setError('Failed to join mission')
+      setError(t('volunteer.failedToJoin'))
     }
   }
 
   function confirmJoin(mission: Mission) {
-    Alert.alert('Join Mission?', mission.title, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Join', onPress: () => joinMission(mission.mission_id) },
+    Alert.alert(t('volunteer.joinConfirmTitle'), mission.title, [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('volunteer.join'), onPress: () => joinMission(mission.mission_id) },
     ])
   }
 
@@ -115,7 +117,7 @@ export default function VolunteerScreen() {
       )
       fetchAssignments()
     } catch (e) {
-      setError('Failed to complete assignment')
+      setError(t('volunteer.failedToComplete'))
     }
   }
 
@@ -142,11 +144,11 @@ export default function VolunteerScreen() {
             {item.description}
           </Text>
           <Text style={styles.volunteerCount}>
-            Volunteers: {item.volunteers_needed}
+            {t('volunteer.volunteersNeeded', { count: item.volunteers_needed })}
           </Text>
         </View>
         <MinimalButton
-          title="Join"
+          title={t('volunteer.join')}
           variant="cta"
           small
           onPress={() => confirmJoin(item)}
@@ -163,11 +165,13 @@ export default function VolunteerScreen() {
           <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
             {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
           </Text>
-          <Text style={styles.hoursText}>Hours logged: {item.hours_logged}</Text>
+          <Text style={styles.hoursText}>
+            {t('volunteer.hoursLogged', { hours: item.hours_logged })}
+          </Text>
         </View>
         {item.status === 'active' && (
           <MinimalButton
-            title="Complete"
+            title={t('volunteer.complete')}
             variant="cta"
             small
             onPress={() => markComplete(item.assignment_id)}
@@ -191,7 +195,7 @@ export default function VolunteerScreen() {
               activeTab === 'available' ? styles.tabTextActive : styles.tabTextInactive,
             ]}
           >
-            Available Missions
+            {t('volunteer.availableMissions')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -204,7 +208,7 @@ export default function VolunteerScreen() {
               activeTab === 'mine' ? styles.tabTextActive : styles.tabTextInactive,
             ]}
           >
-            My Missions
+            {t('volunteer.myMissions')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -212,7 +216,7 @@ export default function VolunteerScreen() {
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       {loading ? (
-        <Text style={styles.loadingText}>Loading...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       ) : activeTab === 'available' ? (
         <FlatList
           data={missions}
@@ -220,7 +224,7 @@ export default function VolunteerScreen() {
           renderItem={renderMission}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No missions available</Text>
+            <Text style={styles.emptyText}>{t('volunteer.noMissionsAvailable')}</Text>
           }
         />
       ) : (
@@ -230,7 +234,7 @@ export default function VolunteerScreen() {
           renderItem={renderAssignment}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No missions available</Text>
+            <Text style={styles.emptyText}>{t('volunteer.noMissionsAvailable')}</Text>
           }
         />
       )}

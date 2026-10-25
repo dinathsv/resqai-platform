@@ -7,10 +7,12 @@ import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { Fonts, makeGlass } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const glass = useMemo(() => makeGlass(theme), [theme]);
 
   const [email, setEmail] = useState('');
@@ -20,8 +22,14 @@ export default function ForgotPasswordScreen() {
 
   const handleRequestReset = async () => {
     const trimmedEmail = email.trim();
-    if (!trimmedEmail) { setError('Email is required'); return; }
-    if (!/\S+@\S+\.\S+/.test(trimmedEmail)) { setError('Please enter a valid email'); return; }
+    if (!trimmedEmail) {
+      setError(t('auth.requiredFields'));
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(trimmedEmail)) {
+      setError(t('auth.invalidCredentials'));
+      return;
+    }
 
     setError('');
     setSuccess('');
@@ -36,8 +44,7 @@ export default function ForgotPasswordScreen() {
       const data = await res.json();
       
       if (res.ok) {
-        setSuccess('OTP has been sent');
-        // Small delay to show success message before navigating
+        setSuccess(t('common.success'));
         setTimeout(() => {
           router.push({
             pathname: '/(auth)/reset-password',
@@ -45,10 +52,10 @@ export default function ForgotPasswordScreen() {
           });
         }, 1500);
       } else {
-        setError(data.detail || 'Failed to request password reset');
+        setError(data.detail || t('common.error'));
       }
-    } catch (err) {
-      setError('Connection error. Please try again later.');
+    } catch {
+      setError(t('auth.connectionError'));
     } finally {
       setLoading(false);
     }
@@ -58,18 +65,12 @@ export default function ForgotPasswordScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={20} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          
-          <View style={styles.headerSection}>
-            <View style={[styles.iconCircle, { backgroundColor: theme.accentLight }]}>
-              <Text style={styles.iconText}>🔐</Text>
-            </View>
-            <Text style={[styles.title, { color: theme.textPrimary }]}>Forgot Password</Text>
-            <Text style={[styles.subtitle, { color: theme.textMuted }]}>
-              Enter your registered email address and we'll send you an OTP to reset your password.
-            </Text>
-          </View>
-
           <View style={[styles.card, glass.card]}>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>{t('auth.forgotPassword')}</Text>
+            <Text style={[styles.subtitle, { color: theme.textMuted }]}>
+              {t('auth.enterEmailForOtp')}
+            </Text>
+
             {error ? (
               <View style={[styles.errorBox, { backgroundColor: theme.emergencyLight, borderColor: theme.emergency }]}>
                 <Text style={[styles.errorText, { color: theme.isDark ? '#FFFFFF' : theme.emergency }]}>⚠ {error}</Text>
@@ -83,20 +84,46 @@ export default function ForgotPasswordScreen() {
             ) : null}
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>Email Address</Text>
-              <TextInput style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary }]}
-                value={email} onChangeText={setEmail} placeholder="citizen@example.com"
-                placeholderTextColor={theme.textMuted} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} editable={!loading} onSubmitEditing={handleRequestReset} />
+              <Text style={[styles.label, { color: theme.textSecondary }]}>{t('auth.emailAddress')}</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary }]}
+                value={email}
+                onChangeText={setEmail}
+                placeholder={t('auth.emailPlaceholder')}
+                placeholderTextColor={theme.textMuted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+                onSubmitEditing={handleRequestReset}
+              />
             </View>
 
-            <TouchableOpacity style={[styles.actionButton, { backgroundColor: theme.brandActive }, Platform.OS === 'web' ? { boxShadow: `0 4px 8px ${theme.brandActive}40` } : { shadowColor: theme.brandActive }, loading && styles.buttonDisabled]}
-              onPress={handleRequestReset} disabled={loading} activeOpacity={0.8}>
-              {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.actionButtonText}>Send OTP</Text>}
+            <TouchableOpacity
+              style={[
+                styles.submitButton,
+                { backgroundColor: theme.brandActive },
+                Platform.OS === 'web' ? { boxShadow: `0 4px 8px ${theme.brandActive}40` } : { shadowColor: theme.brandActive },
+                loading && styles.buttonDisabled,
+              ]}
+              onPress={handleRequestReset}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.submitButtonText}>{t('common.submit')}</Text>
+              )}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.linkButton} onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(auth)/login'); }} activeOpacity={0.7} disabled={loading}>
-              <Text style={[styles.linkText, { color: theme.textMuted }]}>
-                Remember your password? <Text style={[styles.linkBold, { color: theme.brandActive }]}>Sign In</Text>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.backButtonText, { color: theme.brandActive }]}>
+                ← {t('common.back')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -109,13 +136,10 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
-  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 36, paddingBottom: 56 },
-  headerSection: { alignItems: 'center', marginBottom: 28 },
-  iconCircle: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  iconText: { fontSize: 36 },
-  title: { fontSize: 24, fontFamily: Fonts.bold, marginBottom: 8 },
-  subtitle: { fontSize: 14, fontFamily: Fonts.regular, textAlign: 'center', lineHeight: 20, paddingHorizontal: 10 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 36 },
   card: { padding: 24, borderRadius: 12 },
+  title: { fontSize: 22, fontFamily: Fonts.bold, textAlign: 'center', marginBottom: 8 },
+  subtitle: { fontSize: 13, fontFamily: Fonts.regular, textAlign: 'center', marginBottom: 24 },
   errorBox: { borderRadius: 8, padding: 12, marginBottom: 16, borderWidth: 1 },
   errorText: { fontSize: 13, fontFamily: Fonts.bold, textAlign: 'center' },
   successBox: { borderRadius: 8, padding: 12, marginBottom: 16, borderWidth: 1 },
@@ -123,10 +147,9 @@ const styles = StyleSheet.create({
   inputGroup: { marginBottom: 20 },
   label: { fontSize: 13, fontFamily: Fonts.semiBold, marginBottom: 6 },
   input: { paddingVertical: 12, paddingHorizontal: 14, fontSize: 14, fontFamily: Fonts.semiBold, borderRadius: 8, borderWidth: 1 },
-  actionButton: { paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 4 },
+  submitButton: { paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
   buttonDisabled: { opacity: 0.6 },
-  actionButtonText: { color: '#FFFFFF', fontSize: 15, fontFamily: Fonts.bold },
-  linkButton: { alignItems: 'center', marginTop: 24 },
-  linkText: { fontSize: 13, fontFamily: Fonts.regular },
-  linkBold: { fontFamily: Fonts.bold },
+  submitButtonText: { color: '#FFFFFF', fontSize: 15, fontFamily: Fonts.bold },
+  backButton: { alignItems: 'center', marginTop: 18 },
+  backButtonText: { fontSize: 13, fontFamily: Fonts.semiBold },
 });

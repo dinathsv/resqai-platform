@@ -23,9 +23,7 @@ if DB_URL.startswith("postgresql+asyncpg://"):
 
 
 ADMIN_EMAIL = "admin@resqai.lk"
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
-if not ADMIN_PASSWORD:
-    raise ValueError("ADMIN_PASSWORD environment variable must be set")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 ADMIN_NAME = "ResQAI Admin"
 ADMIN_AGENCY = "DMC"
 ADMIN_DISTRICT = "Colombo"

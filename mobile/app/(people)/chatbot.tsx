@@ -20,6 +20,7 @@ import { useRouter } from 'expo-router';
 import { aiFetch } from '../../config/api';
 import { Colors, Fonts } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import TopBar from '../../components/TopBar';
 interface Message {
   id: string;
@@ -89,30 +90,31 @@ declare global {
   }
 }
 
-const INITIAL_MESSAGE: Message = {
-  id: 'initial',
-  role: 'assistant',
-  text: 'Hello! I am Your AI First-Aid Assistant\nHow can I help you?',
-  timestamp: new Date(),
-};
-
-const SUGGESTIONS = [
-  "What if doesn't stop?",
-  'How to bandage?',
-  'Severe Burns guidance',
-  'CPR instructions',
-  'Choking first aid',
-];
-
 export default function ChatbotScreen() {
   const { theme } = useTheme();
+  const { language, t } = useLanguage();
   const router = useRouter();
-  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
+
+  const initialText = t('chatbot.initialGreeting');
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 'initial',
+      role: 'assistant',
+      text: initialText,
+      timestamp: new Date(),
+    },
+  ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [show1990, setShow1990] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [voiceLanguage, setVoiceLanguage] = useState('en-US');
+  const [voiceLanguage, setVoiceLanguage] = useState(
+    language === 'si' ? 'si-LK' : language === 'ta' ? 'ta-LK' : 'en-US'
+  );
+
+  useEffect(() => {
+    setVoiceLanguage(language === 'si' ? 'si-LK' : language === 'ta' ? 'ta-LK' : 'en-US');
+  }, [language]);
   const [, setDetectedLang] = useState('en');
   const flatListRef = useRef<FlatList>(null);
   const webRecognitionRef = useRef<WebSpeechRecognition | null>(null);
@@ -411,11 +413,19 @@ export default function ChatbotScreen() {
     );
   };
 
+  const suggestions = [
+    t('chatbot.sugBleeding'),
+    t('chatbot.sugBandage'),
+    t('chatbot.sugBurns'),
+    t('chatbot.sugCpr'),
+    t('chatbot.sugChoking'),
+  ];
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Midnight Navy Top Header with Back and 3-Dot Navigation Menu */}
       <TopBar
-        title="First aid"
+        title={t('chatbot.firstAidTitle')}
         showBack
         onBack={handleBack}
         theme={theme.isDark ? 'dark' : 'light'}
@@ -444,8 +454,8 @@ export default function ChatbotScreen() {
           {loading && (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="small" color={theme.accent} />
-                <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
-                Assistant is preparing guidance...
+              <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+                {t('chatbot.assistantPreparing')}
               </Text>
             </View>
           )}
@@ -457,19 +467,19 @@ export default function ChatbotScreen() {
               activeOpacity={0.8}
             >
               <Text style={styles.banner1990Text}>
-                🚨 Call 1990 Suwa Seriya Now
+                {t('chatbot.call1990Now')}
               </Text>
             </TouchableOpacity>
           )}
 
-          {/* Quick Suggestion Pills matching Image 1 */}
+          {/* Quick Suggestion Pills */}
           <View style={[styles.suggestionsWrapper, { backgroundColor: theme.surface }]}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.suggestionsScroll}
             >
-              {SUGGESTIONS.map((suggestion, idx) => (
+              {suggestions.map((suggestion, idx) => (
                 <TouchableOpacity
                   key={idx}
                   style={[
@@ -487,27 +497,27 @@ export default function ChatbotScreen() {
             </ScrollView>
           </View>
 
-          {/* Floating Pill Input Box matching Image 1 */}
+          {/* Floating Pill Input Box */}
           <View style={[styles.inputContainer, { backgroundColor: theme.surface }]}>
             <View style={styles.voiceLanguageRow}>
               {[
                 { label: 'English', value: 'en-US' },
-                { label: 'Sinhala', value: 'si-LK' },
-                { label: 'Tamil', value: 'ta-LK' },
-              ].map((language) => (
+                { label: 'සිංහල', value: 'si-LK' },
+                { label: 'தமிழ்', value: 'ta-LK' },
+              ].map((langOpt) => (
                 <TouchableOpacity
-                  key={language.value}
+                  key={langOpt.value}
                   style={[
                     styles.voiceLanguageButton,
                     {
                       backgroundColor:
-                        voiceLanguage === language.value
+                        voiceLanguage === langOpt.value
                           ? theme.accent
                           : theme.surfaceElevated,
                       borderColor: theme.border,
                     },
                   ]}
-                  onPress={() => setVoiceLanguage(language.value)}
+                  onPress={() => setVoiceLanguage(langOpt.value)}
                   disabled={isListening}
                   activeOpacity={0.7}
                 >
@@ -516,13 +526,13 @@ export default function ChatbotScreen() {
                       styles.voiceLanguageText,
                       {
                         color:
-                          voiceLanguage === language.value
+                          voiceLanguage === langOpt.value
                             ? theme.white
                             : theme.textSecondary,
                       },
                     ]}
                   >
-                    {language.label}
+                    {langOpt.label}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -537,7 +547,7 @@ export default function ChatbotScreen() {
                 style={[styles.textInput, { color: theme.textPrimary }]}
                 value={input}
                 onChangeText={setInput}
-                placeholder="Type your messages...."
+                placeholder={t('chatbot.typeMessagePlaceholder')}
                 placeholderTextColor={theme.textMuted}
                 multiline={false}
                 returnKeyType="send"

@@ -18,6 +18,7 @@ import {
   setupNotificationListeners,
 } from '../services/notificationService';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { LanguageProvider, useLanguage } from '../context/LanguageContext';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 LogBox.ignoreLogs([
@@ -32,13 +33,12 @@ function useWebMobileFrame() {
   // Web frame styling removed for minimal design
 }
 
-// Inner layout that can read theme from context
+// Inner layout that can read theme and language from context
 function AppLayout() {
   const { isOnline } = useNetworkSync();
   const router = useRouter();
   const { theme } = useTheme();
-
-
+  const { t } = useLanguage();
 
   useEffect(() => {
     initDB();
@@ -55,15 +55,13 @@ function AppLayout() {
     });
   }, []);
 
-
-
   const appContent = (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
       <StatusBar style={theme.isDark ? 'light' : 'dark'} />
       {!isOnline && (
         <View style={[styles.offlineBanner, { backgroundColor: theme.brand }]}>
           <Text style={[styles.offlineText, { color: '#FFFFFF' }]}>
-            Offline — requests will sync when connected
+            {t('common.offlineBanner')}
           </Text>
         </View>
       )}
@@ -92,7 +90,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <AppLayout />
+        <LanguageProvider>
+          <AppLayout />
+        </LanguageProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

@@ -13,6 +13,8 @@ import { useRouter, usePathname } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Fonts } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+import AppearanceSettings from './AppearanceSettings';
 import { Ionicons } from '@expo/vector-icons';
 
 interface TopBarProps {
@@ -37,7 +39,9 @@ export default function TopBar({
   const router = useRouter();
   const pathname = usePathname();
   const [menuVisible, setMenuVisible] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
   const { theme: appTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
   const isDark = appTheme.isDark || theme === 'dark' || theme === 'red';
 
   const handleDefaultBack = () => {
@@ -63,6 +67,14 @@ export default function TopBar({
     }
     router.replace('/');
   };
+
+  const cycleLanguage = () => {
+    const nextLang = language === 'en' ? 'ta' : language === 'ta' ? 'si' : 'en';
+    setLanguage(nextLang);
+  };
+
+  const currentLangLabel =
+    language === 'ta' ? 'தமிழ்' : language === 'si' ? 'සිංහල' : 'EN';
 
   return (
     <>
@@ -132,30 +144,57 @@ export default function TopBar({
           ) : null}
         </View>
 
-        {/* Right Side: 3-Dot Button */}
+        {/* Right Side: Quick Language Switch & 3-Dot Button */}
         <View style={styles.rightContainer}>
           {rightAction ? (
             rightAction
           ) : (
-            <TouchableOpacity
-              style={[
-                styles.dotsButton,
-                isDark && styles.dotsButtonDark,
-              ]}
-              onPress={() => setMenuVisible(true)}
-              activeOpacity={0.7}
-              accessibilityLabel="Open Navigation Menu"
-            >
-              <Text
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {/* Quick Language Toggle Pill */}
+              <TouchableOpacity
                 style={[
-                  styles.dotsIcon,
-                  { color: appTheme.textPrimary },
-                  isDark && styles.dotsIconDark,
+                  styles.langPill,
+                  {
+                    backgroundColor: appTheme.isDark
+                      ? 'rgba(255, 255, 255, 0.08)'
+                      : 'rgba(10, 132, 255, 0.08)',
+                    borderColor: appTheme.border,
+                  },
                 ]}
+                onPress={cycleLanguage}
+                activeOpacity={0.7}
+                accessibilityLabel="Switch Language"
               >
-                ⋮
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.langPillText,
+                    { color: appTheme.accent },
+                  ]}
+                >
+                  {currentLangLabel}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.dotsButton,
+                  isDark && styles.dotsButtonDark,
+                ]}
+                onPress={() => setMenuVisible(true)}
+                activeOpacity={0.7}
+                accessibilityLabel="Open Navigation Menu"
+              >
+                <Text
+                  style={[
+                    styles.dotsIcon,
+                    { color: appTheme.textPrimary },
+                    isDark && styles.dotsIconDark,
+                  ]}
+                >
+                  ⋮
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </View>
@@ -177,23 +216,42 @@ export default function TopBar({
                     { backgroundColor: appTheme.surface, borderColor: appTheme.border },
                   ]}
                 >
-                  {/* Navigation Items */}
-                <View style={styles.menuDivider} />
+                  {/* Language & Appearance */}
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                      setMenuVisible(false);
+                      setSettingsVisible(true);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="language-outline" size={16} color={appTheme.textPrimary} />
+                    <Text style={[styles.menuItemLabel, { color: appTheme.textPrimary }]}>
+                      {t('nav.language')} / {t('nav.appearance')}
+                    </Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={styles.menuItemSignOut}
-                  onPress={handleSignOut}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="log-out-outline" size={16} color={appTheme.emergency} />
-                  <Text style={styles.menuSignOutLabel}>Sign Out</Text>
-                </TouchableOpacity>
-              </View>
-            </Pressable>
+                  <View style={styles.menuDivider} />
+
+                  <TouchableOpacity
+                    style={styles.menuItemSignOut}
+                    onPress={handleSignOut}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="log-out-outline" size={16} color={appTheme.emergency} />
+                    <Text style={styles.menuSignOutLabel}>{t('nav.signOut')}</Text>
+                  </TouchableOpacity>
+                </View>
+              </Pressable>
+            </View>
           </View>
-        </View>
-      </Pressable>
-    </Modal>
+        </Pressable>
+      </Modal>
+
+      <AppearanceSettings
+        visible={settingsVisible}
+        onClose={() => setSettingsVisible(false)}
+      />
     </>
   );
 }
@@ -361,5 +419,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.bold,
     color: '#DC2626',
+  },
+  langPill: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  langPillText: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
   },
 });

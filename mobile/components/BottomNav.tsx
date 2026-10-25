@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Fonts } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import AppearanceSettings from './AppearanceSettings';
 import { apiFetch } from '../config/api';
 import { Ionicons } from '@expo/vector-icons';
@@ -86,6 +87,7 @@ function ProfileIcon({ active, color }: { active: boolean; color: string }) {
 export default function BottomNav({ currentTab }: BottomNavProps) {
   const router = useRouter();
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
 
   const [profileModalVisible, setProfileModalVisible] = useState(false);
@@ -314,22 +316,22 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
   const tabs: { id: NavTab; label: string; icon: React.ReactNode }[] = [
     {
       id: 'home',
-      label: 'Home',
+      label: t('nav.home'),
       icon: <HomeIcon active={currentTab === 'home'} color={currentTab === 'home' ? activeColor : inactiveColor} />,
     },
     {
       id: 'alerts',
-      label: 'Alerts',
+      label: t('nav.alerts'),
       icon: <AlertsIcon active={currentTab === 'alerts'} color={currentTab === 'alerts' ? activeColor : inactiveColor} badgeCount={unreadAlertsCount} />,
     },
     {
       id: 'activities',
-      label: 'Activities',
+      label: t('nav.activities'),
       icon: <ActivitiesIcon active={currentTab === 'activities'} color={currentTab === 'activities' ? activeColor : inactiveColor} />,
     },
     {
       id: 'profile',
-      label: 'Profile',
+      label: t('nav.profile'),
       icon: renderNavProfileIcon(),
     },
   ];
@@ -452,7 +454,9 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 activeOpacity={0.7}
               >
                 <Ionicons name="color-palette-outline" size={20} color={theme.textPrimary} style={{ marginRight: 12 }} />
-                <Text style={[styles.profileMenuText, { color: theme.textPrimary, flex: 1 }]}>Appearance</Text>
+                <Text style={[styles.profileMenuText, { color: theme.textPrimary, flex: 1 }]}>
+                  {t('nav.language')} / {t('nav.appearance')}
+                </Text>
                 <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
               </TouchableOpacity>
 
@@ -462,7 +466,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 activeOpacity={0.7}
               >
                 <Ionicons name="help-buoy-outline" size={20} color={theme.textPrimary} style={{ marginRight: 12 }} />
-                <Text style={[styles.profileMenuText, { color: theme.textPrimary, flex: 1 }]}>Quiz</Text>
+                <Text style={[styles.profileMenuText, { color: theme.textPrimary, flex: 1 }]}>{t('nav.quiz')}</Text>
                 <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
               </TouchableOpacity>
 
@@ -472,7 +476,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 activeOpacity={0.7}
               >
                 <Ionicons name="heart-outline" size={20} color={theme.textPrimary} style={{ marginRight: 12 }} />
-                <Text style={[styles.profileMenuText, { color: theme.textPrimary, flex: 1 }]}>Donation</Text>
+                <Text style={[styles.profileMenuText, { color: theme.textPrimary, flex: 1 }]}>{t('nav.donate')}</Text>
                 <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
               </TouchableOpacity>
 
@@ -482,7 +486,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
                 activeOpacity={0.7}
               >
                 <Ionicons name="log-out-outline" size={20} color={theme.emergency} style={{ marginRight: 12 }} />
-                <Text style={[styles.signOutText, { color: theme.emergency, flex: 1 }]}>Sign Out</Text>
+                <Text style={[styles.signOutText, { color: theme.emergency, flex: 1 }]}>{t('nav.signOut')}</Text>
                 <Ionicons name="chevron-forward" size={16} color={theme.emergency} />
               </TouchableOpacity>
             </View>

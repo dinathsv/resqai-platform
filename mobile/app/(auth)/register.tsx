@@ -11,10 +11,13 @@ import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { Fonts, makeGlass } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
+import LanguageSelector from '../../components/LanguageSelector';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { language, t } = useLanguage();
   const glass = useMemo(() => makeGlass(theme), [theme]);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -28,21 +31,43 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     setError('');
-    if (!fullName.trim() || !email.trim() || !password.trim()) { setError('Please fill in all required fields'); return; }
-    if (password !== confirmPassword) { setError('Passwords do not match'); return; }
-    if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
+    if (!fullName.trim() || !email.trim() || !password.trim()) {
+      setError(t('auth.requiredFields'));
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError(t('auth.passwordMismatch'));
+      return;
+    }
+    if (password.length < 6) {
+      setError(t('auth.passwordLength'));
+      return;
+    }
     setLoading(true);
     try {
-      const res = await apiFetch('/api/auth/register', { method: 'POST', body: JSON.stringify({ full_name: fullName.trim(), email: email.trim(), phone_number: phone.trim() || null, password }) });
+      const res = await apiFetch('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          full_name: fullName.trim(),
+          email: email.trim(),
+          phone_number: phone.trim() || null,
+          password,
+          language_pref: language,
+        }),
+      });
       const data = await res.json();
       if (res.ok) {
         router.push({ pathname: '/(auth)/verify-otp', params: { userId: data.user_id, email: email.trim() } });
       } else {
-        if (res.status === 409) setError('An account with this email already exists');
-        else setError(typeof data.detail === 'string' ? data.detail : 'Registration failed. Please try again.');
+        if (res.status === 409) setError(t('auth.invalidCredentials'));
+        else setError(typeof data.detail === 'string' ? data.detail : t('common.error'));
       }
-    } catch (err) { console.error('Register error:', err); setError('Connection error. Please check your internet connection.'); }
-    finally { setLoading(false); }
+    } catch (err) {
+      console.error('Register error:', err);
+      setError(t('auth.connectionError'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const inputStyle = { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary };
@@ -51,16 +76,26 @@ export default function RegisterScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={20}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <View style={{ alignItems: 'center', marginBottom: 28 }}>
+          <View style={{ alignItems: 'center', marginBottom: 20 }}>
             <Image 
               source={require('../../assets/resqai_logo.png')} 
-              style={{ width: 140, height: 140, marginBottom: 16 }} 
+              style={{ width: 130, height: 130, marginBottom: 12 }} 
               resizeMode="contain" 
             />
+            <Text style={[styles.appTitle, { color: theme.textPrimary }]}>
+              {t('common.appName')}
+            </Text>
+            <Text style={[styles.appSubtitle, { color: theme.textMuted }]}>
+              {t('auth.registerCitizen')}
+            </Text>
           </View>
 
           <View style={[styles.card, glass.card]}>
-            <Text style={[styles.headerTitle, { color: theme.textPrimary, textAlign: 'center', marginBottom: 20 }]}>Create Account</Text>
+            <LanguageSelector variant="segmented" style={{ marginBottom: 16 }} />
+
+            <Text style={[styles.headerTitle, { color: theme.textPrimary, textAlign: 'center', marginBottom: 20 }]}>
+              {t('auth.register')}
+            </Text>
 
             {error ? (
               <View style={[styles.errorBox, { backgroundColor: theme.emergencyLight, borderColor: theme.emergency }]}>
@@ -68,44 +103,100 @@ export default function RegisterScreen() {
               </View>
             ) : null}
 
-            {[
-              { label: 'Full Name *', value: fullName, set: setFullName, placeholder: 'Enter your full name' },
-              { label: 'Email *', value: email, set: setEmail, placeholder: 'you@example.com', keyboard: 'email-address' as const, capitalize: 'none' as const },
-              { label: 'Phone Number', value: phone, set: setPhone, placeholder: '+94 7X XXX XXXX', keyboard: 'phone-pad' as const },
-              { label: 'Password *', value: password, set: setPassword, placeholder: 'At least 6 characters', secure: true, isPassword: true, showState: showPassword, toggle: () => setShowPassword(!showPassword) },
-              { label: 'Confirm Password *', value: confirmPassword, set: setConfirmPassword, placeholder: 'Re-enter your password', secure: true, isPassword: true, showState: showConfirmPassword, toggle: () => setShowConfirmPassword(!showConfirmPassword) },
-            ].map((field) => (
-              <View key={field.label} style={styles.inputGroup}>
-                <Text style={[styles.label, { color: theme.textSecondary }]}>{field.label}</Text>
-                {field.isPassword ? (
-                  <View style={{ position: 'relative', justifyContent: 'center' }}>
-                    <TextInput style={[styles.input, inputStyle, { paddingRight: 40 }]}
-                      value={field.value} onChangeText={field.set} placeholder={field.placeholder}
-                      placeholderTextColor={theme.textMuted} secureTextEntry={!field.showState} editable={!loading} />
-                    <TouchableOpacity style={{ position: 'absolute', right: 14 }} onPress={field.toggle}>
-                      <Ionicons name={field.showState ? "eye-off" : "eye"} size={20} color={theme.textMuted} />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <TextInput style={[styles.input, inputStyle]}
-                    value={field.value} onChangeText={field.set} placeholder={field.placeholder}
-                    placeholderTextColor={theme.textMuted} keyboardType={field.keyboard || 'default'}
-                    autoCapitalize={field.capitalize || 'sentences'} editable={!loading} />
-                )}
-              </View>
-            ))}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>{t('auth.fullName')} *</Text>
+              <TextInput
+                style={[styles.input, inputStyle]}
+                value={fullName}
+                onChangeText={setFullName}
+                placeholder={t('auth.fullNamePlaceholder')}
+                placeholderTextColor={theme.textMuted}
+                editable={!loading}
+              />
+            </View>
 
-            <TouchableOpacity style={[styles.registerButton, { backgroundColor: theme.brandActive, shadowColor: theme.brandActive }, loading && styles.buttonDisabled]}
-              onPress={handleRegister} disabled={loading} activeOpacity={0.7}>
-              {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.registerButtonText}>Register</Text>}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>{t('auth.emailAddress')} *</Text>
+              <TextInput
+                style={[styles.input, inputStyle]}
+                value={email}
+                onChangeText={setEmail}
+                placeholder={t('auth.emailPlaceholder')}
+                placeholderTextColor={theme.textMuted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!loading}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>{t('auth.phone')}</Text>
+              <TextInput
+                style={[styles.input, inputStyle]}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder={t('auth.phonePlaceholder')}
+                placeholderTextColor={theme.textMuted}
+                keyboardType="phone-pad"
+                editable={!loading}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>{t('auth.password')} *</Text>
+              <View style={{ position: 'relative', justifyContent: 'center' }}>
+                <TextInput
+                  style={[styles.input, inputStyle, { paddingRight: 40 }]}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder={t('auth.passwordPlaceholder')}
+                  placeholderTextColor={theme.textMuted}
+                  secureTextEntry={!showPassword}
+                  editable={!loading}
+                />
+                <TouchableOpacity style={{ position: 'absolute', right: 14 }} onPress={() => setShowPassword(!showPassword)}>
+                  <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color={theme.textMuted} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>{t('auth.confirmPassword')} *</Text>
+              <View style={{ position: 'relative', justifyContent: 'center' }}>
+                <TextInput
+                  style={[styles.input, inputStyle, { paddingRight: 40 }]}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  placeholder={t('auth.passwordPlaceholder')}
+                  placeholderTextColor={theme.textMuted}
+                  secureTextEntry={!showConfirmPassword}
+                  editable={!loading}
+                />
+                <TouchableOpacity style={{ position: 'absolute', right: 14 }} onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                  <Ionicons name={showConfirmPassword ? "eye-off" : "eye"} size={20} color={theme.textMuted} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.registerButton, { backgroundColor: theme.brandActive, shadowColor: theme.brandActive }, loading && styles.buttonDisabled]}
+              onPress={handleRegister}
+              disabled={loading}
+              activeOpacity={0.7}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.registerButtonText}>{t('auth.register')}</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.linkButton} onPress={() => router.push('/(auth)/login')} activeOpacity={0.7}>
+              <Text style={[styles.linkText, { color: theme.brandActive }]}>
+                {t('auth.haveAccount')}
+              </Text>
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity style={styles.linkButton} onPress={() => { if (router.canGoBack()) router.back(); else router.replace('/(auth)/login'); }} activeOpacity={0.7}>
-            <Text style={[styles.linkText, { color: theme.textMuted }]}>
-              Already have an account? <Text style={[styles.linkBold, { color: theme.brandActive }]}>Sign In</Text>
-            </Text>
-          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -115,19 +206,19 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 32, paddingBottom: 56 },
-  headerTitle: { fontSize: 28, fontFamily: Fonts.bold, marginBottom: 6 },
-  subtitle: { fontSize: 14, fontFamily: Fonts.regular, marginBottom: 24 },
-  card: { padding: 24, marginBottom: 20, borderRadius: 12 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 28 },
+  appTitle: { fontSize: 26, fontFamily: Fonts.bold, letterSpacing: -0.5 },
+  appSubtitle: { fontSize: 13, fontFamily: Fonts.regular, textAlign: 'center', marginTop: 4 },
+  card: { padding: 22, marginBottom: 16, borderRadius: 12 },
+  headerTitle: { fontSize: 20, fontFamily: Fonts.bold },
   errorBox: { borderRadius: 8, padding: 12, marginBottom: 16, borderWidth: 1 },
-  errorText: { fontSize: 13, fontFamily: Fonts.medium, textAlign: 'center' },
-  inputGroup: { marginBottom: 14 },
-  label: { fontSize: 13, fontFamily: Fonts.medium, marginBottom: 6 },
-  input: { paddingVertical: 12, paddingHorizontal: 14, fontSize: 14, fontFamily: Fonts.regular, borderRadius: 8, borderWidth: 1 },
+  errorText: { fontSize: 13, fontFamily: Fonts.bold, textAlign: 'center' },
+  inputGroup: { marginBottom: 16 },
+  label: { fontSize: 13, fontFamily: Fonts.semiBold, marginBottom: 6 },
+  input: { paddingVertical: 12, paddingHorizontal: 14, fontSize: 14, fontFamily: Fonts.semiBold, borderRadius: 8, borderWidth: 1 },
   registerButton: { paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 8 },
   buttonDisabled: { opacity: 0.6 },
-  registerButtonText: { color: '#FFFFFF', fontSize: 16, fontFamily: Fonts.bold },
-  linkButton: { alignItems: 'center', paddingVertical: 8 },
-  linkText: { fontSize: 14, fontFamily: Fonts.regular },
-  linkBold: { fontFamily: Fonts.bold },
+  registerButtonText: { color: '#FFFFFF', fontSize: 15, fontFamily: Fonts.bold },
+  linkButton: { alignItems: 'center', marginTop: 16 },
+  linkText: { fontSize: 13, fontFamily: Fonts.semiBold },
 });
