@@ -47,6 +47,7 @@ export default function TopBar({
   const { theme: appTheme } = useTheme();
   const { language, setLanguage, options, t } = useLanguage();
   const isDark = appTheme.isDark || theme === 'dark' || theme === 'red';
+  const useNativeDriver = Platform.OS !== 'web';
 
   const handleDefaultBack = () => {
     if (router.canGoBack()) {
@@ -78,7 +79,7 @@ export default function TopBar({
       toValue: 1,
       duration: 220,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver,
     }).start();
   };
 
@@ -87,7 +88,7 @@ export default function TopBar({
       toValue: 0,
       duration: 160,
       easing: Easing.in(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver,
     }).start(({ finished }) => {
       if (finished) {
         setLanguageMenuVisible(false);
