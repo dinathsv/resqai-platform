@@ -1,41 +1,48 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie';
-import axios from 'axios';
-import styles from './login.module.css';
+import Link from "next/link";
+import { useState, FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
+import axios from "axios";
+import styles from "./login.module.css";
 
-const AUTH_API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://localhost:8000';
+const AUTH_API_URL =
+  process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8000";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
-      const res = await axios.post(`${AUTH_API_URL}/api/auth/admin/login`, {
+      const res = await axios.post(`${AUTH_API_URL}/api/auth/login`, {
         email: email.trim(),
         password,
       });
       const { access_token } = res.data;
-      Cookies.set('admin_token', access_token, { expires: 7 });
-      router.push('/dashboard');
+      Cookies.set("admin_token", access_token, { expires: 7 });
+      router.push("/dashboard");
     } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'response' in err) {
-        const axiosErr = err as { response?: { data?: { detail?: string; message?: string } } };
-        setError(axiosErr.response?.data?.detail || axiosErr.response?.data?.message || 'Login failed');
+      if (err && typeof err === "object" && "response" in err) {
+        const axiosErr = err as {
+          response?: { data?: { detail?: string; message?: string } };
+        };
+        setError(
+          axiosErr.response?.data?.detail ||
+            axiosErr.response?.data?.message ||
+            "Login failed",
+        );
       } else {
-        setError('Network error');
+        setError("Network error");
       }
     } finally {
       setLoading(false);
@@ -50,7 +57,9 @@ export default function LoginPage() {
         <div className={styles.subtitle}>Admin Access</div>
 
         <div className={styles.field}>
-          <label className={styles.label} htmlFor="login-email">Email</label>
+          <label className={styles.label} htmlFor="login-email">
+            Email
+          </label>
           <input
             id="login-email"
             type="email"
@@ -62,44 +71,68 @@ export default function LoginPage() {
         </div>
 
         <div className={styles.field}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label className={styles.label} htmlFor="login-password" style={{ marginBottom: 0 }}>Password</label>
-            <Link href="/login/forgot-password" style={{ fontSize: '12px', color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <label
+              className={styles.label}
+              htmlFor="login-password"
+              style={{ marginBottom: 0 }}
+            >
+              Password
+            </label>
+            <Link
+              href="/login/forgot-password"
+              style={{
+                fontSize: "12px",
+                color: "var(--accent)",
+                textDecoration: "none",
+                fontWeight: 600,
+              }}
+            >
               Forgot Password?
             </Link>
           </div>
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: "relative" }}>
             <input
               id="login-password"
-              type={showPassword ? 'text' : 'password'}
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="Enter password"
-              style={{ paddingRight: '40px', width: '100%', boxSizing: 'border-box' }}
+              style={{
+                paddingRight: "40px",
+                width: "100%",
+                boxSizing: "border-box",
+              }}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               style={{
-                position: 'absolute',
-                right: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '16px',
-                color: 'var(--text-muted)'
+                position: "absolute",
+                right: "10px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "16px",
+                color: "var(--text-muted)",
               }}
             >
-              {showPassword ? '🙈' : '👁️'}
+              {showPassword ? "🙈" : "👁️"}
             </button>
           </div>
         </div>
 
         <button type="submit" className={styles.submitBtn} disabled={loading}>
-          {loading ? 'Logging in...' : 'Login'}
+          {loading ? "Logging in..." : "Login"}
         </button>
 
         {error && <div className={styles.error}>{error}</div>}
