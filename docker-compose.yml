@@ -1,7 +1,11 @@
 services:
+  # ============================================
+  # PostgreSQL + PostGIS
+  # ============================================
   postgres:
     image: postgis/postgis:15-3.3
     container_name: resqai_db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: resqai
       POSTGRES_USER: resqai_user
@@ -19,6 +23,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: resqai_redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     healthcheck:
@@ -32,21 +37,22 @@ services:
       context: .
       dockerfile: app/Dockerfile
     container_name: resqai_python_api
+    restart: unless-stopped
     ports:
       - "8000:8000"
     volumes:
       - ./app:/workspace/app
     environment:
-      - DATABASE_URL=${DATABASE_URL:?Set DATABASE_URL in .env}
-      - REDIS_URL=redis://redis:6379
-      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in .env}
-      - AI_API_KEY=${AI_API_KEY:?Set AI_API_KEY in .env}
-      - AI_MODEL=${AI_MODEL:-gemini-3.5-flash-lite}
-      - SMSLENZ_USER_ID=${SMSLENZ_USER_ID:-}
-      - SMSLENZ_API_KEY=${SMSLENZ_API_KEY:-}
-      - SMSLENZ_SENDER_ID=${SMSLENZ_SENDER_ID:-}
-      - SMSLENZ_BASE_URL=${SMSLENZ_BASE_URL:-https://smslenz.lk/api}
-      - NODE_BACKEND_URL=http://node-backend:5000
+      DATABASE_URL: ${PYTHON_DATABASE_URL:?Set PYTHON_DATABASE_URL in .env}
+      REDIS_URL: redis://redis:6379
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      AI_API_KEY: ${AI_API_KEY:?Set AI_API_KEY in .env}
+      AI_MODEL: ${AI_MODEL:-gemini-3.5-flash-lite}
+      SMSLENZ_USER_ID: ${SMSLENZ_USER_ID:-}
+      SMSLENZ_API_KEY: ${SMSLENZ_API_KEY:-}
+      SMSLENZ_SENDER_ID: ${SMSLENZ_SENDER_ID:-}
+      SMSLENZ_BASE_URL: ${SMSLENZ_BASE_URL:-https://smslenz.lk/api}
+      NODE_BACKEND_URL: http://node-backend:5000
     depends_on:
       postgres:
         condition: service_healthy
@@ -58,6 +64,7 @@ services:
       context: ./ml-models
       dockerfile: Dockerfile
     container_name: resqai_ml_models
+    restart: unless-stopped
     ports:
       - "5005:5005"
     volumes:
@@ -68,23 +75,26 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: resqai_node_backend
+    restart: unless-stopped
     ports:
       - "5000:5000"
     volumes:
       - ./backend:/app
       - /app/node_modules
     environment:
-      - DATABASE_URL=${DATABASE_URL:?Set DATABASE_URL in .env}
-      - PORT=5000
-      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
-      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in .env}
-      - REDIS_URL=redis://redis:6379
-      - SMSLENZ_USER_ID=${SMSLENZ_USER_ID:-}
-      - SMSLENZ_API_KEY=${SMSLENZ_API_KEY:-}
-      - SMSLENZ_SENDER_ID=${SMSLENZ_SENDER_ID:-}
-      - SMSLENZ_BASE_URL=${SMSLENZ_BASE_URL:-https://smslenz.lk/api}
+      DATABASE_URL: ${NODE_DATABASE_URL:?Set NODE_DATABASE_URL in .env}
+      PORT: "5000"
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      REDIS_URL: redis://redis:6379
+      SMSLENZ_USER_ID: ${SMSLENZ_USER_ID:-}
+      SMSLENZ_API_KEY: ${SMSLENZ_API_KEY:-}
+      SMSLENZ_SENDER_ID: ${SMSLENZ_SENDER_ID:-}
+      SMSLENZ_BASE_URL: ${SMSLENZ_BASE_URL:-https://smslenz.lk/api}
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   admin-dashboard:
@@ -92,10 +102,12 @@ services:
       context: ./resqai-admin
       dockerfile: Dockerfile
     container_name: resqai_admin
+    restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:5000
+      NEXT_PUBLIC_API_URL: http://localhost:5000
+      NEXT_PUBLIC_AUTH_API_URL: http://localhost:8000
     depends_on:
       - node-backend
 
@@ -104,16 +116,17 @@ services:
       context: ./mobile
       dockerfile: Dockerfile
     container_name: resqai_mobile
+    restart: unless-stopped
     ports:
       - "8081:8081"
     volumes:
       - ./mobile:/app
       - /app/node_modules
     environment:
-      - EXPO_WEB_PORT=8081
-      - HOST=0.0.0.0
-      - WEB_HOST=0.0.0.0
-      - EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=${EXPO_PUBLIC_GOOGLE_MAPS_API_KEY:-}
+      EXPO_WEB_PORT: "8081"
+      HOST: 0.0.0.0
+      WEB_HOST: 0.0.0.0
+      EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: ${EXPO_PUBLIC_GOOGLE_MAPS_API_KEY:-}
     depends_on:
       - python-api
       - ml-models
