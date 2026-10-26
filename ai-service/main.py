@@ -1,8 +1,13 @@
+
 """
 ResQAI — AI Microservice
 FastAPI application with CORS, startup/shutdown lifecycle, and 4 routers.
 
-Run:  uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+Local:
+    uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+
+Production (Render):
+    uvicorn main:app --host 0.0.0.0 --port $PORT
 """
 
 import os
@@ -24,8 +29,10 @@ logging.basicConfig(
     format="%(asctime)s │ %(name)-22s │ %(levelname)-5s │ %(message)s",
     datefmt="%H:%M:%S",
 )
+
 logger = logging.getLogger("resqai")
 
+# Application Lifecycle
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
@@ -34,16 +41,23 @@ async def lifespan(app: FastAPI):
     if db_service.check_connection():
         logger.info("✅ PostgreSQL + PostGIS connection OK")
     else:
-        logger.warning("⚠️  PostgreSQL connection failed — /locate-resources will be degraded")
+        logger.warning(
+            "⚠️ PostgreSQL connection failed — "
+            "/locate-resources will be degraded"
+        )
 
-    logger.info("✅ Service ready on port %s", os.getenv("PORT", "8001"))
+    logger.info(
+        "✅ Service ready on port %s",
+        os.getenv("PORT", "8001"),
+    )
 
-    yield  
+    yield
 
     logger.info("🛑 Shutting down — closing LLM client")
     await llm_service.close()
     logger.info("👋 ResQAI AI Microservice stopped")
 
+# FastAPI Application
 app = FastAPI(
     title="ResQAI AI Microservice",
     description=(
@@ -55,44 +69,76 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS Configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:5000",
-        "http://localhost:5173",  
+        "http://localhost:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Global Exception Handler
 @app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    logger.error("Unhandled error on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+async def global_exception_handler(
+    request: Request,
+    exc: Exception,
+):
+    logger.error(
+        "Unhandled error on %s %s: %s",
+        request.method,
+        request.url.path,
+        exc,
+        exc_info=True,
+    )
+
     return JSONResponse(
         status_code=500,
         content={
             "error": "Internal server error",
-            "detail": "The AI service encountered an unexpected error. Please try again.",
+            "detail": (
+                "The AI service encountered an unexpected error. "
+                "Please try again."
+            ),
         },
     )
 
+# Root Endpoint — NEW
+@app.get("/", tags=["System"])
+async def root():
+    return {
+        "status": "online",
+        "service": "ResQAI AI Microservice",
+        "version": app.version,
+        "message": "ResQAI AI Service is running successfully",
+        "documentation": "/docs",
+        "health": "/health",
+    }
+
+# AI Routers
 app.include_router(chatbot.router, prefix="/api/ai")
 app.include_router(multilingual.router, prefix="/api/ai")
 app.include_router(situational.router, prefix="/api/ai")
 app.include_router(locator.router, prefix="/api/ai")
 
+
+# Health Check
 @app.get("/health", tags=["System"])
 async def health():
     db_ok = db_service.check_connection()
+
     return {
         "status": "healthy" if db_ok else "degraded",
         "service": "resqai-ai",
-        "version": "1.0.0",
+        "version": app.version,
         "database": "connected" if db_ok else "disconnected",
     }
 
+# Application Entry Point
 if __name__ == "__main__":
     import uvicorn
 
@@ -100,5 +146,5 @@ if __name__ == "__main__":
         "main:app",
         host=os.getenv("HOST", "0.0.0.0"),
         port=int(os.getenv("PORT", "8001")),
-        reload=True,
+        reload=os.getenv("ENVIRONMENT", "development") == "development",
     )
