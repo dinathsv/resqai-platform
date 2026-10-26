@@ -1,12 +1,71 @@
 
 
 const express = require('express');
-const { optionalAuth } = require('../middleware/auth');
+const { optionalAuth, requireAuth } = require('../middleware/auth');
 const { notifyNewRequest } = require('../socket');
 
 const router = express.Router();
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
+
+router.get('/', requireAuth, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Administrator access required' });
+  }
+
+  try {
+    const page = Math.max(1, parseInt(req.query.page || '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || '20', 10)));
+    const statuses = typeof req.query.status === 'string'
+      ? req.query.status.split(',').map((value) => value.trim()).filter(Boolean)
+      : [];
+    const emergencyType = typeof (req.query.type || req.query.emergency_type) === 'string'
+      ? (req.query.type || req.query.emergency_type).trim()
+      : '';
+    const params = [];
+    const conditions = [];
+
+    if (statuses.length > 0) {
+      params.push(statuses);
+      conditions.push(`status = ANY($${params.length}::request_status[])`);
+    }
+    if (emergencyType) {
+      params.push(emergencyType.toLowerCase());
+      conditions.push(`emergency_type = $${params.length}::emergency_type`);
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const pool = req.app.locals.pool;
+    const countResult = await pool.query(
+      `SELECT COUNT(*)::int AS total FROM help_requests ${where}`,
+      params,
+    );
+    const total = countResult.rows[0].total;
+    const offset = (page - 1) * limit;
+
+    params.push(limit, offset);
+    const { rows } = await pool.query(
+      `SELECT request_id, emergency_type, urgency_level, original_message,
+              created_at, status, ai_summary,
+              CASE WHEN is_guest_request THEN 'guest' ELSE 'user' END AS source
+       FROM help_requests
+       ${where}
+       ORDER BY created_at DESC
+       LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params,
+    );
+
+    return res.json({
+      requests: rows,
+      total,
+      page,
+      pages: Math.ceil(total / limit) || 1,
+    });
+  } catch (err) {
+    console.error('GET /api/requests error:', err.message);
+    return res.status(500).json({ error: 'Failed to fetch requests' });
+  }
+});
 
 /**
  * POST /new

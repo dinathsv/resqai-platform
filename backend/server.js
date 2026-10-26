@@ -7,6 +7,7 @@ const { Pool } = require("pg");
 const { Server: SocketIOServer } = require("socket.io");
 
 const { initSocket } = require("./socket");
+const { requireAuth } = require("./middleware/auth");
 const authRoutes = require("./routes/auth");
 const alertsRoutes = require("./routes/alerts");
 const requestsRoutes = require("./routes/requests");
@@ -89,6 +90,36 @@ app.use("/api/alerts", alertsRoutes);
 app.use("/api/requests", requestsRoutes);
 app.use("/api/admin/users", usersRoutes);
 app.use("/api/users", usersRoutes);
+
+app.get("/api/admin/dashboard/stats", requireAuth, async (req, res) => {
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ error: "Administrator access required" });
+  }
+
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        (SELECT COUNT(*)::int
+         FROM help_requests
+         WHERE status IN ('pending', 'ai_processing', 'verified', 'dispatched', 'in_progress')) AS active_requests,
+        (SELECT COUNT(*)::int
+         FROM help_requests
+         WHERE urgency_level >= 4
+           AND status IN ('pending', 'ai_processing', 'verified', 'dispatched', 'in_progress')) AS critical_count,
+        (SELECT COUNT(*)::int
+         FROM emergency_alerts
+         WHERE status = 'active') AS active_alerts,
+        (SELECT COALESCE(SUM(amount), 0)::float
+         FROM donations
+         WHERE status = 'completed') AS total_donations
+    `);
+
+    return res.json(rows[0]);
+  } catch (err) {
+    console.error("GET /api/admin/dashboard/stats error:", err.message);
+    return res.status(500).json({ error: "Failed to fetch dashboard stats" });
+  }
+});
 
 app.get("/", (_req, res) => {
   res.status(200).json({
