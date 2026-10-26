@@ -107,7 +107,8 @@ services:
       - "3000:3000"
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:5000
-      NEXT_PUBLIC_AUTH_API_URL: http://localhost:8000
+      NEXT_PUBLIC_AUTH_API_URL: http://localhost:5000
+      NEXT_PUBLIC_PASSWORD_API_URL: http://localhost:8000
     depends_on:
       - node-backend
 

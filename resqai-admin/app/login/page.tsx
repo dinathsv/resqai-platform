@@ -8,7 +8,9 @@ import axios from "axios";
 import styles from "./login.module.css";
 
 const AUTH_API_URL =
-  process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8000";
+  process.env.NEXT_PUBLIC_AUTH_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,7 +41,8 @@ export default function LoginPage() {
         setError(
           axiosErr.response?.data?.detail ||
             axiosErr.response?.data?.message ||
-            "Login failed",
+          (axiosErr.response?.data as { error?: string } | undefined)?.error ||
+          "Login failed",
         );
       } else {
         setError("Network error");

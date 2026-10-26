@@ -6,7 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import styles from '../login.module.css';
 
-const AUTH_API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://localhost:8000';
+const PASSWORD_API_URL =
+  process.env.NEXT_PUBLIC_PASSWORD_API_URL || 'http://localhost:8000';
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -37,7 +38,7 @@ function ResetPasswordForm() {
     setLoading(true);
 
     try {
-      await axios.post(`${AUTH_API_URL}/api/auth/admin/reset-password`, { 
+      await axios.post(`${PASSWORD_API_URL}/api/auth/admin/reset-password`, {
         email, 
         otp: otp.trim(), 
         new_password: newPassword 
