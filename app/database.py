@@ -12,8 +12,17 @@ from sqlalchemy.orm import DeclarativeBase
 
 from .config import settings
 
+
+def _async_database_url(database_url: str) -> str:
+    """Use SQLAlchemy's asyncpg driver for standard PostgreSQL URLs."""
+    for scheme in ("postgres://", "postgresql://"):
+        if database_url.startswith(scheme):
+            return f"postgresql+asyncpg://{database_url[len(scheme):]}"
+    return database_url
+
+
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    _async_database_url(settings.DATABASE_URL),
     echo=False,
     pool_size=10,
     max_overflow=20,
