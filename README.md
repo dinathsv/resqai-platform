@@ -157,7 +157,7 @@ Create a root `.env` file (or configure environment variables in your deployment
 # --- Database & Cache ---
 POSTGRES_DB=resqai
 POSTGRES_USER=resqai_user
-POSTGRES_PASSWORD=resqai_pass
+POSTGRES_PASSWORD=replace_with_a_local_database_password
 DATABASE_URL=postgresql+asyncpg://resqai_user:resqai_pass@localhost:5432/resqai
 REDIS_URL=redis://localhost:6379
 
@@ -180,7 +180,7 @@ SMTP_FROM_EMAIL=your_email@gmail.com
 # --- Sri Lanka SMS Gateway (SMSlenz) ---
 SMSLENZ_USER_ID=your_smslenz_user_id
 SMSLENZ_API_KEY=your_smslenz_api_key
-SMSLENZ_SENDER_ID=SMSlenzDEMO
+SMSLENZ_SENDER_ID=your_smslenz_sender_id
 SMSLENZ_BASE_URL=https://smslenz.lk/api
 
 # --- Google Maps Configuration ---

@@ -4,9 +4,9 @@
  * and account status checks for the Node.js backend.
  */
 
-const SMSLENZ_USER_ID = process.env.SMSLENZ_USER_ID || '2462';
-const SMSLENZ_API_KEY = process.env.SMSLENZ_API_KEY || '3ef7d7d9-1ae3-4615-b43c-b795f67375e7';
-const SMSLENZ_SENDER_ID = process.env.SMSLENZ_SENDER_ID || 'SMSlenzDEMO';
+const SMSLENZ_USER_ID = process.env.SMSLENZ_USER_ID || '';
+const SMSLENZ_API_KEY = process.env.SMSLENZ_API_KEY || '';
+const SMSLENZ_SENDER_ID = process.env.SMSLENZ_SENDER_ID || '';
 const SMSLENZ_BASE_URL = (process.env.SMSLENZ_BASE_URL || 'https://smslenz.lk/api').replace(/\/+$/, '');
 
 /**

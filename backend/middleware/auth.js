@@ -2,15 +2,12 @@
 
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.SECRET_KEY || 'supersecretkey_local';
+const JWT_SECRET = process.env.JWT_SECRET || process.env.SECRET_KEY || '';
 
 const CANDIDATE_SECRETS = Array.from(
   new Set([
     process.env.JWT_SECRET,
     process.env.SECRET_KEY,
-    'supersecretkey_local',
-    'supersecretkey_jwt_local',
-    'supersecretkey',
   ].filter(Boolean))
 );
 

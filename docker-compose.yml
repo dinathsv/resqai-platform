@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: resqai
       POSTGRES_USER: resqai_user
-      POSTGRES_PASSWORD: resqai_pass
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
       - "5433:5432"
     volumes:
@@ -37,14 +37,14 @@ services:
     volumes:
       - ./app:/workspace/app
     environment:
-      - DATABASE_URL=postgresql+asyncpg://resqai_user:resqai_pass@postgres:5432/resqai
+      - DATABASE_URL=${DATABASE_URL:?Set DATABASE_URL in .env}
       - REDIS_URL=redis://redis:6379
-      - SECRET_KEY=${SECRET_KEY:-resqai_super_secret_jwt_key_2026_dev_environment}
-      - AI_API_KEY=${AI_API_KEY:-dummy_key}
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in .env}
+      - AI_API_KEY=${AI_API_KEY:?Set AI_API_KEY in .env}
       - AI_MODEL=${AI_MODEL:-gemini-3.5-flash-lite}
-      - SMSLENZ_USER_ID=${SMSLENZ_USER_ID:-2462}
-      - SMSLENZ_API_KEY=${SMSLENZ_API_KEY:-3ef7d7d9-1ae3-4615-b43c-b795f67375e7}
-      - SMSLENZ_SENDER_ID=${SMSLENZ_SENDER_ID:-SMSlenzDEMO}
+      - SMSLENZ_USER_ID=${SMSLENZ_USER_ID:-}
+      - SMSLENZ_API_KEY=${SMSLENZ_API_KEY:-}
+      - SMSLENZ_SENDER_ID=${SMSLENZ_SENDER_ID:-}
       - SMSLENZ_BASE_URL=${SMSLENZ_BASE_URL:-https://smslenz.lk/api}
       - NODE_BACKEND_URL=http://node-backend:5000
     depends_on:
@@ -74,14 +74,14 @@ services:
       - ./backend:/app
       - /app/node_modules
     environment:
-      - DATABASE_URL=postgres://resqai_user:resqai_pass@postgres:5432/resqai
+      - DATABASE_URL=${DATABASE_URL:?Set DATABASE_URL in .env}
       - PORT=5000
-      - JWT_SECRET=${JWT_SECRET:-resqai_super_secret_jwt_key_2026_dev_environment}
-      - SECRET_KEY=${SECRET_KEY:-resqai_super_secret_jwt_key_2026_dev_environment}
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in .env}
       - REDIS_URL=redis://redis:6379
-      - SMSLENZ_USER_ID=${SMSLENZ_USER_ID:-2462}
-      - SMSLENZ_API_KEY=${SMSLENZ_API_KEY:-3ef7d7d9-1ae3-4615-b43c-b795f67375e7}
-      - SMSLENZ_SENDER_ID=${SMSLENZ_SENDER_ID:-SMSlenzDEMO}
+      - SMSLENZ_USER_ID=${SMSLENZ_USER_ID:-}
+      - SMSLENZ_API_KEY=${SMSLENZ_API_KEY:-}
+      - SMSLENZ_SENDER_ID=${SMSLENZ_SENDER_ID:-}
       - SMSLENZ_BASE_URL=${SMSLENZ_BASE_URL:-https://smslenz.lk/api}
     depends_on:
       postgres:

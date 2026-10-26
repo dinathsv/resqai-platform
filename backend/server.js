@@ -1,5 +1,3 @@
-
-
 require('dotenv').config();
 
 const http = require('http');
@@ -15,13 +13,13 @@ const requestsRoutes = require('./routes/requests');
 const usersRoutes = require('./routes/users');
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://resqai_user:resqai_pass@localhost:5433/resqai';
+const DATABASE_URL = process.env.DATABASE_URL;
 
 const app = express();
 const server = http.createServer(app);
 
 app.use(cors({
-  origin: '*',          
+  origin: '*',
   credentials: false,
 }));
 app.use(express.json());
@@ -68,5 +66,5 @@ app.get('/health', async (_req, res) => {
 
 server.listen(PORT, () => {
   console.log(`🚀 ResQAI backend running on http://localhost:${PORT}`);
-  console.log(`   Socket.IO ready for connections`);
+  console.log('   Socket.IO ready for connections');
 });
