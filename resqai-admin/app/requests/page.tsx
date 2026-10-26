@@ -55,13 +55,6 @@ export default function RequestsPage() {
     }
   }
 
-  function urgencyClass(level: number, status: string) {
-    if (status === 'flagged') return styles.urgencyNormal;
-    if (level === 5) return styles.urgency5;
-    if (level === 4) return styles.urgency4;
-    return styles.urgencyNormal;
-  }
-
   const totalPages = data?.pages ?? 1;
 
   return (

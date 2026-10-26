@@ -87,7 +87,7 @@ export default function DashboardPage() {
       setChatMessages((prev) => [...prev, msg]);
     });
     
-    socket.on('new_request', (_req: unknown) => {
+    socket.on('new_request', () => {
       // Re-fetch the requests list instantly
       mutate('/api/requests?status=pending,ai_processing,verified,dispatched,in_progress&limit=20');
       // Also mutate stats to update the counters instantly
@@ -120,12 +120,6 @@ export default function DashboardPage() {
     } catch (error) {
       console.error("Failed to resolve request:", error);
     }
-  }
-
-  function urgencyClass(level: number) {
-    if (level === 5) return styles.urgency5;
-    if (level === 4) return styles.urgency4;
-    return styles.urgencyNormal;
   }
 
   function formatCurrency(amount: number) {

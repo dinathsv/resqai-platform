@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import api from '@/lib/api';
