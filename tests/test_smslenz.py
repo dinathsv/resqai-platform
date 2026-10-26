@@ -40,8 +40,8 @@ def test_normalize_phone_number():
 async def test_smslenz_is_configured():
     gw = SMSlenzGateway(
         user_id="2462",
-        api_key="3ef7d7d9-1ae3-4615-b43c-b795f67375e7",
-        sender_id="SMSlenzDEMO",
+        api_key="test-api-key",
+        sender_id="TEST",
     )
     assert gw.is_configured is True
 
@@ -55,8 +55,8 @@ async def test_smslenz_send_sms_mock():
 
     gw = SMSlenzGateway(
         user_id="2462",
-        api_key="3ef7d7d9-1ae3-4615-b43c-b795f67375e7",
-        sender_id="SMSlenzDEMO",
+        api_key="test-api-key",
+        sender_id="TEST",
     )
 
     mock_response = MagicMock()
@@ -81,8 +81,8 @@ async def test_smslenz_send_bulk_sms_mock():
 
     gw = SMSlenzGateway(
         user_id="2462",
-        api_key="3ef7d7d9-1ae3-4615-b43c-b795f67375e7",
-        sender_id="SMSlenzDEMO",
+        api_key="test-api-key",
+        sender_id="TEST",
     )
 
     mock_response = MagicMock()
@@ -118,6 +118,13 @@ async def test_smslenz_otp_sender():
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(
+    not all(
+        os.getenv(name)
+        for name in ("SMSLENZ_USER_ID", "SMSLENZ_API_KEY", "SMSLENZ_SENDER_ID")
+    ),
+    reason="SMSlenz live credentials are not configured",
+)
 async def test_smslenz_live_account_status():
     """Verify live connectivity and authentication with SMSlenz API."""
     gw = SMSlenzGateway()
@@ -150,5 +157,3 @@ if __name__ == "__main__":
     print("[PASS] test_smslenz_live_account_status passed (Live API connected!)")
 
     print("\nAll SMSlenz tests PASSED successfully!")
-
-
