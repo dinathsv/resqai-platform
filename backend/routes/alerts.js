@@ -283,10 +283,15 @@ router.patch('/:id', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Alert not found' });
     }
 
-    await req.app.locals.pool.query(
-      'UPDATE emergency_alerts SET status = $1, updated_at = NOW() WHERE alert_id = $2',
+    const { rows } = await req.app.locals.pool.query(
+      `UPDATE emergency_alerts
+       SET status = $1, updated_at = NOW()
+       WHERE alert_id = $2
+       RETURNING alert_id, status, expires_at`,
       [status, id]
     );
+
+    req.app.locals.io?.to('role:admin').emit('alert_updated', rows[0]);
 
     return res.json({ success: true, message: 'Alert updated' });
   } catch (err) {

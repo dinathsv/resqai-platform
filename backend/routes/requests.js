@@ -3,6 +3,9 @@
 const express = require('express');
 const { optionalAuth, requireAuth } = require('../middleware/auth');
 const { notifyNewRequest } = require('../socket');
+const REQUEST_STATUSES = new Set([
+  'pending', 'ai_processing', 'verified', 'dispatched', 'in_progress', 'resolved', 'cancelled',
+]);
 
 const router = express.Router();
 
@@ -141,6 +144,65 @@ router.get('/locate', optionalAuth, async (req, res) => {
   } catch (err) {
     console.error('GET /api/requests/locate error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/:id', requireAuth, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Administrator access required' });
+  }
+
+  try {
+    const { rows } = await req.app.locals.pool.query(
+      `SELECT request_id, emergency_type, urgency_level, original_message,
+              created_at, status, ai_summary,
+              CASE WHEN gps_location IS NULL THEN NULL ELSE
+                json_build_object('lat', ST_Y(gps_location::geometry),
+                                  'lng', ST_X(gps_location::geometry))
+              END AS gps_location
+       FROM help_requests
+       WHERE request_id = $1`,
+      [req.params.id],
+    );
+
+    if (rows.length === 0) return res.status(404).json({ error: 'Request not found' });
+    return res.json(rows[0]);
+  } catch (err) {
+    console.error('GET /api/requests/:id error:', err.message);
+    return res.status(500).json({ error: 'Failed to fetch request' });
+  }
+});
+
+router.patch('/:id/status', requireAuth, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Administrator access required' });
+  }
+
+  const { status } = req.body || {};
+  if (!REQUEST_STATUSES.has(status)) {
+    return res.status(400).json({ error: 'A valid request status is required' });
+  }
+
+  try {
+    const { rows } = await req.app.locals.pool.query(
+      `UPDATE help_requests
+       SET status = $1,
+           resolved_at = CASE WHEN $1 = 'resolved' THEN NOW()
+                              WHEN $1 IN ('pending', 'ai_processing', 'verified', 'dispatched', 'in_progress') THEN NULL
+                              ELSE resolved_at END,
+           updated_at = NOW()
+       WHERE request_id = $2
+       RETURNING request_id, status, updated_at`,
+      [status, req.params.id],
+    );
+
+    if (rows.length === 0) return res.status(404).json({ error: 'Request not found' });
+
+    req.app.locals.io?.to('role:admin').emit('request_updated', rows[0]);
+    return res.json({ success: true, request: rows[0] });
+  } catch (err) {
+    console.error('PATCH /api/requests/:id/status error:', err.message);
+    return res.status(500).json({ error: 'Failed to update request status' });
   }
 });
 
