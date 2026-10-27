@@ -215,6 +215,12 @@
   font-size: 13px;
 }
 
+.errorText {
+  color: var(--status-critical);
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+
 /* ── Urgency ── */
 .urgencyPill {
   display: inline-flex;

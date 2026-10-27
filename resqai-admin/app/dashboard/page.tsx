@@ -27,8 +27,16 @@ interface HelpRequest {
 interface SituationalReport {
   narrative: string;
   total_incidents: number;
+  active_requests: number;
   critical_count: number;
-  zones: string[];
+  urgency_distribution: Record<string, number>;
+  type_distribution: Record<string, number>;
+  generated_at: string;
+}
+
+interface RequestsResponse {
+  requests: HelpRequest[];
+  total: number;
 }
 
 interface ChatMessage {
@@ -40,42 +48,63 @@ interface ChatMessage {
 }
 
 const fetcher = (url: string) => api.get(url).then((res) => res.data);
+const fetchStats = async (url: string): Promise<StatData> => {
+  const { data } = await api.get(url);
+  const fields: (keyof StatData)[] = [
+    'active_requests', 'critical_count', 'active_alerts', 'total_donations',
+  ];
+  if (!data || fields.some((field) => typeof data[field] !== 'number' || !Number.isFinite(data[field]))) {
+    throw new Error('Dashboard API returned invalid totals.');
+  }
+  return data as StatData;
+};
+
+const fetchRequests = async (url: string): Promise<RequestsResponse> => {
+  const { data } = await api.get(url);
+  if (!data || !Array.isArray(data.requests)) {
+    throw new Error('Requests API returned an invalid response.');
+  }
+  return data as RequestsResponse;
+};
 
 export default function DashboardPage() {
 
-  const { data: stats } = useSWR<StatData>('/api/admin/dashboard/stats', fetcher, {
+  const { data: stats, error: statsError } = useSWR<StatData>('/api/admin/dashboard/stats', fetchStats, {
     refreshInterval: 30000,
   });
 
-  const { data: requests } = useSWR<HelpRequest[]>('/api/requests?status=pending,ai_processing,verified,dispatched,in_progress&limit=20', fetcher, {
+  const requestsKey = '/api/requests?status=pending,ai_processing,verified,dispatched,in_progress&limit=20';
+  const { data: requestData, error: requestsError, isLoading: requestsLoading, mutate: mutateRequests } = useSWR<RequestsResponse>(requestsKey, fetchRequests, {
     refreshInterval: 30000,
   });
+  const requests = requestData?.requests;
 
   const [report, setReport] = useState<SituationalReport | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const reportLock = useRef(false);
   const [reportTime, setReportTime] = useState<string>('');
+  const [reportError, setReportError] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
 
   const generateReport = useCallback(async () => {
-    if (!requests || requests.length === 0) return;
+    if (reportLock.current) return;
+    reportLock.current = true;
     setReportLoading(true);
+    setReportError('');
     try {
-      const res = await api.post('/api/ai/generate-summary', {
-        requests: requests.map((r) => ({
-          request_id: r.request_id,
-          emergency_type: r.emergency_type,
-          urgency_level: r.urgency_level,
-          message: r.original_message,
-          status: r.status,
-        })),
-      });
+      const res = await api.get('/api/admin/dashboard/report');
       setReport(res.data);
       setReportTime(new Date().toLocaleTimeString());
-    } catch {
+    } catch (error: unknown) {
       setReport(null);
+      const apiError = error as { response?: { data?: { error?: string } } };
+      setReportError(apiError.response?.data?.error || 'Unable to generate the report. Please try again.');
     } finally {
+      reportLock.current = false;
       setReportLoading(false);
     }
-  }, [requests]);
+  }, []);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
@@ -89,16 +118,28 @@ export default function DashboardPage() {
     
     socket.on('new_request', () => {
       // Re-fetch the requests list instantly
-      mutate('/api/requests?status=pending,ai_processing,verified,dispatched,in_progress&limit=20');
+      mutateRequests();
       // Also mutate stats to update the counters instantly
       mutate('/api/admin/dashboard/stats');
     });
 
+    socket.on('request_updated', () => {
+      mutateRequests();
+      mutate('/api/admin/dashboard/stats');
+    });
+
+    const refreshStats = () => mutate('/api/admin/dashboard/stats');
+    socket.on('emergency_alert', refreshStats);
+    socket.on('alert_updated', refreshStats);
+
     return () => {
       socket.off('new_message');
       socket.off('new_request');
+      socket.off('request_updated');
+      socket.off('emergency_alert', refreshStats);
+      socket.off('alert_updated', refreshStats);
     };
-  }, []);
+  }, [mutateRequests]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -115,15 +156,24 @@ export default function DashboardPage() {
   }
 
   async function resolveRequest(id: string) {
+    setResolvingId(id);
+    setActionError('');
     try {
       await api.patch(`/api/requests/${id}/status`, { status: 'resolved' });
+      await Promise.all([mutateRequests(), mutate('/api/admin/dashboard/stats')]);
     } catch (error) {
-      console.error("Failed to resolve request:", error);
+      const apiError = error as { response?: { data?: { error?: string } } };
+      setActionError(apiError.response?.data?.error || 'Failed to resolve request. Please try again.');
+    } finally {
+      setResolvingId(null);
     }
   }
 
   function formatCurrency(amount: number) {
-    return `LKR ${amount.toLocaleString()}`;
+    return `LKR ${new Intl.NumberFormat('en-LK', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount)}`;
   }
 
   function getUrgencyBadge(level: number) {
@@ -184,7 +234,7 @@ export default function DashboardPage() {
                 </svg>
               </div>
             </div>
-            <div className={styles.statNumber}>{stats?.active_requests ?? '—'}</div>
+            <div className={styles.statNumber}>{statsError ? '!' : stats?.active_requests ?? '—'}</div>
           </div>
         </div>
 
@@ -198,7 +248,7 @@ export default function DashboardPage() {
                 </svg>
               </div>
             </div>
-            <div className={styles.statNumber}>{stats?.critical_count ?? '—'}</div>
+            <div className={styles.statNumber}>{statsError ? '!' : stats?.critical_count ?? '—'}</div>
           </div>
         </div>
 
@@ -213,7 +263,7 @@ export default function DashboardPage() {
                 </svg>
               </div>
             </div>
-            <div className={styles.statNumber}>{stats?.active_alerts ?? '—'}</div>
+            <div className={styles.statNumber}>{statsError ? '!' : stats?.active_alerts ?? '—'}</div>
           </div>
         </div>
 
@@ -228,11 +278,13 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className={styles.statNumber}>
-              {stats ? formatCurrency(stats.total_donations) : '—'}
+              {statsError ? 'Unavailable' : stats ? formatCurrency(stats.total_donations) : '—'}
             </div>
           </div>
         </div>
       </div>
+
+      {statsError && <p role="alert" className={styles.errorText}>Dashboard totals could not be loaded. Check your connection and permissions.</p>}
 
       <div className="section">
         <div className={styles.sectionHeader}>
@@ -254,29 +306,30 @@ export default function DashboardPage() {
         </div>
         <div className={styles.reportBox}>
           {reportLoading ? (
-            <p className={styles.loadingText}>Generating summary from active requests...</p>
+            <p className={styles.loadingText}>Generating summary from current incident data...</p>
           ) : report ? (
             <>
               <div className={styles.reportStats}>
                 <span><strong>Total Incidents:</strong> {report.total_incidents}</span>
-                <span><strong>High-Priority Zones:</strong> {report.critical_count} critical</span>
+                <span><strong>Active Requests:</strong> {report.active_requests}</span>
+                <span><strong>Critical Cases:</strong> {report.critical_count}</span>
               </div>
               <div className={styles.reportText}>
                 {report.narrative.split('\n').map((p, i) => (
                   <p key={i}>{p}</p>
                 ))}
               </div>
-              {report.zones && report.zones.length > 0 && (
+              {Object.keys(report.urgency_distribution || {}).length > 0 && (
                 <div className={styles.zonesList}>
-                  {report.zones.map((zone, idx) => (
-                    <span key={idx} className={styles.zoneChip}>{zone}</span>
+                  {Object.entries(report.urgency_distribution).map(([level, count]) => (
+                    <span key={level} className={styles.zoneChip}>Urgency {level}: {count}</span>
                   ))}
                 </div>
               )}
             </>
           ) : (
             <p className={styles.loadingText}>
-              Click &quot;Generate Report&quot; to create a summary from active incident data.
+              {reportError || 'Click "Generate Report" to create a summary from current incident data.'}
             </p>
           )}
         </div>
@@ -286,6 +339,8 @@ export default function DashboardPage() {
         <div className={styles.sectionHeader}>
           <h2>Active Requests</h2>
         </div>
+        {requestsError && <p role="alert" className={styles.errorText}>Requests could not be loaded. Check your connection and permissions.</p>}
+        {actionError && <p role="alert" className={styles.errorText}>{actionError}</p>}
         <div className="tableWrap">
           <table>
             <thead>
@@ -301,14 +356,18 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {requests && requests.length > 0 ? (
+              {requestsLoading ? (
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '30px' }}>Loading active requests...</td></tr>
+              ) : requestsError ? (
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '30px' }}>Unable to load requests.</td></tr>
+              ) : requests && requests.length > 0 ? (
                 requests.map((r) => (
                   <tr key={r.request_id}>
                     <td><code>{r.request_id.slice(0, 8)}</code></td>
                     <td><strong>{r.emergency_type}</strong></td>
                     <td>{getUrgencyBadge(r.urgency_level)}</td>
-                    <td>{r.original_message.slice(0, 50)}{r.original_message.length > 50 ? '...' : ''}</td>
-                    <td>{new Date(r.created_at).toLocaleTimeString()}</td>
+                    <td>{(r.original_message || '').slice(0, 50)}{(r.original_message || '').length > 50 ? '...' : ''}</td>
+                    <td>{r.created_at ? new Date(r.created_at).toLocaleString() : '—'}</td>
                     <td><span className="statusBadge statusInfo">{r.source || 'Mobile App'}</span></td>
                     <td>{getStatusBadge(r.status)}</td>
                     <td>
@@ -319,8 +378,9 @@ export default function DashboardPage() {
                         <button
                           className={styles.resolveBtn}
                           onClick={() => resolveRequest(r.request_id)}
+                          disabled={resolvingId === r.request_id}
                         >
-                          Resolve
+                          {resolvingId === r.request_id ? 'Resolving...' : 'Resolve'}
                         </button>
                       </div>
                     </td>
@@ -329,7 +389,7 @@ export default function DashboardPage() {
               ) : (
                 <tr>
                   <td colSpan={8} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
-                    No active requests.
+                    {requestData ? 'No active requests.' : 'Waiting for request data...'}
                   </td>
                 </tr>
               )}

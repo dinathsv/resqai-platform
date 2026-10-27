@@ -12,6 +12,7 @@ const authRoutes = require("./routes/auth");
 const alertsRoutes = require("./routes/alerts");
 const requestsRoutes = require("./routes/requests");
 const usersRoutes = require("./routes/users");
+const { generateDashboardReport, getDashboardStats } = require("./services/dashboardService");
 
 const PORT = parseInt(process.env.PORT || "3000", 10);
 const HOST = "0.0.0.0";
@@ -97,27 +98,23 @@ app.get("/api/admin/dashboard/stats", requireAuth, async (req, res) => {
   }
 
   try {
-    const { rows } = await pool.query(`
-      SELECT
-        (SELECT COUNT(*)::int
-         FROM help_requests
-         WHERE status IN ('pending', 'ai_processing', 'verified', 'dispatched', 'in_progress')) AS active_requests,
-        (SELECT COUNT(*)::int
-         FROM help_requests
-         WHERE urgency_level >= 4
-           AND status IN ('pending', 'ai_processing', 'verified', 'dispatched', 'in_progress')) AS critical_count,
-        (SELECT COUNT(*)::int
-         FROM emergency_alerts
-         WHERE status = 'active') AS active_alerts,
-        (SELECT COALESCE(SUM(amount), 0)::float
-         FROM donations
-         WHERE status = 'completed') AS total_donations
-    `);
-
-    return res.json(rows[0]);
+    return res.json(await getDashboardStats(pool));
   } catch (err) {
     console.error("GET /api/admin/dashboard/stats error:", err.message);
     return res.status(500).json({ error: "Failed to fetch dashboard stats" });
+  }
+});
+
+app.get("/api/admin/dashboard/report", requireAuth, async (req, res) => {
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ error: "Administrator access required" });
+  }
+
+  try {
+    return res.json(await generateDashboardReport(pool));
+  } catch (err) {
+    console.error("GET /api/admin/dashboard/report error:", err.message);
+    return res.status(500).json({ error: "Failed to generate dashboard report" });
   }
 });
 
