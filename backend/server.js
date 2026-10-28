@@ -7,7 +7,7 @@ const { Pool } = require("pg");
 const { Server: SocketIOServer } = require("socket.io");
 
 const { initSocket } = require("./socket");
-const { requireAuth } = require("./middleware/auth");
+const { requireAdmin } = require("./middleware/auth");
 const authRoutes = require("./routes/auth");
 const alertsRoutes = require("./routes/alerts");
 const requestsRoutes = require("./routes/requests");
@@ -50,30 +50,7 @@ pool.on("error", (err) => {
   console.error("⚠️ PostgreSQL idle connection error:", err.message);
 });
 
-// Initialize existing database columns
-async function initializeDatabase() {
-  try {
-    await pool.query("SELECT 1");
-    console.log("✅ PostgreSQL connection OK");
-
-    // Preserve existing schema initialization.
-    await pool.query(`
-      ALTER TABLE users
-      ADD COLUMN IF NOT EXISTS user_type
-      VARCHAR(50) DEFAULT 'Citizen';
-    `);
-
-    await pool.query(`
-      ALTER TABLE users
-      ADD COLUMN IF NOT EXISTS is_active
-      BOOLEAN DEFAULT TRUE;
-    `);
-
-    console.log("✅ Database initialization completed");
-  } catch (err) {
-    console.error("⚠️ PostgreSQL connection/init failed:", err.message);
-  }
-}
+const { checkSchema } = require('./services/schemaService');
 
 const io = new SocketIOServer(server, {
   cors: {
@@ -92,7 +69,7 @@ app.use("/api/requests", requestsRoutes);
 app.use("/api/admin/users", usersRoutes);
 app.use("/api/users", usersRoutes);
 
-app.get("/api/admin/dashboard/stats", requireAuth, async (req, res) => {
+app.get("/api/admin/dashboard/stats", requireAdmin, async (req, res) => {
   if (req.user.role !== "admin") {
     return res.status(403).json({ error: "Administrator access required" });
   }
@@ -105,7 +82,7 @@ app.get("/api/admin/dashboard/stats", requireAuth, async (req, res) => {
   }
 });
 
-app.get("/api/admin/dashboard/report", requireAuth, async (req, res) => {
+app.get("/api/admin/dashboard/report", requireAdmin, async (req, res) => {
   if (req.user.role !== "admin") {
     return res.status(403).json({ error: "Administrator access required" });
   }
@@ -161,12 +138,20 @@ app.use((_req, res) => {
   });
 });
 
-server.listen(PORT, HOST, () => {
-  console.log(`🚀 ResQAI backend running on ${HOST}:${PORT}`);
-  console.log("✅ Socket.IO ready for connections");
+async function start() {
+  try {
+    await checkSchema(pool);
+    server.listen(PORT, HOST, () => {
+      console.log(`ResQAI backend running on ${HOST}:${PORT}`);
+    });
+  } catch {
+    console.error('Database schema/connection check failed. Apply reviewed migrations before starting.');
+    await pool.end();
+    process.exitCode = 1;
+  }
+}
 
-  initializeDatabase();
-});
+start();
 
 server.on("error", (err) => {
   console.error("❌ HTTP server error:", err.message);

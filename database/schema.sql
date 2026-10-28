@@ -1,3 +1,4 @@
+-- NEW EMPTY DATABASES ONLY. Existing databases must use versioned migrations.
 -- ============================================================================
 -- ResQAI — AI-Powered Disaster Relief Platform for Sri Lanka
 -- PostgreSQL + PostGIS Schema
@@ -53,6 +54,8 @@ CREATE TABLE users (
     gps_location    GEOMETRY(POINT, 4326),
     is_verified     BOOLEAN         NOT NULL DEFAULT FALSE,
     avatar_url      TEXT,
+    user_type       VARCHAR(50) DEFAULT 'Citizen',
+    is_active       BOOLEAN DEFAULT TRUE,
     created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
 );
@@ -328,6 +331,8 @@ CREATE TABLE relief_missions (
     title           VARCHAR(255)    NOT NULL,
     description     TEXT,
     target_zone     GEOMETRY,
+    district        VARCHAR(100),
+    target          NUMERIC(12,2) NOT NULL DEFAULT 0,
     status          mission_status  NOT NULL DEFAULT 'planning',
     funds_collected DECIMAL(12,2)   NOT NULL DEFAULT 0,
     created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),

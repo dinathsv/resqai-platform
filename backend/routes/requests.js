@@ -3,6 +3,7 @@
 const express = require('express');
 const { optionalAuth, requireAuth } = require('../middleware/auth');
 const { notifyNewRequest } = require('../socket');
+const { requireInternal } = require('../middleware/internal');
 const REQUEST_STATUSES = new Set([
   'pending', 'ai_processing', 'verified', 'dispatched', 'in_progress', 'resolved', 'cancelled',
 ]);
@@ -75,7 +76,7 @@ router.get('/', requireAuth, async (req, res) => {
  * Called by the Python API when a new help request is created.
  * Broadcasts a real-time alert to all connected sockets.
  */
-router.post('/new', async (req, res) => {
+router.post('/new', requireInternal, async (req, res) => {
   try {
     const { request_id, emergency_type, urgency_level, ai_summary } = req.body;
 

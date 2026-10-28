@@ -14,4 +14,4 @@ COPY backend/migrations/ ./backend/migrations/
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python database/run_migrations.py && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

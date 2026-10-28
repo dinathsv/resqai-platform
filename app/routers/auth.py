@@ -3,17 +3,18 @@ ResQAI — Authentication Router.
 Handles user registration, OTP verification, and login (user, admin, guest).
 """
 
-import random
+import secrets
 import re
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Literal
 
 import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, status
 from jose import jwt
 from passlib.context import CryptContext
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -23,6 +24,7 @@ from app.models.guest_session import GuestSession
 from app.models.nic_entry import NicEntry
 from app.models.user import User
 from app.services.otp_service import send_otp
+from app.services.sms_service import normalize_phone_number
 from app.middleware.auth import oauth2_scheme, get_current_user
 
 router = APIRouter(tags=["Authentication"])
@@ -38,11 +40,31 @@ async def get_redis():
     return _redis_pool
 
 class RegisterRequest(BaseModel):
-    full_name: str
+    full_name: str = Field(..., min_length=1, max_length=150)
     email: EmailStr
     phone_number: str = Field(..., min_length=9, max_length=20)
     password: str = Field(..., min_length=6)
-    language_pref: str = "en"
+    language_pref: Literal["en", "ta", "si"] = "en"
+
+    @field_validator("full_name", mode="before")
+    @classmethod
+    def strip_name(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("password")
+    @classmethod
+    def validate_password_bytes(cls, value: str) -> str:
+        if len(value.encode("utf-8")) > 72:
+            raise ValueError("Password must be at most 72 UTF-8 bytes")
+        return value
+
+    @field_validator("phone_number")
+    @classmethod
+    def validate_phone(cls, value: str) -> str:
+        phone = normalize_phone_number(value)
+        if not phone or not re.fullmatch(r"\+[1-9][0-9]{8,14}", phone):
+            raise ValueError("A valid mobile number is required")
+        return phone
 
 import uuid
 
@@ -99,22 +121,34 @@ async def register(
         is_verified=False,
     )
     db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
+    try:
+        # Flush reserves the unique email without committing a partial account.
+        await db.flush()
+    except IntegrityError as exc:
+        await db.rollback()
+        # Concurrent registrations can both pass the initial SELECT.
+        if getattr(exc.orig, "sqlstate", None) == "23505" or "users.email" in str(exc.orig):
+            raise HTTPException(status_code=409, detail="Email already registered") from None
+        raise
 
-    otp = f"{random.randint(100000, 999999)}"
-    await redis_client.set(f"otp:{new_user.user_id}", otp, ex=300)
-
-    # Send OTP via SMS to mobile number
-    delivery = await send_otp(email=req.email, phone=phone_number, otp=otp)
-    if delivery.get("sms") is not True:
-        await redis_client.delete(f"otp:{new_user.user_id}")
-        await db.delete(new_user)
+    otp_key = f"otp:{new_user.user_id}"
+    otp = str(secrets.randbelow(900000) + 100000)
+    try:
+        await redis_client.set(otp_key, otp, ex=300)
+        delivery = await send_otp(email=req.email, phone=phone_number, otp=otp)
+        if delivery.get("sms") is not True:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="We could not send the OTP. Please check the SMS sender configuration and try again.",
+            )
         await db.commit()
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="We could not send the OTP. Please check the SMS sender configuration and try again.",
-        )
+    except Exception:
+        await db.rollback()
+        try:
+            await redis_client.delete(otp_key)
+        except Exception:
+            pass  # TTL expires the orphan OTP; no account was committed.
+        raise
 
     return {
         "user_id": str(new_user.user_id),
@@ -151,7 +185,7 @@ async def resend_otp(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Account already verified")
 
     # Generate and store new OTP
-    otp = f"{random.randint(100000, 999999)}"
+    otp = str(secrets.randbelow(900000) + 100000)
     await redis_client.set(f"otp:{req.user_id}", otp, ex=300)
 
     # Track resend count (expires after 15 minutes)
@@ -331,8 +365,9 @@ async def update_me(
         }
     except HTTPException:
         raise
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Could not update profile") from None
 
 
 @router.post("/admin/login")
@@ -422,7 +457,7 @@ async def forgot_password(
     if not user:
         return {"message": "If that account exists, an OTP has been sent to the registered mobile number."}
 
-    otp = f"{random.randint(100000, 999999)}"
+    otp = str(secrets.randbelow(900000) + 100000)
     await redis_client.set(f"reset_otp:{user.user_id}", otp, ex=300)
 
     await send_otp(email=user.email, phone=user.phone_number, otp=otp)
@@ -463,7 +498,7 @@ async def admin_forgot_password(
     if not admin:
         return {"message": "If that email is registered, an OTP has been sent."}
 
-    otp = f"{random.randint(100000, 999999)}"
+    otp = str(secrets.randbelow(900000) + 100000)
     await redis_client.set(f"reset_otp_admin:{admin.admin_id}", otp, ex=300)
 
     # Admin lacks a phone number, so phone is None. It will use Email OTP.

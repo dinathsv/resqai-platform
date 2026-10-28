@@ -1,4 +1,9 @@
 import asyncio
+import os
+from unittest.mock import AsyncMock
+
+# Never use deployment secrets for test JWTs or make live SMS requests.
+os.environ["SECRET_KEY"] = "isolated-test-signing-key-at-least-32-characters"
 import pytest
 from httpx import AsyncClient, ASGITransport
 import fakeredis.aioredis
@@ -46,15 +51,26 @@ _fake_server = fakeredis.FakeServer()
 
 async def override_get_redis():
     redis = fakeredis.aioredis.FakeRedis(server=_fake_server, decode_responses=True)
-    yield redis
-
-app.dependency_overrides[get_db] = override_get_db
-app.dependency_overrides[auth.get_redis] = override_get_redis
+    try:
+        yield redis
+    finally:
+        await redis.aclose()
 
 import pytest_asyncio
 
+@pytest.fixture(autouse=True)
+def isolate_otp_delivery(monkeypatch):
+    sender = AsyncMock(return_value={"sms": True, "email": False})
+    monkeypatch.setattr(auth, "send_otp", sender)
+    return sender
+
 @pytest_asyncio.fixture(autouse=True)
 async def setup_db():
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[auth.get_redis] = override_get_redis
+    redis = fakeredis.aioredis.FakeRedis(server=_fake_server, decode_responses=True)
+    await redis.flushall()
+    await redis.aclose()
 
     async with engine.begin() as conn:
 
@@ -72,6 +88,7 @@ async def setup_db():
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+    app.dependency_overrides.clear()
 
 import pytest_asyncio
 

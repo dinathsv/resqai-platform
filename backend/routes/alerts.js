@@ -1,7 +1,7 @@
 
 
 const express = require('express');
-const { requireAuth, optionalAuth } = require('../middleware/auth');
+const { requireAdmin, optionalAuth } = require('../middleware/auth');
 const { sendBulkSMS, sendSMS } = require('../services/smsService');
 
 const router = express.Router();
@@ -26,7 +26,7 @@ function mapEmergencyType(typeStr) {
   return 'other';
 }
 
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAdmin, async (req, res) => {
   try {
     const raw_disaster_type = req.body.disaster_type || req.body.disasterType;
     const zone_wkt = req.body.zone_wkt || req.body.affectedZone;
@@ -41,45 +41,9 @@ router.post('/', requireAuth, async (req, res) => {
 
     const disaster_type = mapEmergencyType(raw_disaster_type);
 
-    // Resolve valid admin_id or fallback to existing admin ID if foreign key mismatch
-    let adminId = req.user?.user_id || req.user?.sub || null;
-    try {
-      if (adminId) {
-        const adminCheck = await req.app.locals.pool.query(
-          'SELECT admin_id FROM administrators WHERE admin_id = $1',
-          [adminId]
-        );
-        if (adminCheck.rows.length === 0) {
-          const firstAdmin = await req.app.locals.pool.query('SELECT admin_id FROM administrators LIMIT 1');
-          if (firstAdmin.rows.length > 0) {
-            adminId = firstAdmin.rows[0].admin_id;
-          } else {
-            const newAdmin = await req.app.locals.pool.query(
-              `INSERT INTO administrators (full_name, email, agency, district, password_hash)
-               VALUES ('System Admin', 'admin@resqai.lk', 'DMC', 'Colombo', 'hash')
-               ON CONFLICT (email) DO UPDATE SET updated_at = NOW()
-               RETURNING admin_id`
-            );
-            adminId = newAdmin.rows[0].admin_id;
-          }
-        }
-      } else {
-        const firstAdmin = await req.app.locals.pool.query('SELECT admin_id FROM administrators LIMIT 1');
-        if (firstAdmin.rows.length > 0) {
-          adminId = firstAdmin.rows[0].admin_id;
-        } else {
-          const newAdmin = await req.app.locals.pool.query(
-            `INSERT INTO administrators (full_name, email, agency, district, password_hash)
-             VALUES ('System Admin', 'admin@resqai.lk', 'DMC', 'Colombo', 'hash')
-             ON CONFLICT (email) DO UPDATE SET updated_at = NOW()
-             RETURNING admin_id`
-          );
-          adminId = newAdmin.rows[0].admin_id;
-        }
-      }
-    } catch (aErr) {
-      console.warn('Admin ID lookup failed:', aErr.message);
-      adminId = null;
+    const adminId = req.admin.admin_id;
+    if (is_draft) {
+      return res.status(400).json({ error: 'Draft alerts are not supported by the current database schema' });
     }
 
     const status = is_draft ? 'draft' : 'active';
@@ -266,13 +230,13 @@ router.get('/:id', optionalAuth, async (req, res) => {
   }
 });
 
-router.patch('/:id', requireAuth, async (req, res) => {
+router.patch('/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!status) {
-      return res.status(400).json({ error: 'status is required' });
+    if (!['active', 'expired', 'cancelled'].includes(status)) {
+      return res.status(400).json({ error: 'A valid alert status is required' });
     }
 
     const alertCheck = await req.app.locals.pool.query(

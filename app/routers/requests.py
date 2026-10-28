@@ -15,6 +15,7 @@ from sqlalchemy import desc, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.config import settings
 from app.middleware.auth import get_current_user, get_optional_user, require_role
 from app.models.help_request import HelpRequest
 
@@ -58,6 +59,7 @@ async def notify_new_request(
             resp = await client.post(
                 f"{NODE_BACKEND_URL}/api/requests/new",
                 json=payload,
+                headers={"X-Internal-API-Key": settings.INTERNAL_API_KEY},
                 timeout=5.0,
             )
             if resp.status_code == 200:
@@ -313,7 +315,7 @@ async def update_status(
     db: AsyncSession = Depends(get_db),
 ):
     """Update request status (Admin only)."""
-    valid_statuses = ["submitted", "assigned", "in_progress", "resolved", "closed", "flagged"]
+    valid_statuses = ["pending", "ai_processing", "verified", "dispatched", "in_progress", "resolved", "cancelled"]
     if body.status not in valid_statuses:
         raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
 

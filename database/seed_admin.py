@@ -4,9 +4,7 @@ Seed a default administrator for local development.
 Usage:
     python database/seed_admin.py
 
-Default credentials:
-    Email:    admin@resqai.lk
-    Password: admin123
+Set ADMIN_EMAIL and ADMIN_PASSWORD explicitly in the environment.
 """
 
 import os
@@ -23,7 +21,7 @@ if DB_URL.startswith("postgresql+asyncpg://"):
     DB_URL = DB_URL.replace("postgresql+asyncpg://", "postgresql://")
 
 
-ADMIN_EMAIL = "admin@resqai.lk"
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 ADMIN_NAME = "ResQAI Admin"
 ADMIN_AGENCY = "DMC"
@@ -36,6 +34,8 @@ def hash_password(password: str) -> str:
     return hashed.decode("utf-8")
 
 async def main():
+    if not ADMIN_EMAIL or len(ADMIN_PASSWORD) < 12 or len(ADMIN_PASSWORD.encode("utf-8")) > 72:
+        raise RuntimeError("Set ADMIN_EMAIL and ADMIN_PASSWORD (12 characters minimum, 72 UTF-8 bytes maximum)")
     conn = await asyncpg.connect(DB_URL)
 
     existing = await conn.fetchrow(
@@ -63,7 +63,6 @@ async def main():
 
     print(f"✅ Admin user created successfully!")
     print(f"   Email:    {ADMIN_EMAIL}")
-    print(f"   Password: {ADMIN_PASSWORD}")
 
     await conn.close()
 

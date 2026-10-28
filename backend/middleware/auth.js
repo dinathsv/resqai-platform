@@ -15,7 +15,11 @@ function verifyToken(token) {
   let lastError = null;
   for (const secret of CANDIDATE_SECRETS) {
     try {
-      return jwt.verify(token, secret);
+      const decoded = jwt.verify(token, secret, { algorithms: ['HS256'] });
+      if (!decoded || typeof decoded !== 'object' || !(decoded.sub || decoded.user_id)) {
+        throw new Error('Missing token subject');
+      }
+      return decoded;
     } catch (err) {
       lastError = err;
     }
@@ -68,4 +72,25 @@ function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 }
 
-module.exports = { requireAuth, optionalAuth, signToken, verifyToken, JWT_SECRET };
+function requireAdmin(req, res, next) {
+  return requireAuth(req, res, async () => {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Administrator access required' });
+    }
+    try {
+      const { rows } = await req.app.locals.pool.query(
+        'SELECT admin_id FROM administrators WHERE admin_id = $1 AND is_active = TRUE',
+        [req.user.user_id],
+      );
+      if (!rows.length) {
+        return res.status(403).json({ error: 'Administrator account unavailable' });
+      }
+      req.admin = rows[0];
+      return next();
+    } catch {
+      return res.status(503).json({ error: 'Authentication service unavailable' });
+    }
+  });
+}
+
+module.exports = { requireAuth, requireAdmin, optionalAuth, signToken, verifyToken, JWT_SECRET };

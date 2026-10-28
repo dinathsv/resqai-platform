@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379"
 
     SECRET_KEY: str = ""
+    INTERNAL_API_KEY: str = ""
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     GUEST_TOKEN_EXPIRE_MINUTES: int = 30

@@ -9,9 +9,9 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from sqlalchemy import text
 from .config import settings
-from .database import engine, Base
+from .database import engine
+from .schema_check import check_schema
 from .routers import ai, alerts, auth, donations, missions, requests, quiz
 from .routers import auth as auth_router
 
@@ -27,38 +27,10 @@ async def lifespan(app: FastAPI):
 
     logger.info("🚀 ResQAI main API starting up")
 
-    async with engine.begin() as conn:
-        # Create PostgreSQL enum types that models reference with create_type=False
-        await conn.execute(
-            text(
-                "DO $$ BEGIN "
-                "  CREATE TYPE emergency_type AS ENUM "
-                "    ('flood','landslide','tsunami','earthquake','fire','medical',"
-                "     'search_and_rescue','infrastructure_damage','hazardous_material','other',"
-                "     'donation','help_rescue'); "
-                "EXCEPTION WHEN duplicate_object THEN NULL; END $$;"
-            )
-        )
-        # Ensure new enum values exist on databases created with the old schema
-        await conn.execute(text("ALTER TYPE emergency_type ADD VALUE IF NOT EXISTS 'donation';"))
-        await conn.execute(text("ALTER TYPE emergency_type ADD VALUE IF NOT EXISTS 'help_rescue';"))
-        await conn.execute(
-            text(
-                "DO $$ BEGIN "
-                "  CREATE TYPE request_status AS ENUM "
-                "    ('pending','ai_processing','verified','dispatched','in_progress','resolved','cancelled'); "
-                "EXCEPTION WHEN duplicate_object THEN NULL; END $$;"
-            )
-        )
-        await conn.execute(
-            text(
-                "DO $$ BEGIN "
-                "  CREATE TYPE alert_status AS ENUM "
-                "    ('active','expired','cancelled'); "
-                "EXCEPTION WHEN duplicate_object THEN NULL; END $$;"
-            )
-        )
-        await conn.run_sync(Base.metadata.create_all)
+    if not settings.SECRET_KEY or len(settings.SECRET_KEY) < 32:
+        raise RuntimeError("SECRET_KEY must contain at least 32 characters")
+    async with engine.connect() as conn:
+        await check_schema(conn)
 
     redis_client = await auth_router.get_redis()
     await redis_client.ping()
@@ -91,7 +63,7 @@ app.add_middleware(
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.exception("Unhandled error on %s: %s", request.url.path, exc)
+    logger.error("Unhandled error on %s (%s)", request.url.path, type(exc).__name__)
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal server error. Please try again later."},

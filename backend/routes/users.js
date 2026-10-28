@@ -1,10 +1,10 @@
 const express = require('express');
-const { requireAuth } = require('../middleware/auth');
+const { requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
 // Require authorization for all user management endpoints
-router.use(requireAuth);
+router.use(requireAdmin);
 
 /**
  * GET /api/admin/users
@@ -13,7 +13,7 @@ router.use(requireAuth);
 router.get('/', async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page || '1', 10));
-    const limit = Math.max(1, parseInt(req.query.limit || '20', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || '20', 10)));
     const offset = (page - 1) * limit;
     const search = req.query.search ? `%${req.query.search.trim()}%` : null;
 
@@ -75,7 +75,7 @@ router.get('/', async (req, res) => {
     });
   } catch (err) {
     console.error('GET /api/admin/users error:', err);
-    return res.status(500).json({ error: 'Failed to fetch users: ' + err.message });
+    return res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
 
@@ -149,7 +149,7 @@ router.get('/:id', async (req, res) => {
     });
   } catch (err) {
     console.error(`GET /api/admin/users/${req.params.id} error:`, err);
-    return res.status(500).json({ error: 'Failed to fetch user details: ' + err.message });
+    return res.status(500).json({ error: 'Failed to fetch user details' });
   }
 });
 
@@ -187,7 +187,7 @@ router.patch('/:id', async (req, res) => {
     updates.push(`updated_at = NOW()`);
     values.push(id);
 
-    const query = `UPDATE users SET ${updates.join(', ')} WHERE user_id = $${idx} RETURNING *`;
+    const query = `UPDATE users SET ${updates.join(', ')} WHERE user_id = $${idx} RETURNING user_id, full_name, email, phone_number, user_type, is_verified, is_active, created_at, updated_at`;
     const { rows } = await pool.query(query, values);
 
     if (rows.length === 0) {
@@ -197,7 +197,7 @@ router.patch('/:id', async (req, res) => {
     return res.json({ message: 'User updated successfully', user: rows[0] });
   } catch (err) {
     console.error(`PATCH /api/admin/users/${req.params.id} error:`, err);
-    return res.status(500).json({ error: 'Failed to update user: ' + err.message });
+    return res.status(500).json({ error: 'Failed to update user' });
   }
 });
 
@@ -218,7 +218,7 @@ router.post('/:id/resend-otp', async (req, res) => {
     return res.json({ message: 'OTP resent successfully', user_id: id });
   } catch (err) {
     console.error(`POST /api/admin/users/${req.params.id}/resend-otp error:`, err);
-    return res.status(500).json({ error: 'Failed to resend OTP: ' + err.message });
+    return res.status(500).json({ error: 'Failed to resend OTP' });
   }
 });
 

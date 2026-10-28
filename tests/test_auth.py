@@ -173,3 +173,30 @@ async def test_guest_nic_not_in_db(client: AsyncClient):
     })
     assert r.status_code == 400
     assert "registry" in r.json()["detail"].lower()
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('changes', [
+    {'language_pref': 'fr'}, {'full_name': '   '}, {'phone_number': '+not-a-number'},
+    {'password': 'අ' * 25},
+])
+async def test_registration_rejects_invalid_fields(client, changes):
+    payload = {'full_name': 'Test citizen', 'email': 'invalid@example.com',
+               'password': 'password123', 'phone_number': '0771234567'}
+    response = await client.post('/api/auth/register', json={**payload, **changes})
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_sms_failure_rolls_back_registration(client, isolate_otp_delivery):
+    from sqlalchemy import select
+    from app.models.user import User
+    from app.main import app
+    from app.database import get_db
+    isolate_otp_delivery.return_value = {'sms': False, 'email': False}
+    response = await client.post('/api/auth/register', json={
+        'full_name': 'Failed citizen', 'email': 'failed@example.com',
+        'password': 'password123', 'phone_number': '0771234567',
+    })
+    assert response.status_code == 502
+    async for session in app.dependency_overrides[get_db]():
+        assert (await session.execute(select(User).where(User.email == 'failed@example.com'))).scalar_one_or_none() is None

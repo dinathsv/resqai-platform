@@ -260,23 +260,29 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 ### Database migrations
 
-The Python API applies the ordered SQL migrations in `backend/migrations/` before
-Uvicorn starts. The migration runner records applied filenames in
-`schema_migrations` and is safe to run again. For a manual deployment or
-Render pre-deploy command, run:
+The ordered SQL files in `backend/migrations/` are the single migration history.
+Run the reviewed migrations explicitly, using the deployment's database identity:
 
 ```bash
 python database/run_migrations.py
 ```
 
-The current additive user-profile migration is
-`backend/migrations/002_users_avatar_url.sql`. It adds the nullable PostgreSQL
-`TEXT` column `users.avatar_url` without changing existing rows.
+Existing databases must **not** rerun `database/schema.sql`; it is a bootstrap
+for empty databases only. The migration runner serializes concurrent jobs and
+records successful versions in `public.schema_migrations`. Both APIs now run
+read-only schema checks and fail startup on missing required columns; neither
+API changes the schema during startup.
 
-On Render, configure the Python API service's **Pre-Deploy Command** as
-`python database/run_migrations.py`, with the same `DATABASE_URL` as the
-running service, then deploy the new image. The image startup command runs the
-same idempotent check as a final guard before accepting requests.
+For the avatar-column incident and the full database/security review, see
+[DATABASE_SECURITY_AUDIT.md](DATABASE_SECURITY_AUDIT.md). After manual approval,
+configure Render's pre-deploy job as `python database/run_migrations.py`, or run
+that command manually before deployment if the service plan lacks pre-deploy jobs.
+A missing migration blocks compatible startup rather than triggering automatic DDL.
+
+Set the same private `INTERNAL_API_KEY` (at least 32 random characters) on FastAPI
+and Node for authenticated request broadcasts. Never use a public frontend variable
+for this value. Admin development seeds require explicit `ADMIN_EMAIL` and
+`ADMIN_PASSWORD`; citizen development seeds require `CITIZEN_PASSWORD`.
 
 For the separate AI service, configure the Render service environment with
 `GOOGLE_CLOUD_PROJECT`, `GOOGLE_APPLICATION_CREDENTIALS`, and `LLM_MODEL`.

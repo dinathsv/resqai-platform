@@ -1,4 +1,4 @@
-"""Apply the repository's PostgreSQL migrations before the API starts."""
+"""Manually apply reviewed migrations using a direct/session PostgreSQL connection."""
 
 import asyncio
 import os
@@ -26,33 +26,37 @@ async def run_migrations() -> None:
     if not migration_files:
         raise RuntimeError(f"No SQL migrations found in {MIGRATIONS_DIR}")
 
-    connection = await asyncpg.connect(_asyncpg_database_url(database_url))
+    connection = await asyncpg.connect(_asyncpg_database_url(database_url), command_timeout=60)
+    applied = []
     try:
-        await connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS schema_migrations (
-                version TEXT PRIMARY KEY,
-                applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        # Serialize the ledger check and DDL across all deploy jobs. A transaction
+        # lock also works without depending on session affinity between transactions.
+        async with connection.transaction():
+            await connection.execute("SET LOCAL lock_timeout = '5s'")
+            await connection.execute("SET LOCAL search_path = public, extensions")
+            await connection.execute("SELECT pg_advisory_xact_lock(726573716169)")
+            await connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS public.schema_migrations (
+                    version TEXT PRIMARY KEY,
+                    applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+                """
             )
-            """
-        )
-
-        for migration_file in migration_files:
-            version = migration_file.name
-            already_applied = await connection.fetchval(
-                "SELECT EXISTS (SELECT 1 FROM schema_migrations WHERE version = $1)",
-                version,
-            )
-            if already_applied:
-                continue
-
-            sql = migration_file.read_text(encoding="utf-8")
-            async with connection.transaction():
-                await connection.execute(sql)
-                await connection.execute(
-                    "INSERT INTO schema_migrations (version) VALUES ($1)",
+            for migration_file in migration_files:
+                version = migration_file.name
+                already_applied = await connection.fetchval(
+                    "SELECT EXISTS (SELECT 1 FROM public.schema_migrations WHERE version = $1)",
                     version,
                 )
+                if already_applied:
+                    continue
+                await connection.execute(migration_file.read_text(encoding="utf-8"))
+                await connection.execute(
+                    "INSERT INTO public.schema_migrations (version) VALUES ($1)", version,
+                )
+                applied.append(version)
+        for version in applied:
             print(f"Applied migration {version}")
     finally:
         await connection.close()

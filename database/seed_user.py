@@ -2,7 +2,7 @@
 ResQAI — Seed a verified citizen user for local development.
 
 Usage:
-    python database/seed_user.py [email] [password] [full_name]
+    CITIZEN_PASSWORD=<set securely> python database/seed_user.py [email] [full_name]
 """
 
 import os
@@ -16,14 +16,16 @@ if DB_URL.startswith("postgresql+asyncpg://"):
     DB_URL = DB_URL.replace("postgresql+asyncpg://", "postgresql://")
 
 EMAIL = sys.argv[1] if len(sys.argv) > 1 else os.getenv("CITIZEN_EMAIL", "kirrsh001@gmail.com")
-PASSWORD = sys.argv[2] if len(sys.argv) > 2 else os.getenv("CITIZEN_PASSWORD", "Ranjan@2003")
-FULL_NAME = sys.argv[3] if len(sys.argv) > 3 else os.getenv("CITIZEN_NAME", "Kirrsh")
+PASSWORD = os.getenv("CITIZEN_PASSWORD", "")
+FULL_NAME = sys.argv[2] if len(sys.argv) > 2 else os.getenv("CITIZEN_NAME", "Kirrsh")
 
 def hash_password(password: str) -> str:
     salt = bcrypt.gensalt(rounds=12)
     return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
 async def main():
+    if not PASSWORD:
+        raise RuntimeError("Set CITIZEN_PASSWORD explicitly; do not use deployment credentials")
     conn = await asyncpg.connect(DB_URL)
     pw_hash = hash_password(PASSWORD)
     query = """
