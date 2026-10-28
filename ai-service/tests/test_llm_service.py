@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
+from google.genai import errors
 
 from services import llm_service
 
@@ -13,6 +14,8 @@ def isolated_model_configuration(monkeypatch):
     monkeypatch.setenv('GEMINI_API_KEY', 'test-key')
     monkeypatch.setenv('LLM_MODEL', 'primary')
     monkeypatch.setenv('LLM_FALLBACK_MODELS', 'backup')
+    monkeypatch.delenv('LLM_MODEL_TIMEOUT_SECONDS', raising=False)
+    monkeypatch.delenv('LLM_REQUEST_TIMEOUT_SECONDS', raising=False)
 
 
 @pytest.fixture
@@ -55,6 +58,36 @@ def test_model_names_are_normalized_and_deduplicated(monkeypatch):
     monkeypatch.setenv('LLM_FALLBACK_MODELS', 'primary, models/backup, , backup, second')
     assert llm_service.get_model() == 'primary'
     assert llm_service.get_models() == ['primary', 'backup', 'second']
+
+
+@pytest.mark.parametrize('configured', [None, '', '   '])
+def test_missing_or_blank_timeout_configuration_uses_defaults(monkeypatch, configured):
+    for name in ('LLM_MODEL_TIMEOUT_SECONDS', 'LLM_REQUEST_TIMEOUT_SECONDS'):
+        if configured is not None:
+            monkeypatch.setenv(name, configured)
+    assert llm_service.get_timeouts() == (
+        llm_service.MODEL_TIMEOUT_SECONDS, llm_service.REQUEST_TIMEOUT_SECONDS,
+    )
+
+
+@pytest.mark.asyncio
+async def test_configured_model_timeout_is_passed_to_sdk(monkeypatch, sdk):
+    monkeypatch.setenv('LLM_MODEL_TIMEOUT_SECONDS', ' 2.5 ')
+    monkeypatch.setenv('LLM_REQUEST_TIMEOUT_SECONDS', '7.5')
+    assert llm_service.get_timeouts() == (2.5, 7.5)
+    assert await llm_service.chat('System', 'Question') == 'Generated guidance'
+    assert sdk.factory.call_args.kwargs['http_options'].timeout == 2500
+    sdk.client.aclose.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('name', ['LLM_MODEL_TIMEOUT_SECONDS', 'LLM_REQUEST_TIMEOUT_SECONDS'])
+@pytest.mark.parametrize('invalid', ['0', '-1', 'nan', 'inf', '-inf', 'invalid'])
+async def test_invalid_timeout_configuration_fails_before_network(monkeypatch, sdk, name, invalid):
+    monkeypatch.setenv(name, invalid)
+    with pytest.raises(ValueError):
+        await llm_service.chat('System', 'Question')
+    sdk.factory.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -147,6 +180,68 @@ async def test_all_models_are_tried_before_retrying_primary(monkeypatch, sdk):
 
 
 @pytest.mark.asyncio
+async def test_rate_limited_primary_is_not_retried_when_backup_is_temporary_unavailable(monkeypatch, sdk):
+    sdk.generate.side_effect = [
+        upstream_error(429), upstream_error(503), SimpleNamespace(text='Backup answer'),
+    ]
+    sleep = AsyncMock()
+    monkeypatch.setattr(llm_service.asyncio, 'sleep', sleep)
+    assert await llm_service.chat('System', 'Question') == 'Backup answer'
+    assert called_models(sdk) == ['primary', 'backup', 'backup']
+    sleep.assert_awaited_once()
+    sdk.client.aclose.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_all_rate_limited_models_fail_without_retries_or_sleep(monkeypatch, sdk):
+    sdk.generate.side_effect = upstream_error(429)
+    sleep = AsyncMock()
+    monkeypatch.setattr(llm_service.asyncio, 'sleep', sleep)
+    with pytest.raises(RuntimeError, match='upstream status 429'):
+        await llm_service.chat('System', 'Question')
+    assert called_models(sdk) == ['primary', 'backup']
+    sleep.assert_not_awaited()
+    sdk.client.aclose.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_log_extracts_structured_metadata_without_error_body(monkeypatch, sdk, caplog):
+    error = errors.ClientError(429, {'error': {
+        'code': 429,
+        'status': 'RESOURCE_EXHAUSTED',
+        'message': 'private-error-body-do-not-log',
+        'details': [
+            {
+                '@type': 'type.googleapis.com/google.rpc.QuotaFailure',
+                'violations': [{
+                    'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier',
+                    'quotaValue': '0',
+                    'description': 'private-quota-description-do-not-log',
+                }],
+            },
+            {
+                '@type': 'type.googleapis.com/google.rpc.RetryInfo',
+                'retryDelay': '29.5s',
+            },
+        ],
+    }})
+    sdk.generate.side_effect = [error, SimpleNamespace(text='Backup answer')]
+    sleep = AsyncMock()
+    monkeypatch.setattr(llm_service.asyncio, 'sleep', sleep)
+
+    with caplog.at_level('WARNING', logger='resqai.llm'):
+        assert await llm_service.chat('System', 'Question') == 'Backup answer'
+
+    assert 'GenerateRequestsPerDayPerProjectPerModel-FreeTier' in caplog.text
+    assert '29.5' in caplog.text
+    assert 'private-error-body-do-not-log' not in caplog.text
+    assert 'private-quota-description-do-not-log' not in caplog.text
+    assert called_models(sdk) == ['primary', 'backup']
+    sleep.assert_not_awaited()
+    sdk.client.aclose.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 async def test_unavailable_model_is_not_retried_in_later_rounds(monkeypatch, sdk):
     sdk.generate.side_effect = [
         upstream_error(404), upstream_error(503), SimpleNamespace(text='Backup answer'),
@@ -199,6 +294,26 @@ async def test_model_deadline_cancels_slow_primary_and_uses_backup(monkeypatch, 
     assert await llm_service.chat('System', 'Question') == 'Backup answer'
     assert called_models(sdk) == ['primary', 'backup']
     assert cancelled.is_set()
+    sdk.client.aclose.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_longer_configured_timeout_allows_slow_backup_to_complete(monkeypatch, sdk):
+    monkeypatch.setattr(llm_service, 'MODEL_TIMEOUT_SECONDS', 0.005)
+    monkeypatch.setattr(llm_service, 'REQUEST_TIMEOUT_SECONDS', 0.01)
+    monkeypatch.setenv('LLM_MODEL_TIMEOUT_SECONDS', '0.2')
+    monkeypatch.setenv('LLM_REQUEST_TIMEOUT_SECONDS', '0.5')
+
+    async def generate(**kwargs):
+        if kwargs['model'] == 'primary':
+            raise upstream_error(429)
+        await asyncio.sleep(0.02)
+        return SimpleNamespace(text='Slow backup answer')
+
+    sdk.generate.side_effect = generate
+    assert await llm_service.chat('System', 'Question') == 'Slow backup answer'
+    assert called_models(sdk) == ['primary', 'backup']
+    assert sdk.factory.call_args.kwargs['http_options'].timeout == 200
     sdk.client.aclose.assert_awaited_once()
 
 
