@@ -2,6 +2,7 @@
 ResQAI — Main FastAPI Application
 """
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -21,6 +22,37 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 logger = logging.getLogger("resqai")
+DATABASE_STARTUP_TIMEOUT = 45
+REDIS_STARTUP_TIMEOUT = 15
+
+
+async def check_startup_dependencies():
+    async def check_database():
+        async with engine.connect() as conn:
+            await check_schema(conn)
+
+    logger.info("Checking PostgreSQL connection and database schema")
+    try:
+        await asyncio.wait_for(check_database(), timeout=DATABASE_STARTUP_TIMEOUT)
+    except TimeoutError:
+        raise RuntimeError(
+            "PostgreSQL/schema startup check timed out. Verify Render DATABASE_URL, "
+            "Supabase connectivity, and database availability."
+        ) from None
+    logger.info("PostgreSQL connection and schema checks passed")
+
+    logger.info("Checking Redis connection")
+    async def check_redis():
+        redis_client = await auth_router.get_redis()
+        await redis_client.ping()
+
+    try:
+        await asyncio.wait_for(check_redis(), timeout=REDIS_STARTUP_TIMEOUT)
+    except TimeoutError:
+        raise RuntimeError(
+            "Redis startup check timed out. Verify Render REDIS_URL and Redis connectivity."
+        ) from None
+    logger.info("Redis connection check passed")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,12 +61,7 @@ async def lifespan(app: FastAPI):
 
     if not settings.SECRET_KEY or len(settings.SECRET_KEY) < 32:
         raise RuntimeError("SECRET_KEY must contain at least 32 characters")
-    async with engine.connect() as conn:
-        await check_schema(conn)
-
-    redis_client = await auth_router.get_redis()
-    await redis_client.ping()
-    logger.info("✅ Redis connected")
+    await check_startup_dependencies()
 
     yield
 

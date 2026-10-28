@@ -2,6 +2,8 @@ FROM python:3.11-slim
 
 WORKDIR /workspace
 
+ENV PYTHONUNBUFFERED=1
+
 COPY app/requirements.txt ./app/
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
