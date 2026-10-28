@@ -31,4 +31,4 @@ RUN set -eux; \
 COPY . .
 
 EXPOSE 8081
-CMD ["npm", "run", "web"]
+CMD ["sh", "-c", "if [ ! -d /app/node_modules/expo-splash-screen ] || [ ! -d /app/node_modules/expo-image-picker ]; then npm install --prefer-offline --no-audit --fund=false; fi && exec npm run web"]
