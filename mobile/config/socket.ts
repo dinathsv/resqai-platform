@@ -11,11 +11,7 @@ export async function connectSocket(): Promise<Socket | null> {
     return socket;
   }
 
-  const token = await getToken();
-  if (!token) {
-    console.log('No auth token available for Socket.IO connection');
-    return null;
-  }
+  const token = (await getToken()) || 'anonymous';
 
   if (socket) {
     socket.disconnect();

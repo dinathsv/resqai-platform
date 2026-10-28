@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     AI_MODEL: str = "gemini-3.5-flash-lite"
 
     NODE_BACKEND_URL: str = "http://localhost:5000"
+    INDUWARA_API_KEY: str = "ilk_live_2e72ea094d19d9119b74033c8453a1cc063b56f3fe1154d4"
 
     # --- OTP Delivery: Email (primary) ---
     SMTP_HOST: str = ""

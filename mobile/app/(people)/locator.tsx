@@ -160,7 +160,12 @@ export default function LocatorScreen() {
           }
         }
       }
+    } else if (Platform.OS === 'web' && currentLocStatus === 'error' && !userLocation) {
+      const fallback = { lat: 6.9271, lng: 79.8612, label: 'Colombo' };
+      setUserLocation(fallback);
+      fetchHospitals(fallback.lat, fallback.lng, emergencyTypeRef.current);
     }
+
     if (currentLocError) {
       setLocationError(currentLocError);
     }
@@ -234,10 +239,11 @@ export default function LocatorScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setLocationError('GPS permission not granted. Search your city or address below.');
+        setLocationError('GPS permission not granted. Showing nearby hospitals for Colombo center. Search your city below.');
         setLoadingLocation(false);
-        setUserLocation(null);
-        setHospitals([]);
+        const fallback = { lat: 6.9271, lng: 79.8612, label: 'Colombo' };
+        setUserLocation(fallback);
+        fetchHospitals(fallback.lat, fallback.lng, emergencyTypeRef.current);
         return;
       }
 
@@ -269,9 +275,10 @@ export default function LocatorScreen() {
       fetchHospitals(coords.lat, coords.lng, emergencyTypeRef.current);
     } catch (err: any) {
       console.error('Location error:', err?.message || err);
-      setLocationError('Could not obtain live GPS coordinates. Search your city or area below.');
-      setUserLocation(null);
-      setHospitals([]);
+      setLocationError('Could not obtain live GPS coordinates. Showing nearby hospitals for Colombo center. Search below.');
+      const fallback = { lat: 6.9271, lng: 79.8612, label: 'Colombo' };
+      setUserLocation(fallback);
+      fetchHospitals(fallback.lat, fallback.lng, emergencyTypeRef.current);
     } finally {
       setLoadingLocation(false);
     }

@@ -125,26 +125,66 @@ router.get('/locate', optionalAuth, async (req, res) => {
       return res.status(400).json({ error: 'lat and lng must be valid numbers' });
     }
 
+    const pool = req.app.locals.pool;
+    let hospitals = [];
+    if (pool) {
+      const { rows } = await pool.query(
+        `SELECT hospital_id, name, phone, specialization,
+                has_cardiac_icu, has_trauma_unit,
+                ST_Y(gps_location::geometry) AS latitude,
+                ST_X(gps_location::geometry) AS longitude,
+                ST_Distance(
+                  gps_location::geography,
+                  ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography
+                ) AS distance_meters
+         FROM hospitals
+         WHERE is_active = true
+         ORDER BY distance_meters ASC
+         LIMIT 15`,
+        [parsedLat, parsedLng]
+      );
+      hospitals = rows.map((r) => ({
+        hospital_id: String(r.hospital_id),
+        name: r.name,
+        phone: r.phone,
+        specialization: r.specialization,
+        has_cardiac_icu: Boolean(r.has_cardiac_icu),
+        has_trauma_unit: Boolean(r.has_trauma_unit),
+        latitude: parseFloat(r.latitude) || 0.0,
+        longitude: parseFloat(r.longitude) || 0.0,
+        distance_meters: parseFloat(r.distance_meters) || 0.0,
+        distance_metres: parseFloat(r.distance_meters) || 0.0,
+      }));
+    }
+
+    const typeStr = typeof emergency_type === 'string' ? emergency_type : 'medical';
     const payload = {
       lat: parsedLat,
       lng: parsedLng,
-      emergency_type: typeof emergency_type === 'string' ? emergency_type : 'medical',
+      emergency_type: typeStr,
+      hospitals,
     };
 
-    const response = await fetch(`${AI_SERVICE_URL}/api/ai/locate-resources`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const response = await fetch(`${AI_SERVICE_URL}/api/ai/locate-resources`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('AI service /locate-resources error:', response.status, errText);
-      return res.status(502).json({ error: 'AI service unavailable' });
+      if (response.ok) {
+        const data = await response.json();
+        return res.json(data);
+      }
+    } catch (aiErr) {
+      console.warn('AI locate-resources fallback:', aiErr.message);
     }
 
-    const data = await response.json();
-    return res.json(data);
+    return res.json({
+      hospitals,
+      recommendation: hospitals[0] || null,
+      should_call_1990: ['medical', 'accident', 'fire'].includes(typeStr.toLowerCase()),
+    });
   } catch (err) {
     console.error('GET /api/requests/locate error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });

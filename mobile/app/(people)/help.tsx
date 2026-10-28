@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
  *  - Backend confirms request received
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -37,6 +37,7 @@ import {
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
+import { connectSocket } from '../../config/socket';
 import { Colors, Fonts, Glass } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -53,6 +54,63 @@ export default function HelpScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [calling1990, setCalling1990] = useState(false);
   const [successData, setSuccessData] = useState<{ id: string; type: string } | null>(null);
+  const [communityRequests, setCommunityRequests] = useState<any[]>([]);
+
+  // Load public community requests and listen for live broadcasts
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadPublicRequests() {
+      try {
+        const res = await apiFetch('/api/requests/public?limit=8');
+        if (res.ok) {
+          const data = await res.json();
+          if (mounted && Array.isArray(data)) {
+            setCommunityRequests(data);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load community requests:', err);
+      }
+    }
+
+    loadPublicRequests();
+
+    async function initLiveSocket() {
+      try {
+        const socket = await connectSocket();
+        if (!socket) return;
+
+        const onCommunityReq = (req: any) => {
+          if (!mounted) return;
+          const isDonation = req.emergency_type === 'donation';
+          const defaultMsg = isDonation ? 'Donation request' : 'Emergency help request';
+          const item = {
+            request_id: req.request_id || String(Date.now()),
+            emergency_type: req.emergency_type || 'help_rescue',
+            status: req.status || 'pending',
+            message: req.message || req.ai_summary || defaultMsg,
+            created_at: req.alerted_at || new Date().toISOString(),
+          };
+          setCommunityRequests((prev) => [
+            item,
+            ...prev.filter((r) => r.request_id !== item.request_id),
+          ]);
+        };
+
+        socket.on('new_request', onCommunityReq);
+        socket.on('community_request', onCommunityReq);
+      } catch (err) {
+        console.warn('Socket listener error in help screen:', err);
+      }
+    }
+
+    initLiveSocket();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   /**
    * Get the user's current location.
@@ -245,6 +303,65 @@ export default function HelpScreen() {
           <Text style={[styles.infoText, { color: theme.textSecondary }]}>
             {t('help.emergencyNumberDesc')}
           </Text>
+        </View>
+
+        {/* Live Community Help & Donation Requests */}
+        <View style={styles.communitySection}>
+          <View style={styles.communityHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={styles.livePulseDot} />
+              <Text style={[styles.communityTitle, { color: theme.textPrimary }]}>
+                Community Requests
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => router.push('/(people)/alerts')} activeOpacity={0.7}>
+              <Text style={[styles.viewAllLink, { color: theme.brandActive }]}>
+                View All Alerts ›
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {communityRequests.length === 0 ? (
+            <View style={[styles.emptyBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+                No community requests currently active.
+              </Text>
+            </View>
+          ) : (
+            communityRequests.map((req) => {
+              const isDonation = req.emergency_type === 'donation';
+              return (
+                <View
+                  key={req.request_id}
+                  style={[styles.requestCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                >
+                  <View style={styles.requestCardHeader}>
+                    <View
+                      style={[
+                        styles.requestTypeBadge,
+                        { backgroundColor: isDonation ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)' }
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.requestTypeBadgeText,
+                          { color: isDonation ? '#10B981' : '#EF4444' }
+                        ]}
+                      >
+                        {isDonation ? '🤝 Donation' : '🆘 Help Needed'}
+                      </Text>
+                    </View>
+                    <Text style={[styles.requestTimeText, { color: theme.textMuted }]}>
+                      {req.created_at ? new Date(req.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Active'}
+                    </Text>
+                  </View>
+                  <Text style={[styles.requestMessage, { color: theme.textPrimary }]} numberOfLines={3}>
+                    {req.message}
+                  </Text>
+                </View>
+              );
+            })
+          )}
         </View>
       </ScrollView>
 
@@ -696,5 +813,70 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontFamily: Fonts.bold,
+  },
+  // Community Section Styles
+  communitySection: {
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  communityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  communityTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+  },
+  livePulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981',
+  },
+  viewAllLink: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+  },
+  emptyBox: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+  },
+  requestCard: {
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 10,
+  },
+  requestCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  requestTypeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  requestTypeBadgeText: {
+    fontSize: 11,
+    fontFamily: Fonts.bold,
+  },
+  requestTimeText: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+  },
+  requestMessage: {
+    fontSize: 13,
+    fontFamily: Fonts.medium,
+    lineHeight: 18,
   },
 });

@@ -161,12 +161,14 @@ async def locate_resources(
     sql = text("""
         SELECT hospital_id, name, phone, specialization,
                has_cardiac_icu, has_trauma_unit,
+               ST_Y(gps_location::geometry) AS latitude,
+               ST_X(gps_location::geometry) AS longitude,
                ST_Distance(
                  gps_location::geography,
                  ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
                ) AS distance_meters
         FROM hospitals WHERE is_active=true
-        ORDER BY distance_meters ASC LIMIT 5
+        ORDER BY distance_meters ASC LIMIT 15
     """)
 
     result = await db.execute(sql, {"lat": lat, "lng": lng})
@@ -174,14 +176,20 @@ async def locate_resources(
 
     hospitals = []
     for row in rows:
+        lat_val = float(row["latitude"]) if row["latitude"] is not None else 0.0
+        lng_val = float(row["longitude"]) if row["longitude"] is not None else 0.0
+        dist_val = float(row["distance_meters"]) if row["distance_meters"] is not None else 0.0
         hospitals.append({
             "hospital_id": str(row["hospital_id"]),
             "name": row["name"],
             "phone": row["phone"],
             "specialization": row["specialization"],
-            "has_cardiac_icu": row["has_cardiac_icu"],
-            "has_trauma_unit": row["has_trauma_unit"],
-            "distance_meters": float(row["distance_meters"])
+            "has_cardiac_icu": bool(row["has_cardiac_icu"]),
+            "has_trauma_unit": bool(row["has_trauma_unit"]),
+            "latitude": lat_val,
+            "longitude": lng_val,
+            "distance_meters": dist_val,
+            "distance_metres": dist_val,
         })
 
     port = os.getenv("PORT", "8000")
