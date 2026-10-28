@@ -220,6 +220,7 @@ export default function VolunteerScreen() {
       ) : activeTab === 'available' ? (
         <FlatList
           data={missions}
+          showsVerticalScrollIndicator={false}
           keyExtractor={(item: Mission) => item.mission_id}
           renderItem={renderMission}
           contentContainerStyle={styles.listContent}
@@ -230,6 +231,7 @@ export default function VolunteerScreen() {
       ) : (
         <FlatList
           data={assignments}
+          showsVerticalScrollIndicator={false}
           keyExtractor={(item: Assignment) => item.assignment_id}
           renderItem={renderAssignment}
           contentContainerStyle={styles.listContent}

@@ -22,6 +22,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import BottomNav from '../../components/BottomNav';
 import TopBar from '../../components/TopBar';
+import MapView, { Marker } from 'react-native-maps';
 
 const OPENWEATHER_API_KEY = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY || '882c9e6e37b9947d6d7ac859be36a1a7';
 
@@ -223,6 +224,7 @@ export default function DashboardScreen() {
   };
 
   const weatherColors = weather ? getWeatherColors(weather.main, theme.isDark) : null;
+  const mapLocation = userLocation ?? { lat: 6.9271, lng: 79.8612 };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -391,8 +393,7 @@ export default function DashboardScreen() {
                 <ActivityIndicator size="large" color={theme.brandActive} />
                 <Text style={[styles.sectionTitle, { color: theme.textMuted, marginTop: 10 }]}>Detecting GPS...</Text>
              </View>
-          ) : userLocation ? (
-            Platform.OS === 'web' ? (
+          ) : Platform.OS === 'web' && userLocation ? (
               <iframe
                 title="Live Dashboard Map"
                 src={process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ? `https://www.google.com/maps/embed/v1/place?key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${userLocation.lat},${userLocation.lng}&zoom=11` : `https://maps.google.com/maps?q=${userLocation.lat},${userLocation.lng}&hl=en&z=11&output=embed`}
@@ -401,12 +402,27 @@ export default function DashboardScreen() {
                 allowFullScreen
                 referrerPolicy="strict-origin-when-cross-origin"
               />
-            ) : (
-              <View style={styles.mapGridBackground}>
-                <Text style={{ fontSize: 36, marginBottom: 6 }}>🗺️</Text>
-                <Text style={[styles.sectionTitle, { color: theme.textMuted }]}>Tap to open full map</Text>
-              </View>
-            )
+          ) : Platform.OS !== 'web' ? (
+              <MapView
+                style={styles.nativeMap}
+                initialRegion={{
+                  latitude: mapLocation.lat,
+                  longitude: mapLocation.lng,
+                  latitudeDelta: 0.12,
+                  longitudeDelta: 0.12,
+                }}
+                showsUserLocation
+                showsMyLocationButton
+                accessibilityLabel="Live dashboard map"
+              >
+                <Marker
+                  coordinate={{
+                    latitude: mapLocation.lat,
+                    longitude: mapLocation.lng,
+                  }}
+                  title={userLocation ? 'Your location' : 'Colombo'}
+                />
+              </MapView>
           ) : (
              <View style={styles.mapGridBackground}>
                 <Text style={{ fontSize: 36, marginBottom: 6 }}>📍</Text>
@@ -679,6 +695,9 @@ const styles = StyleSheet.create({
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  nativeMap: {
+    flex: 1,
   },
   mapRoad1: {
     position: 'absolute',

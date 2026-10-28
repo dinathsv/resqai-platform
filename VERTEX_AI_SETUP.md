@@ -39,15 +39,19 @@ Place the `credentials.json` file in `/home/SDinath/Projects/resqai/ai-service/`
 
 ### 3. Update Environment Variables
 
-Edit `/home/SDinath/Projects/resqai/ai-service/.env`:
+Configure these variables in the AI service environment (locally in
+`ai-service/.env`, or in the Render dashboard):
 
 ```env
-GOOGLE_CREDENTIAL_FILE=/app/credentials.json
-PROJECT_ID=your-actual-gcp-project-id
+GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+GOOGLE_CLOUD_PROJECT=your-actual-gcp-project-id
 LLM_MODEL=gemini-1.5-flash-001
 ```
 
-Replace `your-actual-gcp-project-id` with your actual GCP project ID.
+`GOOGLE_CREDENTIAL_FILE` and `PROJECT_ID` are also accepted for compatibility.
+Replace `your-actual-gcp-project-id` with the actual GCP project ID. Both the
+credential file and project ID are required; the service now reports a clear
+configuration error instead of attempting an unauthenticated Vertex AI call.
 
 ### 4. Update Dockerfile
 
@@ -90,8 +94,10 @@ curl -X POST http://localhost:8001/api/ai/first-aid-chat \
 ## Troubleshooting
 
 ### Error: "GOOGLE_CREDENTIAL_FILE or PROJECT_ID not configured"
-- Make sure `.env` file has the correct values
-- Verify `credentials.json` exists in the ai-service directory
+- Set `GOOGLE_APPLICATION_CREDENTIALS` (or `GOOGLE_CREDENTIAL_FILE`) to the
+  absolute path of the service-account JSON file.
+- Set `GOOGLE_CLOUD_PROJECT` (or `PROJECT_ID`) to the real GCP project ID.
+- Verify the credential file exists at that path in the deployed container.
 
 ### Error: "Permission denied" or "403 Forbidden"
 - Check that your service account has `roles/aiplatform.user` role

@@ -59,8 +59,8 @@ API_KEY=<YOUR_API_KEY_HERE>
 LLM_MODEL=gemini-3.6-flash
 
 # New (Vertex AI):
-GOOGLE_CREDENTIAL_FILE=/app/credentials.json
-PROJECT_ID=your-gcp-project-id
+GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+GOOGLE_CLOUD_PROJECT=your-gcp-project-id
 LLM_MODEL=gemini-1.5-flash-001
 ```
 
@@ -109,7 +109,7 @@ cp ~/Downloads/credentials.json /home/SDinath/Projects/resqai/ai-service/credent
 nano /home/SDinath/Projects/resqai/ai-service/.env
 
 # Update this line with your actual project ID:
-PROJECT_ID=your-actual-project-id-here
+GOOGLE_CLOUD_PROJECT=your-actual-project-id-here
 ```
 
 #### 5. Update Dockerfile

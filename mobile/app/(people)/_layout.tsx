@@ -19,7 +19,7 @@ export default function PeopleLayout() {
         animation: 'slide_from_right',
       }}
     >
-      <Stack.Screen name="dashboard" options={{ headerShown: false }} />
+      <Stack.Screen name="dashboard" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="alerts" options={{ headerShown: false }} />
       <Stack.Screen name="activities" options={{ headerShown: false }} />
       <Stack.Screen name="help" options={{ headerShown: false }} />
