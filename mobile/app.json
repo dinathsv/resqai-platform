@@ -49,7 +49,15 @@
         }
       ],
       "./plugins/withLauncherIconPadding",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraProguardRules": "# Room and WorkManager instantiate these classes by reflection during Android startup.\n-keep class * extends androidx.room.RoomDatabase { <init>(); }\n-keep class * extends androidx.work.InputMerger { <init>(); }"
+          }
+        }
+      ]
     ],
     "extra": {
       "router": {
