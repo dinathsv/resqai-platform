@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 
 from .config import settings
 from .database import engine
@@ -104,3 +105,42 @@ app.include_router(donations.router, prefix="/api/donations")
 app.include_router(missions.router, prefix="/api/missions")
 app.include_router(quiz.router, prefix="/api/quiz")
 app.include_router(volunteer_assignments.router, prefix="/api/volunteer-assignments")
+
+@app.get("/", include_in_schema=False)
+async def root():
+    return {
+        "status": "online",
+        "service": "ResQAI API",
+        "message": "ResQAI backend is running successfully",
+        "version": "1.0.0",
+    }
+
+@app.get("/health", include_in_schema=False)
+async def health():
+    database_status = "connected"
+    redis_status = "connected"
+
+    try:
+        async with engine.connect() as connection:
+            await connection.execute(text("SELECT 1"))
+    except Exception as exc:
+        logger.error("Health database check failed: %s", exc)
+        database_status = "disconnected"
+
+    try:
+        redis_client = await auth_router.get_redis()
+        await redis_client.ping()
+    except Exception as exc:
+        logger.error("Health Redis check failed: %s", exc)
+        redis_status = "disconnected"
+
+    is_healthy = database_status == "connected" and redis_status == "connected"
+    return JSONResponse(
+        status_code=200 if is_healthy else 503,
+        content={
+            "status": "healthy" if is_healthy else "degraded",
+            "service": "resqai-api",
+            "database": database_status,
+            "redis": redis_status,
+        },
+    )
