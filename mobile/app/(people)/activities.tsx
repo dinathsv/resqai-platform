@@ -49,6 +49,7 @@ export default function ActivitiesScreen() {
   const { t } = useLanguage();
   const router = useRouter();
   const [userName, setUserName] = useState<string>('Citizen');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [myRequests, setMyRequests] = useState<RescueItem[]>([]);
   const [myDonations, setMyDonations] = useState<DonationItem[]>([]);
   const [recentAlerts, setRecentAlerts] = useState<AlertItem[]>([]);
@@ -72,6 +73,9 @@ export default function ActivitiesScreen() {
           if (mounted && meData.full_name) {
             setUserName(meData.full_name);
             await AsyncStorage.setItem('user_name', meData.full_name);
+          }
+          if (mounted) {
+            setAvatarUrl(typeof meData.avatar_url === 'string' ? meData.avatar_url : null);
           }
         }
 
@@ -169,7 +173,11 @@ export default function ActivitiesScreen() {
         {/* Avatar and User Info */}
         <View style={styles.bannerUserRow}>
           <View style={[styles.avatarCircle, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Ionicons name="person" size={28} color={theme.textPrimary} />
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <Ionicons name="person" size={28} color={theme.textPrimary} />
+            )}
           </View>
           <View style={styles.greetingWrap}>
             <Text style={[styles.greetingText, { color: theme.textPrimary }]}>
@@ -382,6 +390,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
   },
   avatarSilhouette: {
     fontSize: 28,

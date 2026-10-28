@@ -3,9 +3,9 @@ import { Translations } from './en';
 export const ta: Translations = {
   // ── Languages ──────────────────────────────────────────
   languages: {
-    en: 'English — en',
-    ta: 'தமிழ் — ta',
-    si: 'සිංහල — si',
+    en: 'English',
+    ta: 'தமிழ்',
+    si: 'සිංහල',
   },
 
   // ── Common & Actions ──────────────────────────────────

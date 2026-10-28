@@ -612,6 +612,7 @@ export default function LocatorScreen() {
       <TopBar title={t('locator.findCare')} showBack onBack={handleBack} />
 
       <FlatList
+        showsVerticalScrollIndicator={false}
         data={hospitals}
         keyExtractor={(item) => item.hospital_id}
         renderItem={renderHospitalItem}

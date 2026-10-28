@@ -278,6 +278,12 @@ On Render, configure the Python API service's **Pre-Deploy Command** as
 running service, then deploy the new image. The image startup command runs the
 same idempotent check as a final guard before accepting requests.
 
+For the separate AI service, configure the Render service environment with
+`GOOGLE_CLOUD_PROJECT`, `GOOGLE_APPLICATION_CREDENTIALS`, and `LLM_MODEL`.
+Upload the service-account JSON as a Render Secret File and set
+`GOOGLE_APPLICATION_CREDENTIALS` to its mounted absolute path. The project ID
+and credential file are both required for Vertex AI requests.
+
 ---
 
 ## API Reference & Endpoints

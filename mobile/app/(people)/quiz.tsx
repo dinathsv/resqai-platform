@@ -234,7 +234,7 @@ export default function QuizScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <TopBar title={t('quiz.safetyQuizTitle')} showBack onBack={handleBack} />
-        <ScrollView contentContainerStyle={styles.finishedContainer}>
+        <ScrollView contentContainerStyle={styles.finishedContainer} showsVerticalScrollIndicator={false}>
           <View style={[styles.scoreCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Text style={[styles.scoreText, { color: theme.textPrimary }]}>
               {score} / {questions.length}
@@ -284,7 +284,7 @@ export default function QuizScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <TopBar title={t('quiz.safetyQuizTitle')} showBack onBack={handleBack} />
-      <ScrollView contentContainerStyle={styles.questionContainer}>
+      <ScrollView contentContainerStyle={styles.questionContainer} showsVerticalScrollIndicator={false}>
 
         <Text style={[styles.progressLabel, { color: theme.textMuted }]}>
           {t('quiz.questionCount', { current: currentIndex + 1, total })}
@@ -463,4 +463,3 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
 })
-

@@ -126,7 +126,7 @@ export default function AlertDetailScreen() {
 
       <TopBar title={t('alerts.alertDetails')} showBack onBack={handleBack} />
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
 
         {isCritical && (
           <View style={styles.criticalBar}>

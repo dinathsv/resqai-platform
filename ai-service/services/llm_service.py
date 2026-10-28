@@ -15,20 +15,34 @@ logger = logging.getLogger("resqai.llm")
 
 _initialized = False
 
+
+def _vertex_configuration() -> tuple[str | None, str | None]:
+    """Return the credential file and project configured for Vertex AI."""
+    credential_file = (
+        os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        or os.getenv("GOOGLE_CREDENTIAL_FILE")
+    )
+    project_id = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("PROJECT_ID")
+    return credential_file, project_id
+
+
 def _init_vertex():
     """Initialize Vertex AI with credentials."""
     global _initialized
     if not _initialized:
-        credential_file = os.getenv("GOOGLE_CREDENTIAL_FILE")
-        project_id = os.getenv("PROJECT_ID")
+        credential_file, project_id = _vertex_configuration()
 
         if not credential_file or not project_id:
-            logger.warning("GOOGLE_CREDENTIAL_FILE or PROJECT_ID not configured")
-        else:
-            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credential_file
-            vertexai.init(project=project_id, location="us-central1")
-            _initialized = True
-            logger.info("Vertex AI initialized successfully")
+            raise RuntimeError(
+                "Vertex AI is not configured. Set PROJECT_ID (or "
+                "GOOGLE_CLOUD_PROJECT) and GOOGLE_CREDENTIAL_FILE (or "
+                "GOOGLE_APPLICATION_CREDENTIALS) in the AI service environment."
+            )
+
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credential_file
+        vertexai.init(project=project_id, location="us-central1")
+        _initialized = True
+        logger.info("Vertex AI initialized successfully")
 
 def get_model() -> str:
     return os.getenv("LLM_MODEL", "gemini-1.5-flash-001")
