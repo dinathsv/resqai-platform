@@ -33,7 +33,8 @@ async def chat(
     if not api_key:
         raise RuntimeError("Set GEMINI_API_KEY in ai-service/.env")
 
-    async with genai.Client(api_key=api_key, vertexai=False).aio as client:
+    client = genai.Client(api_key=api_key, vertexai=False).aio
+    try:
         response = await client.models.generate_content(
             model=get_model(),
             contents=user_message,
@@ -43,6 +44,9 @@ async def chat(
                 temperature=temperature,
             ),
         )
+    finally:
+        await client.aclose()
+
     if not response.text or not response.text.strip():
         raise ValueError("Gemini returned an empty response")
     return response.text
@@ -76,5 +80,5 @@ async def chat_json(
         raise ValueError(f"LLM response was not valid JSON: {raw[:200]}")
 
 async def close():
-    """Clients are closed after each request by the async context manager."""
+    """Clients are closed after each request in the finally block."""
     pass
