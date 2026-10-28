@@ -17,17 +17,19 @@ async def test_register_success(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_register_duplicate_email(client: AsyncClient):
 
-    await client.post('/api/auth/register', json={
+    first = await client.post('/api/auth/register', json={
         "full_name": "Dup User",
         "email": "dup@example.com",
         "password": "password123",
         "phone_number": "0771234568"
     })
+    assert first.status_code == 201
 
     r = await client.post('/api/auth/register', json={
         "full_name": "Dup User",
         "email": "dup@example.com",
-        "password": "password123"
+        "password": "password123",
+        "phone_number": "0771234568",
     })
     assert r.status_code == 409
     assert r.json()["detail"] == "Email already registered"
