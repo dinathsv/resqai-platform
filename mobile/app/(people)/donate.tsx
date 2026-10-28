@@ -157,7 +157,7 @@ export default function DonateScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalBody}
         >
-          <ScrollView>
+          <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{t('donate.securePayment')}</Text>
 
             <MinimalInput
@@ -211,7 +211,7 @@ export default function DonateScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.modalBody}
       >
-        <ScrollView>
+        <ScrollView showsVerticalScrollIndicator={false}>
           <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{selectedMission.title}</Text>
           <Text style={[styles.modalDescription, { color: theme.textSecondary }]}>
             {selectedMission.description}
@@ -248,6 +248,7 @@ export default function DonateScreen() {
         <Text style={[styles.loadingText, { color: theme.textMuted }]}>{t('common.loading')}</Text>
       ) : (
         <FlatList
+          showsVerticalScrollIndicator={false}
           data={missions}
           keyExtractor={(item: Mission) => item.mission_id}
           renderItem={renderMission}
@@ -448,5 +449,4 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
   },
 })
-
 

@@ -18,6 +18,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import AppearanceSettings from './AppearanceSettings';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface TopBarProps {
   title?: string;
@@ -46,6 +47,7 @@ export default function TopBar({
   const languageMenuAnimation = React.useRef(new Animated.Value(0)).current;
   const { theme: appTheme } = useTheme();
   const { language, setLanguage, options, t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const isDark = appTheme.isDark || theme === 'dark' || theme === 'red';
   const useNativeDriver = Platform.OS !== 'web';
 
@@ -116,6 +118,7 @@ export default function TopBar({
           },
           isDark && styles.headerBarDark,
           transparent && styles.headerBarTransparent,
+          Platform.OS === 'android' && { paddingTop: insets.top },
         ]}
       >
         {/* Left Side: Back button or ResQAI Logo */}

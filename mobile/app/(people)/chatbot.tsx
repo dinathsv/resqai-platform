@@ -436,10 +436,11 @@ export default function ChatbotScreen() {
       <View style={[styles.sheetContainer, { backgroundColor: theme.isDark ? theme.surface : '#FFFFFF' }]}>
         <KeyboardAvoidingView
           style={styles.chatArea}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={72}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 72 : 0}
         >
           <FlatList
+            showsVerticalScrollIndicator={false}
             ref={flatListRef as any}
             data={messages}
             keyExtractor={(item) => item.id}

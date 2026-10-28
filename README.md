@@ -258,6 +258,32 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 # Interactive API Documentation: http://localhost:8000/docs
 ```
 
+### Database migrations
+
+The Python API applies the ordered SQL migrations in `backend/migrations/` before
+Uvicorn starts. The migration runner records applied filenames in
+`schema_migrations` and is safe to run again. For a manual deployment or
+Render pre-deploy command, run:
+
+```bash
+python database/run_migrations.py
+```
+
+The current additive user-profile migration is
+`backend/migrations/002_users_avatar_url.sql`. It adds the nullable PostgreSQL
+`TEXT` column `users.avatar_url` without changing existing rows.
+
+On Render, configure the Python API service's **Pre-Deploy Command** as
+`python database/run_migrations.py`, with the same `DATABASE_URL` as the
+running service, then deploy the new image. The image startup command runs the
+same idempotent check as a final guard before accepting requests.
+
+For the separate AI service, configure the Render service environment with
+`GOOGLE_CLOUD_PROJECT`, `GOOGLE_APPLICATION_CREDENTIALS`, and `LLM_MODEL`.
+Upload the service-account JSON as a Render Secret File and set
+`GOOGLE_APPLICATION_CREDENTIALS` to its mounted absolute path. The project ID
+and credential file are both required for Vertex AI requests.
+
 ---
 
 ## API Reference & Endpoints

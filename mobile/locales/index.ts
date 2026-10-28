@@ -12,9 +12,9 @@ export interface LanguageOption {
 }
 
 export const LANGUAGE_OPTIONS: LanguageOption[] = [
-  { code: 'en', label: 'English', nativeName: 'English — en', subtext: 'English' },
-  { code: 'ta', label: 'Tamil', nativeName: 'தமிழ் — ta', subtext: 'Tamil' },
-  { code: 'si', label: 'Sinhala', nativeName: 'සිංහල — si', subtext: 'Sinhala' },
+  { code: 'en', label: 'English', nativeName: 'English', subtext: 'English' },
+  { code: 'ta', label: 'Tamil', nativeName: 'தமிழ்', subtext: 'Tamil' },
+  { code: 'si', label: 'Sinhala', nativeName: 'සිංහල', subtext: 'Sinhala' },
 ];
 
 export const translations: Record<SupportedLanguage, Translations> = {

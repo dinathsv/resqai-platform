@@ -10,7 +10,8 @@ RUN pip install --default-timeout=1000 --retries 10 --upgrade pip && \
 
 COPY app/ ./app/
 COPY database/ ./database/
+COPY backend/migrations/ ./backend/migrations/
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "python database/run_migrations.py && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
