@@ -16,6 +16,8 @@ node_modules/
 ai-service/
 ml-models/
 backend/
+!backend/
+!backend/migrations/
+!backend/migrations/*.sql
 mobile/
 resqai-admin/
-

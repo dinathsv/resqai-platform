@@ -52,6 +52,7 @@ CREATE TABLE users (
     language_pref   language_pref   NOT NULL DEFAULT 'en',
     gps_location    GEOMETRY(POINT, 4326),
     is_verified     BOOLEAN         NOT NULL DEFAULT FALSE,
+    avatar_url      TEXT,
     created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
 );
