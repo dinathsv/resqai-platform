@@ -146,8 +146,15 @@ async function start() {
     server.listen(PORT, HOST, () => {
       console.log(`ResQAI backend running on ${HOST}:${PORT}`);
     });
-  } catch {
+  } catch (err) {
     console.error('Database schema/connection check failed. Apply reviewed migrations before starting.');
+    // Do not print connection strings or database error details containing row data.
+    console.error('Database readiness diagnostic:', {
+      code: err.code,
+      table: err.table,
+      column: err.column,
+      syscall: err.syscall,
+    });
     await pool.end();
     process.exitCode = 1;
   }
