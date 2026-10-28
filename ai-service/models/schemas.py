@@ -15,6 +15,7 @@ class FirstAidResponse(BaseModel):
     language_detected: str
     show_1990: bool
     is_critical: bool
+    service_available: bool = True
 
 class TranslateReportRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=5000, description="Disaster report in any language")

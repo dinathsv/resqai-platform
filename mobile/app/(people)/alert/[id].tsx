@@ -1,3 +1,4 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 import React, { useEffect, useState } from 'react';
@@ -7,7 +8,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -122,7 +122,7 @@ export default function AlertDetailScreen() {
   const isCritical = alert.severity >= 4;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.container}>
 
       <TopBar title={t('alerts.alertDetails')} showBack onBack={handleBack} />
 

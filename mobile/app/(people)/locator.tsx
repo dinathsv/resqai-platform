@@ -1,3 +1,4 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View,
@@ -7,7 +8,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Linking,
   ActivityIndicator,
   Platform,
@@ -607,7 +607,7 @@ export default function LocatorScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Professional Top Bar with Back and 3-Dot Navigation Menu */}
       <TopBar title={t('locator.findCare')} showBack onBack={handleBack} />
 

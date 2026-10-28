@@ -101,7 +101,8 @@ async def first_aid_chat(req: FirstAidRequest):
             reply=fallback,
             language_detected=detected,
             show_1990=True,
-            is_critical=True,
+            is_critical=_is_critical(req.message),
+            service_available=False,
         )
 
     combined_text = f"{req.message} {reply}".lower()

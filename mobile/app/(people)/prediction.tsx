@@ -1,10 +1,10 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   Platform,
   Linking,
@@ -18,6 +18,7 @@ import { Fonts } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import TopBar from '../../components/TopBar';
+import LocationMap from '../../components/LocationMap';
 import BottomNav from '../../components/BottomNav';
 import {
   fetchDistricts,
@@ -30,7 +31,6 @@ import {
 const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 // ── Color palette (clean mobile) ──
@@ -232,13 +232,6 @@ export default function PredictionScreen() {
     return { lat: 7.8731, lng: 80.7718 }; // Sri Lanka center
   };
 
-  const getGoogleEmbedUrl = (lat: number, lng: number, zoom = 11) => {
-    if (GOOGLE_MAPS_API_KEY) {
-      return `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=${lat},${lng}&zoom=${zoom}`;
-    }
-    return `https://maps.google.com/maps?q=${lat},${lng}&hl=en&z=${zoom}&output=embed`;
-  };
-
   // --- Color helpers ---
   const getFloodColor = (status?: string) => {
     if (!status) return C.green;
@@ -411,8 +404,6 @@ export default function PredictionScreen() {
   // ── Live Map Section ──
   const renderLiveMap = () => {
     const center = getMapCenter();
-    const embedUrl = getGoogleEmbedUrl(center.lat, center.lng, result ? 11 : 8);
-    const hasLocation = userLocation !== null;
 
     return (
       <View style={[s.card, cardTheme]}>
@@ -439,34 +430,9 @@ export default function PredictionScreen() {
           </TouchableOpacity>
         </View>
 
-        {Platform.OS === 'web' ? (
-          <View style={s.mapIframeWrap}>
-            <iframe
-              title="Live Location Map"
-              src={embedUrl}
-              style={{ width: '100%', height: 200, border: 'none', borderRadius: 14 }}
-              loading="lazy"
-              allowFullScreen
-              referrerPolicy="strict-origin-when-cross-origin"
-            />
-          </View>
-        ) : (
-          <View style={s.mapNativePlaceholder}>
-            {loadingLocation ? (
-              <>
-                <ActivityIndicator size="large" color={C.brandActive} />
-                <Text style={[s.mapLoadingText, { color: theme.textMuted }]}>Detecting GPS...</Text>
-              </>
-            ) : (
-              <>
-                <Text style={{ fontSize: 36, marginBottom: 6 }}>🗺️</Text>
-                <Text style={[s.mapNativeText, { color: theme.textSecondary }]}>
-                  {result ? `${result.district}, ${result.province}` : hasLocation ? 'Location detected' : 'Tap Refresh to detect GPS'}
-                </Text>
-              </>
-            )}
-          </View>
-        )}
+        <View style={s.mapIframeWrap}>
+          <LocationMap lat={center.lat} lng={center.lng} zoom={result ? 11 : 8} title="Prediction location map" />
+        </View>
 
         <TouchableOpacity
           style={s.openMapBtn}
@@ -688,7 +654,7 @@ export default function PredictionScreen() {
 
   // ────────────── Main Render ──────────────
   return (
-    <SafeAreaView style={[s.container, { backgroundColor: theme.background }]}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={[s.container, { backgroundColor: theme.background }]}>
       <TopBar title={t('prediction.title')} showBack onBack={handleBack} />
 
       <ScrollView

@@ -118,7 +118,7 @@ export default function TopBar({
           },
           isDark && styles.headerBarDark,
           transparent && styles.headerBarTransparent,
-          Platform.OS === 'android' && { paddingTop: insets.top },
+          { paddingTop: insets.top, height: 56 + insets.top },
         ]}
       >
         {/* Left Side: Back button or ResQAI Logo */}

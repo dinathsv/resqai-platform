@@ -1,3 +1,4 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState } from 'react'
 import {
   View,
@@ -6,7 +7,6 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
-  SafeAreaView,
 } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import axios from 'axios'

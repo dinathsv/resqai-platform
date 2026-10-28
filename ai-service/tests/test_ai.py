@@ -28,7 +28,8 @@ async def test_chatbot_fallback(client, monkeypatch):
 
     assert r.status_code == 200
     assert '1990' in r.json()['reply']
-    assert r.json()['is_critical'] == True
+    assert r.json()['is_critical'] is False
+    assert r.json()['service_available'] is False
 
 
 @pytest.mark.asyncio

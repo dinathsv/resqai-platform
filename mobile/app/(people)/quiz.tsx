@@ -1,3 +1,4 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState, useMemo } from 'react'
 import {
   View,
@@ -5,7 +6,6 @@ import {
   TouchableOpacity,
   FlatList,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
 } from 'react-native'
 
@@ -203,7 +203,7 @@ export default function QuizScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <SafeAreaView edges={['left', 'right', 'bottom']} style={[styles.container, { backgroundColor: theme.background }]}>
         <TopBar title={t('quiz.safetyQuizTitle')} showBack onBack={handleBack} />
         <Text style={[styles.loadingText, { color: theme.textMuted }]}>{t('quiz.loadingQuiz')}</Text>
       </SafeAreaView>
@@ -212,7 +212,7 @@ export default function QuizScreen() {
 
   if (error || questions.length === 0) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <SafeAreaView edges={['left', 'right', 'bottom']} style={[styles.container, { backgroundColor: theme.background }]}>
         <TopBar title={t('quiz.safetyQuizTitle')} showBack onBack={handleBack} />
         <View style={styles.finishedContainer}>
           <Text style={[styles.loadingText, { color: theme.textMuted }]}>{error || t('common.noResults')}</Text>
@@ -232,7 +232,7 @@ export default function QuizScreen() {
   if (finished) {
     const pct = (score / questions.length) * 100
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <SafeAreaView edges={['left', 'right', 'bottom']} style={[styles.container, { backgroundColor: theme.background }]}>
         <TopBar title={t('quiz.safetyQuizTitle')} showBack onBack={handleBack} />
         <ScrollView contentContainerStyle={styles.finishedContainer} showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false}>
           <View style={[styles.scoreCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -284,7 +284,7 @@ export default function QuizScreen() {
   const progressPercent = (currentIndex / total) * 100
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={[styles.container, { backgroundColor: theme.background }]}>
       <TopBar title={t('quiz.safetyQuizTitle')} showBack onBack={handleBack} />
       <ScrollView contentContainerStyle={styles.questionContainer} showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false}>
 
