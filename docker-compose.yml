@@ -70,6 +70,8 @@ services:
       - "5005:5005"
     volumes:
       - ./ml-models:/app
+    environment:
+      PORT: "5005"
 
   node-backend:
     build:
