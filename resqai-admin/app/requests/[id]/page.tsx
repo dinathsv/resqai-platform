@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import api from '@/lib/api';
@@ -19,7 +19,7 @@ interface RequestDetail {
   ai_summary: string;
   gps_location: { lat: number; lng: number } | null;
   status: string;
-  timeline: TimelineEvent[];
+  timeline?: TimelineEvent[];
 }
 
 interface Mission {
@@ -29,9 +29,9 @@ interface Mission {
 
 const fetcher = (url: string) => api.get(url).then((res) => res.data);
 
-export default function RequestDetailPage({ params }: { params: { id: string } }) {
+export default function RequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const { id } = params;
+  const { id } = use(params);
 
   const [selectedMission, setSelectedMission] = useState('');
   const [missions, setMissions] = useState<Mission[]>([]);
