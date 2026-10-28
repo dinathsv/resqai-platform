@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { apiFetch } from '../../config/api';
+import { apiFetch, parseErrorResponse } from '../../config/api';
 import { Fonts, makeGlass } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -55,15 +55,30 @@ export default function RegisterScreen() {
           language_pref: language,
         }),
       });
-      const data = await res.json();
+
       if (res.ok) {
+        const data = await res.json();
         router.push({ pathname: '/(auth)/verify-otp', params: { userId: data.user_id, email: email.trim() } });
       } else {
-        if (res.status === 409) setError(t('auth.emailAlreadyRegistered'));
-        else setError(typeof data.detail === 'string' ? data.detail : t('common.error'));
+        // Map known HTTP statuses to translated messages
+        if (res.status === 409) {
+          setError(t('auth.emailAlreadyRegistered'));
+        } else if (res.status === 503) {
+          setError(t('auth.connectionError'));
+        } else {
+          // Parse the actual backend error message from any response format
+          const errorMsg = await parseErrorResponse(res);
+          setError(errorMsg);
+        }
+
+        // Diagnostic log (no sensitive data)
+        if (__DEV__) {
+          console.log(`[ResQAI] Registration failed: HTTP ${res.status}`);
+        }
       }
     } catch (err) {
-      console.error('Register error:', err);
+      // True network failure (not caught by apiFetch's synthetic response)
+      console.error('[ResQAI] Registration network error:', err instanceof Error ? err.message : err);
       setError(t('auth.connectionError'));
     } finally {
       setLoading(false);
