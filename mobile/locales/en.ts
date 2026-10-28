@@ -95,6 +95,8 @@ export const en = {
     nicPlaceholder: 'e.g. 198812345678 or 881234567V',
     nicHint: 'Enter your 9-digit old NIC (with V/X) or 12-digit new NIC format',
     uploadNicPhoto: 'Upload NIC Photo',
+    verifyBtn: 'Verify',
+    validateNic: 'Verify NIC',
     takeNicPhoto: 'Take Photo',
     chooseFromGallery: 'Choose from Gallery',
     retakePhoto: 'Retake Photo',

@@ -97,6 +97,8 @@ export const ta: Translations = {
     nicPlaceholder: 'எ.கா: 198812345678 அல்லது 881234567V',
     nicHint: 'பழைய 9 இலக்க NIC (V/X உடன்) அல்லது புதிய 12 இலக்க NIC ஐ உள்ளிடவும்',
     uploadNicPhoto: 'தேசிய அடையாள அட்டை புகைப்படத்தை பதிவேற்றவும்',
+    verifyBtn: 'சரிபார்க்கவும்',
+    validateNic: 'NIC ஐ சரிபார்க்கவும்',
     takeNicPhoto: 'படம் எடுக்கவும்',
     chooseFromGallery: 'கேலரியிலிருந்து தேர்வு செய்க',
     retakePhoto: 'மீண்டும் எடுக்கவும்',

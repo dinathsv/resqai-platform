@@ -703,15 +703,9 @@ export default function AlertsScreen() {
                     </View>
                   </View>
 
-                  {/* Severity Chip & Expiry */}
-                  <View style={styles.chipsRow}>
-                    <View style={[styles.severityChip, { backgroundColor: severity.bg }]}>
-                      <Text style={[styles.severityChipText, { color: severity.color }]}>
-                        {t('alerts.levelWithSeverity', { level: alert.severity, severity: severity.label })}
-                      </Text>
-                    </View>
-
-                    {alert.expires_at && (
+                  {/* Expiry Chip (if applicable) */}
+                  {alert.expires_at ? (
+                    <View style={styles.chipsRow}>
                       <View style={[styles.expiresChip, { backgroundColor: theme.surfaceSubtle }]}>
                         <Text style={[styles.expiresChipText, { color: theme.textMuted }]}>
                           {isPresent ? t('alerts.expires') : t('alerts.expired')}
@@ -723,8 +717,8 @@ export default function AlertsScreen() {
                           })}
                         </Text>
                       </View>
-                    )}
-                  </View>
+                    </View>
+                  ) : null}
 
                   {/* Body / Work Plan Description */}
                   <Text style={[styles.workPlanText, { color: theme.textSecondary }]}>

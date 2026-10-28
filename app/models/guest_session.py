@@ -20,6 +20,8 @@ class GuestSession(Base):
     nic_photo: Mapped[str | None] = mapped_column(Text, nullable=True)
     nic_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     nic_format_valid: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    phone_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    phone_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     temp_token: Mapped[str] = mapped_column(String(512), unique=True, nullable=False)
     gps_location = mapped_column(Geometry("POINT", srid=4326), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

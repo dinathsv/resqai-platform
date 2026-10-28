@@ -79,9 +79,15 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
-class GuestVerifyNicRequest(BaseModel):
+class GuestSendOtpRequest(BaseModel):
+    phone_number: str
     nic_number: str | None = None
-    nic_photo: str | None = None
+
+class GuestVerifyNicRequest(BaseModel):
+    nic_number: str
+    nic_photo: str
+    phone_number: str
+    otp: str
     lat: float | None = None
     lng: float | None = None
 
@@ -476,12 +482,64 @@ async def validate_guest_nic(nic_number: str):
     }
 
 
+@router.post("/guest/send-otp")
+async def guest_send_otp(
+    req: GuestSendOtpRequest,
+    redis_client: redis.Redis = Depends(get_redis),
+):
+    """
+    Send OTP code to a guest user's mobile number for verification.
+    """
+    phone = normalize_phone_number(req.phone_number)
+    if not phone:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A valid mobile number is required (e.g. 077 123 4567)"
+        )
+
+    # Rate-limit guest OTP requests (max 4 per 15 minutes)
+    resend_key = f"guest_otp_rate:{phone}"
+    resend_count = await redis_client.get(resend_key)
+    if resend_count and int(resend_count) >= 4:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many OTP requests. Please wait a few minutes before trying again."
+        )
+
+    otp = str(secrets.randbelow(900000) + 100000)
+    otp_key = f"guest_otp:{phone}"
+    await redis_client.set(otp_key, otp, ex=300)
+
+    await redis_client.incr(resend_key)
+    await redis_client.expire(resend_key, 900)
+
+    delivery = {"sms": False}
+    try:
+        delivery = await send_otp(email=f"guest_{phone.replace('+', '')}@resqai.org", phone=phone, otp=otp)
+    except Exception as exc:
+        logger.warning("Guest OTP SMS failed to send: %s", exc)
+
+    logger.info("Guest OTP sent to %s (OTP=%s)", phone, otp)
+    return {
+        "message": f"Verification code sent to {phone}",
+        "phone": phone,
+        "delivery": delivery,
+        "otp_debug": otp if getattr(settings, "DEBUG", False) or getattr(settings, "ENVIRONMENT", "") != "production" else None,
+    }
+
+
 @router.post("/guest/verify-nic")
-async def verify_nic(req: GuestVerifyNicRequest, db: AsyncSession = Depends(get_db)):
+async def verify_nic(
+    req: GuestVerifyNicRequest,
+    db: AsyncSession = Depends(get_db),
+    redis_client: redis.Redis = Depends(get_redis),
+):
     """
     Guest verification endpoint:
-    Validates Sri Lankan NIC number real/fake status via Induwara.lk API,
-    and stores optional NIC photo for visual verification.
+    Compulsorily validates:
+    1. Real Sri Lankan NIC number verified via Induwara.lk API
+    2. Front photo of the NIC card (compulsory)
+    3. Mobile phone number verified via 6-digit OTP code (compulsory)
     """
     nic_num = (req.nic_number or "").strip()
     if not nic_num:
@@ -490,7 +548,7 @@ async def verify_nic(req: GuestVerifyNicRequest, db: AsyncSession = Depends(get_
             detail="NIC number is required for guest verification"
         )
 
-    # Validate whether NIC is real or fake using Induwara.lk API
+    # 1. Validate whether NIC is real or fake using Induwara.lk API
     is_valid, validation_msg, decoded_data = await validate_nic_with_induwara(nic_num)
     if not is_valid:
         raise HTTPException(
@@ -498,15 +556,51 @@ async def verify_nic(req: GuestVerifyNicRequest, db: AsyncSession = Depends(get_
             detail=f"Fake or invalid NIC: {validation_msg}"
         )
 
+    # 2. Compulsorily validate NIC photo
+    nic_photo = (req.nic_photo or "").strip()
+    if not nic_photo or len(nic_photo) < 50:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="NIC photo is compulsory. Please take or upload a photo of your NIC."
+        )
+
+    # 3. Compulsorily validate mobile number & OTP
+    phone = normalize_phone_number(req.phone_number)
+    if not phone:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A valid mobile number is required"
+        )
+
+    otp_code = (req.otp or "").strip()
+    if not otp_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Verification OTP code is required"
+        )
+
+    otp_key = f"guest_otp:{phone}"
+    stored_otp = await redis_client.get(otp_key)
+    if not stored_otp or stored_otp != otp_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OTP code. Please request a new code."
+        )
+
+    # Clean up OTP after successful verification
+    await redis_client.delete(otp_key)
+
     clean_nic = nic_num.upper()
     expires = datetime.now(timezone.utc) + timedelta(minutes=settings.GUEST_TOKEN_EXPIRE_MINUTES)
 
     new_session = GuestSession(
         nic_number=clean_nic[:50],
-        nic_photo=req.nic_photo,
+        nic_photo=nic_photo,
         nic_verified=True,
         nic_format_valid=True,
-        temp_token="pending", 
+        phone_number=phone[:20],
+        phone_verified=True,
+        temp_token="pending",
         expires_at=expires,
     )
 
@@ -518,7 +612,12 @@ async def verify_nic(req: GuestVerifyNicRequest, db: AsyncSession = Depends(get_
     await db.refresh(new_session)
 
     token = create_access_token(
-        data={"sub": str(new_session.session_id), "role": "guest", "nic": clean_nic},
+        data={
+            "sub": str(new_session.session_id),
+            "role": "guest",
+            "nic": clean_nic,
+            "phone": phone,
+        },
         expires_delta=timedelta(minutes=settings.GUEST_TOKEN_EXPIRE_MINUTES),
     )
 
@@ -529,9 +628,10 @@ async def verify_nic(req: GuestVerifyNicRequest, db: AsyncSession = Depends(get_
         "access_token": token,
         "token_type": "bearer",
         "nic_number": clean_nic,
+        "phone_number": phone,
         "session_id": str(new_session.session_id),
         "decoded": decoded_data,
-        "message": "Real Sri Lankan NIC verified successfully"
+        "message": "Guest verified successfully with NIC and Mobile OTP"
     }
 
 
