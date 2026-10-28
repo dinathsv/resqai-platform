@@ -3,6 +3,8 @@ async function checkSchema(pool) {
   await pool.query('SELECT avatar_url, user_type, is_active FROM public.users LIMIT 0');
   await pool.query('SELECT district, target, funds_collected FROM public.relief_missions LIMIT 0');
   await pool.query('SELECT alert_id, admin_id, affected_zone, status FROM public.emergency_alerts LIMIT 0');
+  await pool.query('SELECT admin_status FROM public.help_requests LIMIT 0');
+  await pool.query('SELECT origin_request_id, mission_type FROM public.relief_missions LIMIT 0');
 }
 
 module.exports = { checkSchema };

@@ -23,6 +23,12 @@ class ReliefMission(Base):
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
+    origin_request_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("help_requests.request_id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    mission_type: Mapped[str | None] = mapped_column(String(20), nullable=True)
     target_zone = mapped_column(Geometry(srid=4326), nullable=True)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="planning")
     district: Mapped[str | None] = mapped_column(String(100), nullable=True)

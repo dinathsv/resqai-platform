@@ -104,7 +104,7 @@ router.get('/:id', async (req, res) => {
     const u = userRes.rows[0];
 
     const requestsRes = await pool.query(
-      `SELECT request_id, emergency_type, urgency_level, status, created_at
+      `SELECT request_id, emergency_type, status, created_at
        FROM help_requests
        WHERE user_id = $1
        ORDER BY created_at DESC`,

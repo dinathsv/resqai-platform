@@ -1,77 +1,30 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const {
-  ACTIVE_REQUEST_STATUSES,
-  generateDashboardReport,
-  getDashboardStats,
-} = require('../services/dashboardService');
+const { generateDashboardReport, getDashboardStats } = require('../services/dashboardService');
 
-test('dashboard aggregates only nonterminal requests and urgency five is critical', async () => {
-  let captured;
-  const pool = {
-    query: async (sql, params) => {
-      captured = { sql, params };
-      return {
-        rows: [{ active_requests: 3, critical_count: 1, active_alerts: 2, total_donations: 1250 }],
-      };
-    },
-  };
-
+test('dashboard returns separate help, donation, mission, and alert totals', async () => {
+  const pool = { query: async () => ({ rows: [{ help_requests: 4, donation_requests: 2, active_missions: 3, active_alerts: 1 }] }) };
   const stats = await getDashboardStats(pool);
-
-  assert.deepEqual(captured.params[0], ACTIVE_REQUEST_STATUSES);
-  assert.match(captured.sql, /urgency_level = 5/);
-  assert.match(captured.sql, /expires_at IS NULL OR expires_at > NOW\(\)/);
-  assert.match(captured.sql, /status IN \('pending', 'completed'\)/);
-  assert.equal(stats.active_requests, 3);
-  assert.equal(stats.critical_count, 1);
-  assert.equal(stats.active_alerts, 2);
-  assert.equal(stats.total_donations, 1250);
+  assert.deepEqual(stats, { help_requests: 4, donation_requests: 2, active_missions: 3, active_alerts: 1 });
+  assert.equal('critical_count' in stats, false);
+  assert.equal('total_donations' in stats, false);
 });
 
-test('dashboard report summarizes current database aggregates', async () => {
-  const pool = {
-    query: async (_sql, params) => {
-      assert.deepEqual(params[0], ACTIVE_REQUEST_STATUSES);
-      return {
-        rows: [{
-          total_incidents: 4,
-          active_requests: 2,
-          critical_count: 1,
-          urgency_distribution: { 3: 1, 5: 1 },
-          type_distribution: { flood: 2 },
-        }],
-      };
-    },
-  };
-
+test('dashboard report excludes urgency and includes participation statistics', async () => {
+  const pool = { query: async () => ({ rows: [{ total_help_requests: 4, total_donation_requests: 2, pending_requests: 3, in_progress_requests: 1, active_missions: 2, completed_missions: 1, active_alerts: 1, help_participants: 5, donation_participants: 3 }] }) };
   const report = await generateDashboardReport(pool);
-
-  assert.equal(report.total_incidents, 4);
-  assert.equal(report.active_requests, 2);
-  assert.equal(report.critical_count, 1);
-  assert.match(report.narrative, /2 are currently active/);
-  assert.match(report.narrative, /Level 5: 1/);
-  assert.match(report.narrative, /flood \(2\)/);
+  assert.equal(report.statistics.help_requests, 4);
+  assert.equal(report.statistics.donation_requests, 2);
+  assert.equal(report.statistics.help_participants, 5);
+  assert.equal(report.statistics.donation_participants, 3);
+  assert.doesNotMatch(report.narrative, /urgency|critical/i);
   assert.ok(report.generated_at);
 });
 
-test('dashboard report handles an empty request dataset', async () => {
-  const pool = {
-    query: async () => ({
-      rows: [{
-        total_incidents: 0,
-        active_requests: 0,
-        critical_count: 0,
-        urgency_distribution: {},
-        type_distribution: {},
-      }],
-    }),
-  };
-
+test('dashboard report handles empty database counts', async () => {
+  const pool = { query: async () => ({ rows: [{ total_help_requests: 0, total_donation_requests: 0, pending_requests: 0, in_progress_requests: 0, active_missions: 0, completed_missions: 0, active_alerts: 0, help_participants: 0, donation_participants: 0 }] }) };
   const report = await generateDashboardReport(pool);
-
-  assert.equal(report.narrative, 'No emergency requests have been recorded yet.');
-  assert.equal(report.active_requests, 0);
+  assert.equal(report.statistics.help_requests, 0);
+  assert.match(report.narrative, /0 help requests and 0 donation requests/);
 });

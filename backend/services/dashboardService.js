@@ -9,71 +9,59 @@ const ACTIVE_REQUEST_STATUSES = Object.freeze([
 async function getDashboardStats(pool) {
   const { rows } = await pool.query(
     `SELECT
-       (SELECT COUNT(*)::int
-        FROM help_requests
-        WHERE status = ANY($1::request_status[])) AS active_requests,
-       (SELECT COUNT(*)::int
-        FROM help_requests
-        WHERE urgency_level = 5
-          AND status = ANY($1::request_status[])) AS critical_count,
-       (SELECT COUNT(*)::int
-        FROM emergency_alerts
-        WHERE status = 'active'
-          AND (expires_at IS NULL OR expires_at > NOW())) AS active_alerts,
-       (SELECT COALESCE(SUM(amount), 0)::float
-        FROM donations
-      WHERE status IN ('pending', 'completed')) AS total_donations`,
-    [ACTIVE_REQUEST_STATUSES],
-  );
-
+      (SELECT COUNT(*)::int FROM help_requests
+       WHERE emergency_type != 'donation') AS help_requests,
+      (SELECT COUNT(*)::int FROM help_requests
+       WHERE emergency_type = 'donation') AS donation_requests,
+      (SELECT COUNT(*)::int FROM relief_missions
+       WHERE status = 'active') AS active_missions,
+      (SELECT COUNT(*)::int FROM emergency_alerts
+       WHERE status = 'active'
+         AND (expires_at IS NULL OR expires_at > NOW())) AS active_alerts
+  `);
   return rows[0];
 }
 
 async function generateDashboardReport(pool) {
   const { rows } = await pool.query(
     `SELECT
-       (SELECT COUNT(*)::int FROM help_requests) AS total_incidents,
-       (SELECT COUNT(*)::int FROM help_requests
-        WHERE status = ANY($1::request_status[])) AS active_requests,
-       (SELECT COUNT(*)::int FROM help_requests
-        WHERE urgency_level = 5
-          AND status = ANY($1::request_status[])) AS critical_count,
-       (SELECT COALESCE(json_object_agg(urgency_level, request_count), '{}'::json)
-        FROM (
-          SELECT urgency_level, COUNT(*)::int AS request_count
-          FROM help_requests
-          WHERE status = ANY($1::request_status[])
-          GROUP BY urgency_level
-        ) urgency_counts) AS urgency_distribution,
-       (SELECT COALESCE(json_object_agg(emergency_type, request_count), '{}'::json)
-        FROM (
-          SELECT emergency_type, COUNT(*)::int AS request_count
-          FROM help_requests
-          WHERE status = ANY($1::request_status[])
-          GROUP BY emergency_type
-        ) type_counts) AS type_distribution`,
-    [ACTIVE_REQUEST_STATUSES],
-  );
-
-  const report = rows[0];
-  const urgency = Object.entries(report.urgency_distribution || {})
-    .sort(([left], [right]) => Number(left) - Number(right))
-    .map(([level, count]) => `Level ${level}: ${count}`)
-    .join(', ') || 'No active requests';
-  const types = Object.entries(report.type_distribution || {})
-    .sort(([, left], [, right]) => Number(right) - Number(left))
-    .map(([type, count]) => `${type.replaceAll('_', ' ')} (${count})`)
-    .join(', ') || 'none';
-
-  report.narrative = report.total_incidents === 0
-    ? 'No emergency requests have been recorded yet.'
-    : `There are ${report.total_incidents} recorded emergency requests. ` +
-      `${report.active_requests} are currently active, including ${report.critical_count} ` +
-      `critical case${report.critical_count === 1 ? '' : 's'} (urgency level 5). ` +
-      `Active request urgency distribution: ${urgency}. ` +
-      `Active request types: ${types}.`;
-  report.generated_at = new Date().toISOString();
-  return report;
+      (SELECT COUNT(*)::int FROM help_requests WHERE emergency_type != 'donation') AS total_help_requests,
+      (SELECT COUNT(*)::int FROM help_requests WHERE emergency_type = 'donation') AS total_donation_requests,
+      (SELECT COUNT(*)::int FROM help_requests
+       WHERE COALESCE(admin_status, CASE WHEN status::text IN ('resolved','cancelled') THEN 'finished' ELSE 'pending' END) = 'pending') AS pending_requests,
+      (SELECT COUNT(*)::int FROM help_requests
+       WHERE COALESCE(admin_status, CASE WHEN status::text IN ('resolved','cancelled') THEN 'finished' ELSE 'pending' END) = 'in_progress') AS in_progress_requests,
+      (SELECT COUNT(*)::int FROM relief_missions WHERE status = 'active') AS active_missions,
+      (SELECT COUNT(*)::int FROM relief_missions WHERE status = 'completed') AS completed_missions,
+      (SELECT COUNT(*)::int FROM emergency_alerts WHERE status = 'active'
+       AND (expires_at IS NULL OR expires_at > NOW())) AS active_alerts,
+      (SELECT COUNT(*)::int FROM (
+        SELECT DISTINCT va.user_id FROM volunteer_assignments va
+        WHERE va.status IN ('accepted','active','completed')
+      ) help_participants) AS help_participants,
+      (SELECT COUNT(*)::int FROM (
+        SELECT DISTINCT donor_id FROM donations WHERE status IN ('pending','completed')
+      ) donation_participants) AS donation_participants
+  `);
+  const data = rows[0];
+  data.statistics = {
+    help_requests: data.total_help_requests,
+    donation_requests: data.total_donation_requests,
+    pending_requests: data.pending_requests,
+    in_progress_requests: data.in_progress_requests,
+    active_missions: data.active_missions,
+    completed_missions: data.completed_missions,
+    active_alerts: data.active_alerts,
+    help_participants: data.help_participants,
+    donation_participants: data.donation_participants,
+  };
+  data.narrative = `Database summary: ${data.total_help_requests} help requests and ${data.total_donation_requests} donation requests are recorded. ` +
+    `${data.pending_requests} are pending and ${data.in_progress_requests} are in progress. ` +
+    `${data.active_missions} missions are active and ${data.completed_missions} are completed. ` +
+    `${data.active_alerts} alerts are currently active. ` +
+    `${data.help_participants} users have participated in help assignments, and ${data.donation_participants} users have donation commitments.`;
+  data.generated_at = new Date().toISOString();
+  return data;
 }
 
 module.exports = {

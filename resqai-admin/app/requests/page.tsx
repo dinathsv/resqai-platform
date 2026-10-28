@@ -6,18 +6,20 @@ import useSWR from 'swr';
 import api from '@/lib/api';
 import styles from './requests.module.css';
 
-interface Request {
+interface RequestItem {
   request_id: string;
   emergency_type: string;
-  urgency_level: number;
+  request_type: 'help' | 'donation';
   original_message: string;
   created_at: string;
+  submitted_by: string;
   source: string;
+  admin_status: 'pending' | 'in_progress' | 'finished';
   status: string;
 }
 
 interface RequestsResponse {
-  requests: Request[];
+  requests: RequestItem[];
   total: number;
   page: number;
   pages: number;
@@ -25,35 +27,29 @@ interface RequestsResponse {
 
 const fetcher = (url: string) => api.get(url).then((res) => res.data);
 
+function statusLabel(status: string) {
+  if (status === 'finished') return 'Finished';
+  if (status === 'in_progress') return 'In Progress';
+  return 'Pending';
+}
+
 export default function RequestsPage() {
   const [filterType, setFilterType] = useState('');
-  const [filterUrgency, setFilterUrgency] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [filterDate, setFilterDate] = useState('');
+  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
   const params = new URLSearchParams();
   params.set('page', String(page));
   params.set('limit', '20');
   if (filterType) params.set('type', filterType);
-  if (filterUrgency) params.set('urgency', filterUrgency);
   if (filterStatus) params.set('status', filterStatus);
-  if (filterDate) params.set('date', filterDate);
+  if (search.trim()) params.set('search', search.trim());
 
-  const { data, mutate } = useSWR<RequestsResponse>(
+  const { data, error, isLoading, mutate } = useSWR<RequestsResponse>(
     `/api/requests?${params.toString()}`,
-    fetcher
+    fetcher,
   );
-
-  async function flagAsFake(id: string) {
-    if (!window.confirm('Flag this request as fake?')) return;
-    try {
-      await api.patch(`/api/requests/${id}/status`, { status: 'flagged' });
-      mutate();
-    } catch (error) {
-      console.error("Failed to flag request:", error);
-    }
-  }
 
   const totalPages = data?.pages ?? 1;
 
@@ -63,130 +59,77 @@ export default function RequestsPage() {
 
       <div className={styles.filterRow}>
         <select value={filterType} onChange={(e) => { setFilterType(e.target.value); setPage(1); }}>
-          <option value="">All Types</option>
-          <option value="Flood">Flood</option>
-          <option value="Landslide">Landslide</option>
-          <option value="Fire">Fire</option>
-          <option value="Earthquake">Earthquake</option>
-          <option value="Medical">Medical</option>
-          <option value="Other">Other</option>
-        </select>
-
-        <select value={filterUrgency} onChange={(e) => { setFilterUrgency(e.target.value); setPage(1); }}>
-          <option value="">All Urgencies</option>
-          <option value="5">5 (Critical)</option>
-          <option value="4">4 (High)</option>
-          <option value="3">3 (Medium)</option>
-          <option value="2">2 (Low)</option>
-          <option value="1">1 (Lowest)</option>
+          <option value="">All Request Types</option>
+          <option value="help">Help Request</option>
+          <option value="donation">Donation Request</option>
         </select>
 
         <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}>
           <option value="">All Statuses</option>
           <option value="pending">Pending</option>
-          <option value="verified">Verified</option>
           <option value="in_progress">In Progress</option>
-          <option value="resolved">Resolved</option>
-          <option value="flagged">Flagged</option>
+          <option value="finished">Finished</option>
         </select>
 
         <input
-          type="date"
-          value={filterDate}
-          onChange={(e) => { setFilterDate(e.target.value); setPage(1); }}
+          type="search"
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          placeholder="Search message or requester"
         />
+
+        <button type="button" className="outline" onClick={() => mutate()}>Refresh</button>
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Type</th>
-            <th>Urgency</th>
-            <th>Message</th>
-            <th>Submitted</th>
-            <th>Source</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data?.requests && data.requests.length > 0 ? (
-            data.requests.map((req) => (
-              <tr key={req.request_id} className={req.status === 'flagged' ? styles.flaggedRow : undefined}>
-                <td><code>{req.request_id.slice(0, 8)}</code></td>
-                <td>{req.emergency_type}</td>
-                <td>
-                  <span className={`statusBadge ${
-                    req.urgency_level === 5 ? 'statusCritical' :
-                    req.urgency_level === 4 ? 'statusWarning' :
-                    'statusInfo'
-                  }`}>
-                    {req.urgency_level}
-                  </span>
-                </td>
-                <td>{req.original_message.slice(0, 50)}{req.original_message.length > 50 ? '...' : ''}</td>
-                <td>{new Date(req.created_at).toLocaleString()}</td>
-                <td>{req.source || 'App'}</td>
-                <td>
-                  <span className={`statusBadge ${
-                    req.status === 'verified' || req.status === 'resolved' ? 'statusSuccess' :
-                    req.status === 'flagged' ? 'statusCritical' :
-                    req.status === 'pending' || req.status === 'in_progress' ? 'statusWarning' :
-                    'statusInfo'
-                  }`}>
-                    {req.status}
-                  </span>
-                </td>
-                <td>
-                  <div className={styles.actions}>
-                    <Link href={`/requests/${req.request_id}`} className={styles.viewLink}>
-                      View
-                    </Link>
-                    {req.status !== 'flagged' && (
-                      <button
-                        className={`outline ${styles.flagBtn}`}
-                        onClick={() => flagAsFake(req.request_id)}
-                      >
-                        Flag as Fake
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))
-          ) : (
+      {error && <p role="alert" className={styles.errorText}>Requests could not be loaded.</p>}
+
+      <div className="tableWrap">
+        <table>
+          <thead>
             <tr>
-              <td colSpan={8}>No requests found</td>
+              <th>Request ID</th>
+              <th>Request Type</th>
+              <th>Request Message / Description</th>
+              <th>Submitted By</th>
+              <th>Created Date and Time</th>
+              <th>Status</th>
+              <th>Details</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan={7}>Loading requests...</td></tr>
+            ) : error ? (
+              <tr><td colSpan={7}>Unable to load requests.</td></tr>
+            ) : data?.requests?.length ? (
+              data.requests.map((req) => (
+                <tr key={req.request_id}>
+                  <td><code>{req.request_id.slice(0, 8)}</code></td>
+                  <td>{req.request_type === 'donation' ? 'Donation Request' : 'Help Request'}</td>
+                  <td>{req.original_message || '—'}</td>
+                  <td>{req.submitted_by || (req.source === 'guest' ? 'Guest' : 'User')}</td>
+                  <td>{req.created_at ? new Date(req.created_at).toLocaleString() : '—'}</td>
+                  <td>
+                    <span className={`statusBadge ${req.admin_status === 'finished' ? 'statusSuccess' : req.admin_status === 'in_progress' ? 'statusWarning' : 'statusInfo'}`}>
+                      {statusLabel(req.admin_status)}
+                    </span>
+                  </td>
+                  <td>
+                    <Link href={`/requests/${req.request_id}`} className={styles.viewLink}>View Details</Link>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr><td colSpan={7}>No requests found.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       <div className={styles.pagination}>
-        <button
-          className="outline"
-          disabled={page <= 1}
-          onClick={() => setPage(page - 1)}
-        >
-          Previous
-        </button>
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-          <span
-            key={p}
-            className={p === page ? styles.pageNumActive : styles.pageNum}
-            onClick={() => setPage(p)}
-          >
-            {p}
-          </span>
-        ))}
-        <button
-          className="outline"
-          disabled={page >= totalPages}
-          onClick={() => setPage(page + 1)}
-        >
-          Next
-        </button>
+        <button type="button" className="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
+        <span>Page {page} of {totalPages}</span>
+        <button type="button" className="outline" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</button>
       </div>
     </div>
   );
