@@ -97,6 +97,8 @@ export const si: Translations = {
     nicPlaceholder: 'උදා: 198812345678 හෝ 881234567V',
     nicHint: 'පැරණි ඉලක්කම් 9 හැඳුනුම්පත (V/X සමඟ) හෝ නව ඉලක්කම් 12 හැඳුනුම්පත ඇතුළත් කරන්න',
     uploadNicPhoto: 'ජාතික හැඳුනුම්පත් ඡායාරූපය උඩුගත කරන්න',
+    verifyBtn: 'තහවුරු කරන්න',
+    validateNic: 'NIC තහවුරු කරන්න',
     takeNicPhoto: 'ඡායාරූපයක් ගන්න',
     chooseFromGallery: 'ගැලරියෙන් තෝරන්න',
     retakePhoto: 'නැවත ඡායාරූපයක් ගන්න',
