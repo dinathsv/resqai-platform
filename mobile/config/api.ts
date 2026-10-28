@@ -1,5 +1,3 @@
-
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
@@ -74,7 +72,9 @@ function resolveBaseUrl(
     if (host && host !== 'localhost' && host !== '127.0.0.1') {
       return `http://${host}:${fallbackPort}`;
     }
-    // Web dev on localhost — fall through to localhost fallback below
+    if (__DEV__) {
+      return `http://localhost:${fallbackPort}`;
+    }
   }
 
   // 3 & 4. Native
