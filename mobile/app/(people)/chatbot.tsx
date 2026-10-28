@@ -441,6 +441,7 @@ export default function ChatbotScreen() {
         >
           <FlatList
             showsVerticalScrollIndicator={false}
+            showsHorizontalScrollIndicator={false}
             ref={flatListRef as any}
             data={messages}
             keyExtractor={(item) => item.id}
@@ -478,6 +479,7 @@ export default function ChatbotScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.suggestionsScroll}
             >
               {suggestions.map((suggestion, idx) => (

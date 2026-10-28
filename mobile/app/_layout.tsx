@@ -30,7 +30,27 @@ LogBox.ignoreLogs([
 const isWeb = Platform.OS === 'web';
 
 function useWebMobileFrame() {
-  // Web frame styling removed for minimal design
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const styleId = 'resqai-hide-scrollbars';
+      if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+          * {
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+          }
+          *::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+    }
+  }, []);
 }
 
 // Inner layout that can read theme and language from context

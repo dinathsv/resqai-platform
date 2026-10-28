@@ -167,6 +167,7 @@ export default function ActivitiesScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
       >
         {/* Standard TopBar */}
         <TopBar transparent={false} />

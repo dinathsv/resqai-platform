@@ -320,7 +320,7 @@ export default function PredictionScreen() {
 
       {showDistrictPicker && (
         <View style={[s.dropdownList, { backgroundColor: theme.surface }]}>
-          <ScrollView style={s.dropdownScroll} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+          <ScrollView style={s.dropdownScroll} nestedScrollEnabled showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false}>
             {districtList.map((d) => (
               <TouchableOpacity
                 key={d}
@@ -695,6 +695,7 @@ export default function PredictionScreen() {
         style={s.scroll}
         contentContainerStyle={s.scrollInner}
         showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         {/* API Health */}

@@ -235,6 +235,7 @@ export default function DashboardScreen() {
         style={styles.scrollContent}
         contentContainerStyle={styles.scrollInner}
         showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
       >
         {/* Weather Widget */}
         <View style={[

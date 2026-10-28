@@ -86,7 +86,7 @@ export default function AppearanceSettings({ visible, onClose }: AppearanceSetti
             {/* Handle */}
             <View style={[styles.handle, { backgroundColor: theme.border }]} />
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
+            <ScrollView showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
               {/* Language Section */}
               <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
                 {t('settings.languageTitle')}

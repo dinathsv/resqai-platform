@@ -92,6 +92,7 @@ export default function VerifyOtpScreen() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
         >
           <View style={[styles.iconCircle, { backgroundColor: theme.successLight }]}>
             <Ionicons name="shield-checkmark-outline" size={36} color={theme.success} />
