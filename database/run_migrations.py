@@ -18,9 +18,9 @@ def _asyncpg_database_url(database_url: str) -> str:
 
 
 async def run_migrations() -> None:
-    database_url = os.environ.get("DATABASE_URL")
+    database_url = os.environ.get("DATABASE_URL") or os.environ.get("PYTHON_DATABASE_URL")
     if not database_url:
-        raise RuntimeError("DATABASE_URL is required to run database migrations")
+        raise RuntimeError("DATABASE_URL or PYTHON_DATABASE_URL is required to run database migrations")
 
     migration_files = sorted(MIGRATIONS_DIR.glob("*.sql"))
     if not migration_files:
