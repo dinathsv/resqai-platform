@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import get_db
 from ..middleware.auth import get_current_user, get_optional_user, require_role
 from ..models.emergency_alert import EmergencyAlert
+from ..models.help_request import HelpRequest
 from ..services.sms_service import sms_gateway
 
 logger = logging.getLogger("resqai.alerts")
@@ -221,21 +222,56 @@ async def list_alerts(
     result = await db.execute(query)
     alerts = result.scalars().all()
 
-    return {
-        "alerts": [
-            {
-                "alert_id": str(a.alert_id),
-                "disaster_type": a.disaster_type,
-                "severity": a.severity,
-                "work_plan": a.work_plan,
-                "status": a.status,
-                "delivered_count": a.delivered_count,
-                "created_at": a.created_at.isoformat() if a.created_at else None,
-                "expires_at": a.expires_at.isoformat() if a.expires_at else None,
-            }
-            for a in alerts
-        ]
-    }
+    alert_items = [
+        {
+            "alert_id": str(a.alert_id),
+            "disaster_type": a.disaster_type,
+            "severity": a.severity,
+            "work_plan": a.work_plan,
+            "status": a.status,
+            "delivered_count": a.delivered_count,
+            "created_at": a.created_at.isoformat() if a.created_at else None,
+            "expires_at": a.expires_at.isoformat() if a.expires_at else None,
+        }
+        for a in alerts
+    ]
+
+    # Also include community help and donation requests so citizens see them in alerts feed
+    try:
+        req_query = select(HelpRequest).order_by(desc(HelpRequest.created_at))
+        if selected_status == "all":
+            pass
+        elif selected_status == "active":
+            req_query = req_query.where(HelpRequest.status.in_(["pending", "verified", "in_progress", "dispatched"]))
+        elif selected_status:
+            req_query = req_query.where(HelpRequest.status == selected_status)
+        elif role != "admin":
+            req_query = req_query.where(HelpRequest.status.in_(["pending", "verified", "in_progress", "dispatched"]))
+
+        req_query = req_query.limit(50)
+        req_result = await db.execute(req_query)
+        community_requests = req_result.scalars().all()
+
+        for r in community_requests:
+            is_active = r.status in ["pending", "verified", "in_progress", "dispatched"]
+            req_title = "Donation Request" if r.emergency_type == "donation" else "Help & Rescue Request"
+            alert_items.append({
+                "alert_id": str(r.request_id),
+                "disaster_type": r.emergency_type or "help_rescue",
+                "severity": r.urgency_level or 3,
+                "work_plan": r.original_message or r.ai_summary or req_title,
+                "status": "active" if is_active else r.status,
+                "delivered_count": 0,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+                "expires_at": None,
+            })
+    except Exception as exc:
+        logger.warning("Could not include community requests in alert list: %s", exc)
+
+    # Sort merged alerts newest first
+    alert_items.sort(key=lambda item: item.get("created_at") or "", reverse=True)
+
+    return {"alerts": alert_items}
 
 
 @router.get("/{alert_id}")

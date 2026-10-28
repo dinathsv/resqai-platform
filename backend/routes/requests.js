@@ -78,7 +78,7 @@ router.get('/', requireAuth, async (req, res) => {
  */
 router.post('/new', requireInternal, async (req, res) => {
   try {
-    const { request_id, emergency_type, urgency_level, ai_summary } = req.body;
+    const { request_id, emergency_type, urgency_level, ai_summary, message, lat, lng } = req.body;
 
     if (!request_id || !emergency_type) {
       return res.status(400).json({ error: 'request_id and emergency_type are required' });
@@ -90,6 +90,9 @@ router.post('/new', requireInternal, async (req, res) => {
         request_id,
         emergency_type,
         urgency_level: urgency_level || 3,
+        message: message || null,
+        lat: lat || null,
+        lng: lng || null,
         ai_summary: ai_summary || null,
         alerted_at: new Date().toISOString(),
       });

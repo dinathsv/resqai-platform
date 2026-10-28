@@ -45,17 +45,38 @@ function broadcastAlert(io, alert) {
 }
 
 function notifyNewRequest(io, request) {
-  // Broadcast to admin dashboard
+  // 1. Broadcast to admin dashboard
   io.to('role:admin').emit('new_request', request);
-  
-  // If it's a critical request (urgency >= 4), broadcast emergency alert to all users
-  if (request.urgency_level >= 4) {
-    io.to('role:people').emit('emergency_alert', {
-      alert_id: request.request_id,
-      disaster_type: request.emergency_type,
-      description: request.ai_summary || 'Critical emergency reported in the area.',
-    });
-  }
+
+  // 2. Build user-facing alert payload for person-to-person notifications
+  const isDonation = request.emergency_type === 'donation';
+  const defaultDesc = isDonation
+    ? 'New donation request submitted in your community.'
+    : 'Emergency help & rescue request submitted nearby.';
+  const description = request.message || request.ai_summary || defaultDesc;
+
+  const alertPayload = {
+    alert_id: request.request_id,
+    disaster_type: request.emergency_type || (isDonation ? 'donation' : 'help_rescue'),
+    severity: request.urgency_level || 3,
+    description: description,
+    work_plan: description,
+    status: 'active',
+    created_at: request.alerted_at || new Date().toISOString(),
+    lat: request.lat,
+    lng: request.lng,
+  };
+
+  // 3. Broadcast to all citizens (role:people) and all connected clients
+  io.to('role:people').emit('new_request', request);
+  io.to('role:people').emit('community_request', request);
+  io.to('role:people').emit('emergency_alert', alertPayload);
+  io.to('role:people').emit('alert_received', alertPayload);
+
+  // Universal broadcast across all rooms to ensure reach
+  io.emit('new_request', request);
+  io.emit('emergency_alert', alertPayload);
+  io.emit('alert_received', alertPayload);
 }
 
 module.exports = { initSocket, broadcastAlert, notifyNewRequest };

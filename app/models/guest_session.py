@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String, func
+from sqlalchemy import Boolean, DateTime, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from geoalchemy2 import Geometry
@@ -16,7 +16,8 @@ class GuestSession(Base):
     session_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    nic_number: Mapped[str] = mapped_column(String(12), nullable=False)
+    nic_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    nic_photo: Mapped[str | None] = mapped_column(Text, nullable=True)
     nic_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     nic_format_valid: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     temp_token: Mapped[str] = mapped_column(String(512), unique=True, nullable=False)

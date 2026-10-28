@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     AI_API_KEY: str = ""
     AI_MODEL: str = "gemini-3.5-flash-lite"
 
+    NODE_BACKEND_URL: str = "http://localhost:5000"
+
     # --- OTP Delivery: Email (primary) ---
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587

@@ -22,13 +22,11 @@ from app.models.help_request import HelpRequest
 logger = logging.getLogger("resqai.requests")
 router = APIRouter(tags=["Requests"])
 
-NODE_BACKEND_URL = os.getenv("NODE_BACKEND_URL", "http://localhost:5000")
-
 class SubmitRequest(BaseModel):
     message: str
     lat: float
     lng: float
-    request_type: str
+    request_type: str = "help_rescue"
 
 class StatusUpdateRequest(BaseModel):
     status: str
@@ -37,37 +35,47 @@ async def notify_new_request(
     request_id: str,
     emergency_type: str,
     urgency_level: int,
+    message: str | None = None,
+    lat: float | None = None,
+    lng: float | None = None,
     ai_summary: str | None = None,
 ):
     """
-    Alert admins and users about new emergency requests.
-    Sends a real-time WebSocket event to the admin dashboard via the
-    Node.js backend.
+    Alert admins and community users about new help and donation requests.
+    Sends a real-time WebSocket event to the Node.js backend.
     """
+    node_backend_url = (getattr(settings, "NODE_BACKEND_URL", None) or os.getenv("NODE_BACKEND_URL") or "http://localhost:5000").rstrip("/")
     payload = {
         "request_id": request_id,
         "emergency_type": emergency_type,
         "urgency_level": urgency_level,
+        "message": message,
+        "lat": lat,
+        "lng": lng,
         "ai_summary": ai_summary,
     }
     logger.info(
-        "NEW REQUEST ALERT: type=%s urgency=%d request=%s",
-        emergency_type, urgency_level, request_id,
+        "NEW REQUEST ALERT: type=%s urgency=%d request=%s target=%s",
+        emergency_type, urgency_level, request_id, node_backend_url,
     )
+    headers = {}
+    if settings.INTERNAL_API_KEY:
+        headers["X-Internal-API-Key"] = settings.INTERNAL_API_KEY
+
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(
-                f"{NODE_BACKEND_URL}/api/requests/new",
+                f"{node_backend_url}/api/requests/new",
                 json=payload,
-                headers={"X-Internal-API-Key": settings.INTERNAL_API_KEY},
+                headers=headers,
                 timeout=5.0,
             )
             if resp.status_code == 200:
-                logger.info("New request alert delivered to Node backend")
+                logger.info("New request alert delivered to Node backend at %s", node_backend_url)
             else:
-                logger.error("New request alert delivery failed: %s", resp.text)
+                logger.error("New request alert delivery failed (%d): %s", resp.status_code, resp.text)
     except Exception as exc:
-        logger.error("Failed to send new request alert to Node backend: %s", exc)
+        logger.error("Failed to send new request alert to Node backend at %s: %s", node_backend_url, exc)
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_request(
@@ -83,7 +91,11 @@ async def create_request(
     urgency_level = 3
     ai_summary = None
 
+    req_id = uuid.uuid4()
+    req_id_str = str(req_id)
+
     new_req = HelpRequest(
+        request_id=req_id,
         original_message=req.message,
         emergency_type=emergency_type,
         urgency_level=urgency_level,
@@ -110,17 +122,24 @@ async def create_request(
 
     new_req.gps_location = f"SRID=4326;POINT({req.lng} {req.lat})"
 
-    # Alert admin/users BEFORE saving
-    # This ensures backend is notified even if database save fails
-    req_id = uuid.uuid4()  # Generate ID early for notification
-    req_id_str = str(req_id)
-    await notify_new_request(req_id_str, emergency_type, urgency_level, ai_summary)
-
-    # Now save to database
-    new_req.request_id = req_id  # Use the same ID
+    # Save to database FIRST so user data is guaranteed to persist
     db.add(new_req)
     await db.commit()
     await db.refresh(new_req)
+
+    # Deliver real-time notification to Node backend
+    try:
+        await notify_new_request(
+            request_id=req_id_str,
+            emergency_type=emergency_type,
+            urgency_level=urgency_level,
+            message=req.message,
+            lat=req.lat,
+            lng=req.lng,
+            ai_summary=ai_summary,
+        )
+    except Exception as exc:
+        logger.error("Failed to broadcast request alert: %s", exc)
 
     return {
         "request_id": req_id_str,
