@@ -77,7 +77,8 @@ class LoginRequest(BaseModel):
     password: str
 
 class GuestVerifyNicRequest(BaseModel):
-    nic_number: str
+    nic_number: str | None = None
+    nic_photo: str | None = None
     lat: float | None = None
     lng: float | None = None
 
@@ -409,21 +410,42 @@ async def admin_login(
 
 @router.post("/guest/verify-nic")
 async def verify_nic(req: GuestVerifyNicRequest, db: AsyncSession = Depends(get_db)):
-    if not re.match(r"^[0-9]{9}[VvXx]$|^[0-9]{12}$", req.nic_number):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid NIC format")
+    # Support both NIC photo upload (primary) and NIC number validation
+    if not req.nic_photo and not req.nic_number:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="NIC photo or NIC number is required for verification"
+        )
 
-    result = await db.execute(
-        select(NicEntry).where(NicEntry.nic_number == req.nic_number, NicEntry.is_valid == True)
-    )
-    if not result.scalars().first():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="NIC not in registry")
+    nic_num = (req.nic_number or "").strip()
+    nic_verified = False
+    nic_format_valid = False
+
+    if req.nic_photo and len(req.nic_photo) > 50:
+        nic_verified = True
+        if not nic_num:
+            nic_num = f"NIC-IMG-{uuid.uuid4().hex[:8].upper()}"
+        else:
+            nic_format_valid = bool(re.match(r"^[0-9]{9}[VvXx]$|^[0-9]{12}$", nic_num))
+    elif nic_num:
+        if not re.match(r"^[0-9]{9}[VvXx]$|^[0-9]{12}$", nic_num):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid NIC format")
+        nic_format_valid = True
+
+        result = await db.execute(
+            select(NicEntry).where(NicEntry.nic_number == nic_num, NicEntry.is_valid == True)
+        )
+        if not result.scalars().first():
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="NIC not in registry")
+        nic_verified = True
 
     expires = datetime.now(timezone.utc) + timedelta(minutes=settings.GUEST_TOKEN_EXPIRE_MINUTES)
 
     new_session = GuestSession(
-        nic_number=req.nic_number,
-        nic_verified=True,
-        nic_format_valid=True,
+        nic_number=nic_num[:50],
+        nic_photo=req.nic_photo,
+        nic_verified=nic_verified,
+        nic_format_valid=nic_format_valid,
         temp_token="pending", 
         expires_at=expires,
     )
@@ -436,14 +458,19 @@ async def verify_nic(req: GuestVerifyNicRequest, db: AsyncSession = Depends(get_
     await db.refresh(new_session)
 
     token = create_access_token(
-        data={"sub": str(new_session.session_id), "role": "guest", "nic": req.nic_number},
+        data={"sub": str(new_session.session_id), "role": "guest", "nic": nic_num},
         expires_delta=timedelta(minutes=settings.GUEST_TOKEN_EXPIRE_MINUTES),
     )
 
     new_session.temp_token = token
     await db.commit()
 
-    return {"access_token": token, "token_type": "bearer"}
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "nic_number": nic_num,
+        "session_id": str(new_session.session_id)
+    }
 
 
 @router.post("/forgot-password")

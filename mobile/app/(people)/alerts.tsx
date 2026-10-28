@@ -43,6 +43,8 @@ const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 function getDisasterMeta(type: string, t?: (k: string) => string) {
   const lower = (type || '').toLowerCase();
   const tr = t || ((k: string) => k);
+  if (lower.includes('donation')) return { icon: '🤝', name: 'Donation Request', color: '#10B981' };
+  if (lower.includes('help') || lower.includes('rescue')) return { icon: '🆘', name: 'Help & Rescue', color: '#EF4444' };
   if (lower.includes('flood')) return { icon: '🌊', name: tr('alerts.filterFlood'), color: '#1E88E5' };
   if (lower.includes('landslide')) return { icon: '⛰️', name: tr('alerts.filterLandslide'), color: '#8D6E63' };
   if (lower.includes('tsunami')) return { icon: '🌊', name: tr('alerts.filterTsunami'), color: '#00ACC1' };
@@ -218,8 +220,37 @@ export default function AlertsScreen() {
           }, 6000);
         };
 
+        const onNewRequest = (req: any) => {
+          if (!mounted) return;
+          const isDonation = req.emergency_type === 'donation';
+          const title = isDonation ? 'Donation Request' : 'Help & Rescue Request';
+          const formattedAlert: AlertNotification = {
+            alert_id: req.request_id || String(Date.now()),
+            disaster_type: req.emergency_type || (isDonation ? 'donation' : 'help_rescue'),
+            severity: Number(req.urgency_level) || 3,
+            work_plan: req.message || req.ai_summary || title,
+            status: 'active',
+            created_at: req.alerted_at || new Date().toISOString(),
+          };
+
+          setAlerts((prev) => [
+            formattedAlert,
+            ...prev.filter((a) => a.alert_id !== formattedAlert.alert_id),
+          ]);
+
+          const bannerMsg = isDonation
+            ? `🤝 New Donation Request: ${formattedAlert.work_plan?.slice(0, 40) || ''}`
+            : `🆘 New Help Request: ${formattedAlert.work_plan?.slice(0, 40) || ''}`;
+          setLiveBanner(bannerMsg);
+          setTimeout(() => {
+            if (mounted) setLiveBanner(null);
+          }, 6000);
+        };
+
         socket.on('emergency_alert', onNewAlert);
         socket.on('alert_received', onNewAlert);
+        socket.on('new_request', onNewRequest);
+        socket.on('community_request', onNewRequest);
       } catch (err) {
         console.warn('Alerts socket listener setup error:', err);
       }

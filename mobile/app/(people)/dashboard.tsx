@@ -202,11 +202,21 @@ export default function DashboardScreen() {
 
         const onAlertReceived = (alert: any) => {
           if (!mounted) return;
-          setAlerts((prev) => [alert, ...prev]);
+          const formatted = {
+            alert_id: alert.alert_id || alert.request_id || String(Date.now()),
+            disaster_type: alert.disaster_type || alert.emergency_type || 'emergency',
+            severity: Number(alert.severity || alert.urgency_level) || 3,
+            district: alert.district || 'Community',
+            created_at: alert.created_at || alert.alerted_at || new Date().toISOString(),
+            description: alert.description || alert.work_plan || alert.message || 'Assistance requested.',
+          };
+          setAlerts((prev) => [formatted, ...prev.filter((a) => a.alert_id !== formatted.alert_id)]);
         };
 
         socket.on('alert_received', onAlertReceived);
         socket.on('emergency_alert', onAlertReceived);
+        socket.on('new_request', onAlertReceived);
+        socket.on('community_request', onAlertReceived);
       } catch (err) {
         console.error('Socket setup error:', err);
       }
