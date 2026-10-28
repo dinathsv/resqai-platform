@@ -285,10 +285,12 @@ for this value. Admin development seeds require explicit `ADMIN_EMAIL` and
 `ADMIN_PASSWORD`; citizen development seeds require `CITIZEN_PASSWORD`.
 
 For the separate AI service, configure the Render service environment with
-`GOOGLE_CLOUD_PROJECT`, `GOOGLE_APPLICATION_CREDENTIALS`, and `LLM_MODEL`.
-Upload the service-account JSON as a Render Secret File and set
-`GOOGLE_APPLICATION_CREDENTIALS` to its mounted absolute path. The project ID
-and credential file are both required for Vertex AI requests.
+`GEMINI_API_KEY`, `LLM_MODEL=gemini-3.8-flash`, and
+`LLM_FALLBACK_MODELS=gemini-3.5-flash-lite`. This service uses the Gemini
+Developer API. Temporary model failures switch to the backup before retrying;
+unset or blank fallback configuration uses the default backup. Redeploy the AI
+service after code or hosted environment changes. See
+[AI service setup and recovery](AI_SERVICE_FIX_SUMMARY.md) for details.
 
 ---
 

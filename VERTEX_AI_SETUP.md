@@ -1,5 +1,10 @@
 # Vertex AI Setup Guide for ResQAI
 
+> Historical configuration: the current AI microservice uses the Gemini
+> Developer API with an API key. Follow [AI service setup and overload recovery](AI_SERVICE_FIX_SUMMARY.md)
+> for the supported configuration. The steps and model IDs below describe the
+> previous implementation.
+
 ## What Changed
 
 The AI service has been migrated from Google GenAI SDK to **Vertex AI** to use the more stable and reliable Gemini models.
@@ -85,7 +90,8 @@ curl -X POST http://localhost:8001/api/ai/first-aid-chat \
 
 ## Benefits of Vertex AI
 
-- ✅ More stable API (no 503 high-demand errors)
+- Temporary 503 high-demand errors can occur with either API; configure retries
+  and model fallback in the application.
 - ✅ Better rate limits for production use
 - ✅ Access to latest Gemini models
 - ✅ Integrated with GCP ecosystem
