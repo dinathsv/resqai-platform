@@ -14,6 +14,7 @@ import {
   Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TopBar from '../../components/TopBar';
 import BottomNav from '../../components/BottomNav';
@@ -731,50 +732,61 @@ export default function AlertsScreen() {
                       'Emergency conditions reported in your area. Please stay vigilant and follow civil protection instructions.'}
                   </Text>
 
-                  {/* Card Actions */}
-                  <View style={[styles.cardActionsRow, { borderTopColor: theme.borderSubtle }]}>
-                    {isPresent && (
+                  {/* Card Actions - Acknowledge Alert Button */}
+                  {isPresent && (
+                    <View style={[styles.cardActionsRow, { borderTopColor: theme.borderSubtle }]}>
                       <TouchableOpacity
                         style={[
                           styles.ackButton,
-                          {
-                            backgroundColor: isAcked
-                              ? theme.surfaceSubtle
-                              : theme.brandActive,
-                          },
+                          isAcked
+                            ? [
+                                styles.ackButtonDone,
+                                {
+                                  backgroundColor: theme.isDark ? '#064E3B30' : '#ECFDF5',
+                                  borderColor: '#10B981',
+                                },
+                              ]
+                            : [
+                                styles.ackButtonActive,
+                                {
+                                  backgroundColor: theme.brandActive,
+                                },
+                                Platform.OS === 'web'
+                                  ? { boxShadow: `0 3px 8px ${theme.brandActive}40` }
+                                  : {
+                                      shadowColor: theme.brandActive,
+                                      shadowOffset: { width: 0, height: 2 },
+                                      shadowOpacity: 0.25,
+                                      shadowRadius: 4,
+                                      elevation: 3,
+                                    },
+                              ],
                         ]}
                         onPress={() => handleAcknowledge(alert.alert_id)}
                         disabled={isAcked}
                         activeOpacity={0.8}
                       >
+                        <Ionicons
+                          name={isAcked ? 'checkmark-circle' : 'checkmark-done-circle'}
+                          size={18}
+                          color={isAcked ? '#059669' : '#FFFFFF'}
+                          style={{ marginRight: 6 }}
+                        />
                         <Text
                           style={[
                             styles.ackButtonText,
-                            { color: isAcked ? theme.textMuted : '#FFFFFF' },
+                            {
+                              color: isAcked ? '#047857' : '#FFFFFF',
+                            },
                           ]}
                         >
-                          {isAcked ? t('alerts.acknowledged') : t('alerts.acknowledge')}
+                          {isAcked
+                            ? t('alerts.acknowledged').replace(/^[✓✔]\s*/, '')
+                            : t('alerts.acknowledge')}
                         </Text>
                       </TouchableOpacity>
-                    )}
-
-                    <TouchableOpacity
-                      style={[
-                        styles.detailsButton,
-                        {
-                          borderColor: theme.borderSubtle,
-                          backgroundColor: isPresent ? theme.surfaceSubtle : theme.surfaceElevated,
-                          flex: isPresent ? 0.9 : 1,
-                        },
-                      ]}
-                      onPress={() => router.push(`/(people)/alert/${alert.alert_id}` as any)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[styles.detailsButtonText, { color: theme.textPrimary }]}>
-                        {isPresent ? t('alerts.viewSafetyPlan') : t('alerts.viewArchived')}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
+                    </View>
+                  )}
                 </View>
               );
             })}
@@ -1149,33 +1161,28 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardActionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 10,
+    paddingTop: 12,
+    marginTop: 2,
     borderTopWidth: 1,
-    gap: 8,
+    width: '100%',
   },
   ackButton: {
-    paddingVertical: 10,
-    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    width: '100%',
+  },
+  ackButtonActive: {},
+  ackButtonDone: {
+    borderWidth: 1.5,
   },
   ackButtonText: {
     fontFamily: Fonts.bold,
-    fontSize: 13,
-  },
-  detailsButton: {
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  detailsButtonText: {
-    fontFamily: Fonts.medium,
-    fontSize: 12,
+    fontSize: 14,
+    letterSpacing: 0.3,
   },
   historyFooterNote: {
     alignItems: 'center',
