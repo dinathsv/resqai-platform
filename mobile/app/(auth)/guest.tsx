@@ -27,7 +27,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
-import { apiFetch } from '../../config/api';
+import { apiFetch, parseErrorResponse } from '../../config/api';
 import { Fonts, makeGlass } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -373,10 +373,6 @@ export default function GuestScreen() {
     }
 
     const trimmedNic = nic.trim().toUpperCase();
-    if (!trimmedNic) {
-      setError('Please enter your NIC number first.');
-      return;
-    }
 
     setError('');
     setSendingOtp(true);
@@ -386,17 +382,23 @@ export default function GuestScreen() {
         method: 'POST',
         body: JSON.stringify({
           phone_number: trimmedPhone,
-          nic_number: trimmedNic,
+          nic_number: trimmedNic || undefined,
         }),
       });
 
-      const data = await res.json();
       if (res.ok) {
+        const data = await res.json();
         setOtpSent(true);
-        setOtpMessage(data.message || `Verification code sent to ${trimmedPhone}`);
+        if (data.otp_debug) {
+          setOtp(data.otp_debug);
+          setOtpMessage(`Verification code sent to ${data.phone || trimmedPhone} (Test code: ${data.otp_debug})`);
+        } else {
+          setOtpMessage(data.message || `Verification code sent to ${trimmedPhone}`);
+        }
         setResendCountdown(45);
       } else {
-        setError(data.detail || 'Could not send verification code. Please check your phone number.');
+        const errMsg = await parseErrorResponse(res);
+        setError(errMsg || 'Could not send verification code. Please check your phone number.');
       }
     } catch (err) {
       console.error('Send guest OTP error:', err);
@@ -477,14 +479,15 @@ export default function GuestScreen() {
         }),
       });
 
-      const data = await res.json();
       if (res.ok) {
+        const data = await res.json();
         await AsyncStorage.setItem('guest_token', data.access_token);
         await AsyncStorage.setItem('guest_phone', data.phone_number || trimmedPhone);
         await AsyncStorage.setItem('guest_nic', data.nic_number || trimmedNic);
         router.replace('/(people)/dashboard');
       } else {
-        setError(data.detail || t('common.error'));
+        const errMsg = await parseErrorResponse(res);
+        setError(errMsg || t('common.error'));
       }
     } catch {
       console.error('Guest complete verification error');

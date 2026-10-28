@@ -58,35 +58,49 @@ function resolveBaseUrl(
   fallbackPort: string,
   serviceName: string,
 ): string {
-  // 1. Explicit env value
-  const validated = validateUrl(envVar);
-  if (validated) return validated;
-
-  // 2. Web: derive from page hostname
+  // 1. Web browser: if accessed locally (localhost, 127.0.0.1, or local LAN IP),
+  // always target the local backend on the corresponding host and port so local dev/docker works!
   if (
     Platform.OS === 'web' &&
     typeof window !== 'undefined' &&
     window.location?.hostname
   ) {
     const host = window.location.hostname;
-    if (host && host !== 'localhost' && host !== '127.0.0.1') {
+    if (host === 'localhost' || host === '127.0.0.1') {
       return `http://${host}:${fallbackPort}`;
     }
-    if (__DEV__) {
-      return `http://localhost:${fallbackPort}`;
+    // If accessing via local LAN IP (e.g. 192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+    if (/^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(host)) {
+      return `http://${host}:${fallbackPort}`;
     }
   }
 
-  // 3 & 4. Native
+  // 2. Native Expo Go / dev-client: route to Metro dev-server host IP
   if (isDevelopmentClient()) {
-    // Running under Expo Go / dev-client — use the Metro host
     const devHost = getDevelopmentHost() || LOCALHOST;
     return `http://${devHost}:${fallbackPort}`;
   }
 
+  // 3. Explicit env value (for production APKs, hosted remote web, or custom configuration)
+  const validated = validateUrl(envVar);
+  if (validated) return validated;
+
+  // 4. Web browser fallback for custom remote domain without explicit env
+  if (
+    Platform.OS === 'web' &&
+    typeof window !== 'undefined' &&
+    window.location?.hostname
+  ) {
+    const host = window.location.hostname;
+    return `http://${host}:${fallbackPort}`;
+  }
+
+  // 5. Development localhost fallback
+  if (__DEV__) {
+    return `http://${LOCALHOST}:${fallbackPort}`;
+  }
+
   // Production build with no env var → configuration error.
-  // Return a clearly-broken URL so requests fail fast with a diagnostic
-  // message instead of silently targeting a random local IP.
   console.error(
     `[ResQAI] Missing ${serviceName} URL for production build. ` +
     `Set the corresponding EXPO_PUBLIC_* environment variable before building.`,
