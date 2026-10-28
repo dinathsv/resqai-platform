@@ -1,10 +1,10 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   Platform,
   Image,
@@ -162,7 +162,7 @@ export default function ActivitiesScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}

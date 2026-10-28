@@ -1,3 +1,4 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
@@ -7,7 +8,6 @@ import {
   TextInput,
   RefreshControl,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
   Animated,
   Platform,
@@ -313,7 +313,7 @@ export default function AlertsScreen() {
   }, [alerts, presentAlerts, pastAlerts, activeTab, typeFilter, searchQuery]);
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <TopBar title={t('alerts.title')} showBack={false} showLogo={true} />
 
       {/* Real-time incoming broadcast banner toast */}

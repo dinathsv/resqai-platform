@@ -1,3 +1,4 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 /**
  * Flow 3: Asking for Help (registered users) & Flow 4: Guest help
@@ -24,7 +25,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Linking,
   Alert,
   ActivityIndicator,
@@ -169,7 +169,7 @@ export default function HelpScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={[styles.container, { backgroundColor: theme.background }]}>
       <TopBar title={t('help.title')} showBack onBack={handleBack} />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false}>
 

@@ -1,3 +1,4 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
@@ -6,7 +7,6 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   Linking,
@@ -206,32 +206,17 @@ export default function ChatbotScreen() {
           setShow1990(true);
         }
       } else {
-        // Fallback realistic first aid response if backend is offline/mocking
-        let fallbackReply =
-          'Follow these steps to stop the bleeding:\n\n1. Apply firm direct pressure on the wound using a clean cloth or bandage\n\n2. Keep the injured part above Heart level\n\n3. Do not remove the cloth if it becomes soaked.\n\n4. Seek medical help immediately.';
-        if (!trimmed.toLowerCase().includes('bleed')) {
-          fallbackReply =
-            'For immediate first-aid: keep the patient calm, ensure their airway is clear, and call 1990 Suwa Seriya if symptoms are severe.';
-        }
-
-        const assistantMsg: Message = {
-          id: `assistant-${Date.now()}`,
-          role: 'assistant',
-          text: fallbackReply,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, assistantMsg]);
+        throw new Error('AI request failed');
       }
     } catch (err) {
-      console.error('Chat error:', err);
-      const assistantMsg: Message = {
+      console.warn('Chat request unavailable');
+      setShow1990(true);
+      setMessages((prev) => [...prev, {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        text:
-          'Follow these steps to stop the bleeding:\n\n1. Apply firm direct pressure on the wound using a clean cloth or bandage\n\n2. Keep the injured part above Heart level\n\n3. Do not remove the cloth if it becomes soaked.\n\n4. Seek medical help immediately.',
+        text: 'The AI service is temporarily unavailable. Please try again shortly. If this is a life-threatening emergency, call 1990 (Suwa Seriya) immediately.',
         timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
+      }]);
     } finally {
       setLoading(false);
     }
@@ -422,7 +407,7 @@ export default function ChatbotScreen() {
   ];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Midnight Navy Top Header with Back and 3-Dot Navigation Menu */}
       <TopBar
         title={t('chatbot.firstAidTitle')}
