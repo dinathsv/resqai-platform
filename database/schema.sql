@@ -73,7 +73,8 @@ CREATE INDEX idx_users_gps          ON users USING GIST (gps_location);
 -- ============================================================================
 CREATE TABLE guest_sessions (
     session_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    nic_number      VARCHAR(12)     NOT NULL,           -- Old 9-digit or new 12-digit NIC
+    nic_number      VARCHAR(50),                        -- Old 9-digit or new 12-digit NIC
+    nic_photo       TEXT,                               -- Base64 data or URL of NIC card photo
     nic_verified    BOOLEAN         NOT NULL DEFAULT FALSE,
     nic_format_valid BOOLEAN        NOT NULL DEFAULT FALSE,
     temp_token      VARCHAR(512)    NOT NULL UNIQUE,
