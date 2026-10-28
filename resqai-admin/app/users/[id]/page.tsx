@@ -9,7 +9,6 @@ import styles from './userDetail.module.css';
 interface Request {
   request_id: string;
   emergency_type: string;
-  urgency_level: number;
   status: string;
   created_at: string;
 }
@@ -92,7 +91,6 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
             <tr>
               <th>ID</th>
               <th>Type</th>
-              <th>Urgency</th>
               <th>Status</th>
               <th>Date</th>
             </tr>
@@ -103,14 +101,13 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                 <tr key={req.request_id}>
                   <td>{req.request_id.slice(0, 8)}</td>
                   <td>{req.emergency_type}</td>
-                  <td>{req.urgency_level}</td>
                   <td>{req.status}</td>
                   <td>{new Date(req.created_at).toLocaleDateString()}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={5} className={styles.emptyState}>No requests history</td>
+                <td colSpan={4} className={styles.emptyState}>No requests history</td>
               </tr>
             )}
           </tbody>

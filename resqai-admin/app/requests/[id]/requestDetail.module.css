@@ -98,6 +98,36 @@
   color: var(--text-muted);
 }
 
+.participantList {
+  display: grid;
+  gap: 12px;
+}
+
+.participantCard {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-elevated);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.participantCard strong {
+  color: var(--text-primary);
+}
+
+.successText {
+  margin-top: 12px;
+  color: var(--status-success);
+}
+
+.errorText {
+  margin-top: 12px;
+  color: var(--status-critical);
+}
+
 @media (max-width: 480px) {
   .assignRow select {
     max-width: 100%;

@@ -8,35 +8,35 @@ import { getSocket } from '@/lib/socket';
 import styles from './dashboard.module.css';
 
 interface StatData {
-  active_requests: number;
-  critical_count: number;
+  help_requests: number;
+  donation_requests: number;
+  active_missions: number;
   active_alerts: number;
-  total_donations: number;
+}
+
+interface SituationalReport {
+  narrative: string;
+  statistics: Record<string, number>;
+  generated_at: string;
 }
 
 interface HelpRequest {
   request_id: string;
   emergency_type: string;
-  urgency_level: number;
+  request_type?: 'help' | 'donation';
   original_message: string;
   created_at: string;
+  submitted_by?: string;
   source: string;
+  admin_status?: 'pending' | 'in_progress' | 'finished';
   status: string;
-}
-
-interface SituationalReport {
-  narrative: string;
-  total_incidents: number;
-  active_requests: number;
-  critical_count: number;
-  urgency_distribution: Record<string, number>;
-  type_distribution: Record<string, number>;
-  generated_at: string;
 }
 
 interface RequestsResponse {
   requests: HelpRequest[];
   total: number;
+  page: number;
+  pages: number;
 }
 
 interface ChatMessage {
@@ -50,9 +50,7 @@ interface ChatMessage {
 const fetcher = (url: string) => api.get(url).then((res) => res.data);
 const fetchStats = async (url: string): Promise<StatData> => {
   const { data } = await api.get(url);
-  const fields: (keyof StatData)[] = [
-    'active_requests', 'critical_count', 'active_alerts', 'total_donations',
-  ];
+  const fields: (keyof StatData)[] = ['help_requests', 'donation_requests', 'active_missions', 'active_alerts'];
   if (!data || fields.some((field) => typeof data[field] !== 'number' || !Number.isFinite(data[field]))) {
     throw new Error('Dashboard API returned invalid totals.');
   }
@@ -73,7 +71,7 @@ export default function DashboardPage() {
     refreshInterval: 30000,
   });
 
-  const requestsKey = '/api/requests?status=pending,ai_processing,verified,dispatched,in_progress&limit=20';
+  const requestsKey = '/api/requests?limit=20';
   const { data: requestData, error: requestsError, isLoading: requestsLoading, mutate: mutateRequests } = useSWR<RequestsResponse>(requestsKey, fetchRequests, {
     refreshInterval: 30000,
   });
@@ -83,10 +81,7 @@ export default function DashboardPage() {
   const [reportLoading, setReportLoading] = useState(false);
   const reportLock = useRef(false);
   const [reportTime, setReportTime] = useState<string>('');
-  const [reportError, setReportError] = useState('');
-  const [actionError, setActionError] = useState('');
-  const [resolvingId, setResolvingId] = useState<string | null>(null);
-
+  const [reportError, setReportError] = useState<string>('');
   const generateReport = useCallback(async () => {
     if (reportLock.current) return;
     reportLock.current = true;
@@ -155,62 +150,10 @@ export default function DashboardPage() {
     setChatInput('');
   }
 
-  async function resolveRequest(id: string) {
-    setResolvingId(id);
-    setActionError('');
-    try {
-      await api.patch(`/api/requests/${id}/status`, { status: 'resolved' });
-      await Promise.all([mutateRequests(), mutate('/api/admin/dashboard/stats')]);
-    } catch (error) {
-      const apiError = error as { response?: { data?: { error?: string } } };
-      setActionError(apiError.response?.data?.error || 'Failed to resolve request. Please try again.');
-    } finally {
-      setResolvingId(null);
-    }
-  }
-
-  function formatCurrency(amount: number) {
-    return `LKR ${new Intl.NumberFormat('en-LK', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount)}`;
-  }
-
-  function getUrgencyBadge(level: number) {
-    if (level === 5) {
-      return (
-        <span className={`${styles.urgencyPill} ${styles.urgency5}`}>
-          Critical ({level})
-        </span>
-      );
-    }
-    if (level === 4) {
-      return (
-        <span className={`${styles.urgencyPill} ${styles.urgency4}`}>
-          High ({level})
-        </span>
-      );
-    }
-    return (
-      <span className={`${styles.urgencyPill} ${styles.urgencyNormal}`}>
-        Standard ({level})
-      </span>
-    );
-  }
-
   function getStatusBadge(status: string) {
-    switch (status) {
-      case 'verified':
-      case 'dispatched':
-        return <span className="statusBadge statusSuccess">{status}</span>;
-      case 'critical':
-        return <span className="statusBadge statusCritical">{status}</span>;
-      case 'pending':
-      case 'ai_processing':
-        return <span className="statusBadge statusWarning">{status}</span>;
-      default:
-        return <span className="statusBadge statusInfo">{status}</span>;
-    }
+    if (status === 'finished') return <span className="statusBadge statusSuccess">Finished</span>;
+    if (status === 'in_progress') return <span className="statusBadge statusWarning">In Progress</span>;
+    return <span className="statusBadge statusInfo">Pending</span>;
   }
 
   return (
@@ -225,7 +168,7 @@ export default function DashboardPage() {
         <div className={styles.statBox}>
           <div className={styles.statContent}>
             <div className={styles.statTop}>
-              <span className={styles.statLabel}>Active Requests</span>
+              <span className={styles.statLabel}>Help Requests</span>
               <div className={styles.statIcon}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
@@ -234,25 +177,39 @@ export default function DashboardPage() {
                 </svg>
               </div>
             </div>
-            <div className={styles.statNumber}>{statsError ? '!' : stats?.active_requests ?? '—'}</div>
+            <div className={styles.statNumber}>{statsError ? '!' : stats?.help_requests ?? '—'}</div>
           </div>
         </div>
 
         <div className={`${styles.statBox} ${styles.statBoxCritical}`}>
           <div className={styles.statContent}>
             <div className={styles.statTop}>
-              <span className={styles.statLabel}>Critical Triage</span>
+              <span className={styles.statLabel}>Donation Requests</span>
+              <div className={styles.statIcon}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+              </div>
+            </div>
+            <div className={styles.statNumber}>{statsError ? '!' : stats?.donation_requests ?? '—'}</div>
+          </div>
+        </div>
+
+        <div className={`${styles.statBox} ${styles.statBoxWarning}`}>
+          <div className={styles.statContent}>
+            <div className={styles.statTop}>
+              <span className={styles.statLabel}>Active Missions</span>
               <div className={styles.statIcon}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
                 </svg>
               </div>
             </div>
-            <div className={styles.statNumber}>{statsError ? '!' : stats?.critical_count ?? '—'}</div>
+            <div className={styles.statNumber}>{statsError ? '!' : stats?.active_missions ?? '—'}</div>
           </div>
         </div>
 
-        <div className={`${styles.statBox} ${styles.statBoxWarning}`}>
+        <div className={`${styles.statBox} ${styles.statBoxSuccess}`}>
           <div className={styles.statContent}>
             <div className={styles.statTop}>
               <span className={styles.statLabel}>Active Alerts</span>
@@ -264,22 +221,6 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className={styles.statNumber}>{statsError ? '!' : stats?.active_alerts ?? '—'}</div>
-          </div>
-        </div>
-
-        <div className={`${styles.statBox} ${styles.statBoxSuccess}`}>
-          <div className={styles.statContent}>
-            <div className={styles.statTop}>
-              <span className={styles.statLabel}>Relief Donations</span>
-              <div className={styles.statIcon}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
-              </div>
-            </div>
-            <div className={styles.statNumber}>
-              {statsError ? 'Unavailable' : stats ? formatCurrency(stats.total_donations) : '—'}
-            </div>
           </div>
         </div>
       </div>
@@ -310,22 +251,13 @@ export default function DashboardPage() {
           ) : report ? (
             <>
               <div className={styles.reportStats}>
-                <span><strong>Total Incidents:</strong> {report.total_incidents}</span>
-                <span><strong>Active Requests:</strong> {report.active_requests}</span>
-                <span><strong>Critical Cases:</strong> {report.critical_count}</span>
-              </div>
-              <div className={styles.reportText}>
-                {report.narrative.split('\n').map((p, i) => (
-                  <p key={i}>{p}</p>
+                {Object.entries(report.statistics || {}).map(([key, value]) => (
+                  <span key={key}><strong>{key.replaceAll('_', ' ')}:</strong> {value}</span>
                 ))}
               </div>
-              {Object.keys(report.urgency_distribution || {}).length > 0 && (
-                <div className={styles.zonesList}>
-                  {Object.entries(report.urgency_distribution).map(([level, count]) => (
-                    <span key={level} className={styles.zoneChip}>Urgency {level}: {count}</span>
-                  ))}
-                </div>
-              )}
+              <div className={styles.reportText}>
+                {report.narrative.split('\n').map((p, i) => <p key={i}>{p}</p>)}
+              </div>
             </>
           ) : (
             <p className={styles.loadingText}>
@@ -337,61 +269,43 @@ export default function DashboardPage() {
 
       <div className="section">
         <div className={styles.sectionHeader}>
-          <h2>Active Requests</h2>
+          <h2>Requests</h2>
         </div>
         {requestsError && <p role="alert" className={styles.errorText}>Requests could not be loaded. Check your connection and permissions.</p>}
-        {actionError && <p role="alert" className={styles.errorText}>{actionError}</p>}
         <div className="tableWrap">
           <table>
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Type</th>
-                <th>Urgency</th>
-                <th>Message</th>
-                <th>Timestamp</th>
-                <th>Source</th>
+                <th>Request Type</th>
+                <th>Request Message</th>
+                <th>Submitted By</th>
+                <th>Created Date and Time</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th>Details</th>
               </tr>
             </thead>
             <tbody>
               {requestsLoading ? (
-                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '30px' }}>Loading active requests...</td></tr>
+                <tr><td colSpan={7}>Loading active requests...</td></tr>
               ) : requestsError ? (
-                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '30px' }}>Unable to load requests.</td></tr>
+                <tr><td colSpan={7}>Unable to load requests.</td></tr>
               ) : requests && requests.length > 0 ? (
                 requests.map((r) => (
                   <tr key={r.request_id}>
                     <td><code>{r.request_id.slice(0, 8)}</code></td>
-                    <td><strong>{r.emergency_type}</strong></td>
-                    <td>{getUrgencyBadge(r.urgency_level)}</td>
-                    <td>{(r.original_message || '').slice(0, 50)}{(r.original_message || '').length > 50 ? '...' : ''}</td>
+                    <td><strong>{r.request_type === 'donation' ? 'Donation Request' : 'Help Request'}</strong></td>
+                    <td>{(r.original_message || '').slice(0, 80)}</td>
+                    <td>{r.submitted_by || (r.source === 'guest' ? 'Guest' : 'User')}</td>
                     <td>{r.created_at ? new Date(r.created_at).toLocaleString() : '—'}</td>
-                    <td><span className="statusBadge statusInfo">{r.source || 'Mobile App'}</span></td>
-                    <td>{getStatusBadge(r.status)}</td>
-                    <td>
-                      <div className={styles.tableActions}>
-                        <Link href={`/requests/${r.request_id}`} className={styles.actionLink}>
-                          Inspect
-                        </Link>
-                        <button
-                          className={styles.resolveBtn}
-                          onClick={() => resolveRequest(r.request_id)}
-                          disabled={resolvingId === r.request_id}
-                        >
-                          {resolvingId === r.request_id ? 'Resolving...' : 'Resolve'}
-                        </button>
-                      </div>
-                    </td>
+                    <td>{getStatusBadge(r.admin_status || r.status)}</td>
+                    <td><Link href={`/requests/${r.request_id}`} className={styles.actionLink}>View Details</Link></td>
                   </tr>
                 ))
               ) : (
-                <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
-                    {requestData ? 'No active requests.' : 'Waiting for request data...'}
-                  </td>
-                </tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                  {requestData ? 'No active requests.' : 'Waiting for request data...'}
+                </td></tr>
               )}
             </tbody>
           </table>

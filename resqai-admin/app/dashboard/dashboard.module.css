@@ -23,10 +23,6 @@
   transform: translateY(-2px);
 }
 
-.statBoxCritical {}
-.statBoxWarning {}
-.statBoxSuccess {}
-
 /* ── Image Container ── */
 .statImageWrap {
   position: relative;
@@ -221,41 +217,6 @@
   margin: 0 0 12px;
 }
 
-/* ── Urgency ── */
-.urgencyPill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.urgency5 {
-  color: var(--status-critical);
-  background: var(--status-critical-bg);
-  border: 1px solid var(--status-critical-border);
-}
-
-.urgency4 {
-  color: var(--status-warning);
-  background: var(--status-warning-bg);
-  border: 1px solid var(--status-warning-border);
-}
-
-.urgencyNormal {
-  color: var(--text-secondary);
-  background: var(--bg-surface-elevated);
-  border: 1px solid var(--border-default);
-}
-
-.actionLink {
-  margin-right: 8px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
 /* ── Chat ── */
 .chatSection {
   margin-top: 24px;
@@ -336,18 +297,6 @@
 .refreshBtn {
   padding: 4px 12px;
   font-size: 12px;
-  border-radius: var(--radius-sm);
-}
-
-.tableActions {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.resolveBtn {
-  padding: 3px 8px;
-  font-size: 11px;
   border-radius: var(--radius-sm);
 }
 

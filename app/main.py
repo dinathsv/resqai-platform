@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from .config import settings
 from .database import engine
 from .schema_check import check_schema
-from .routers import ai, alerts, auth, donations, missions, requests, quiz
+from .routers import ai, alerts, auth, donations, missions, requests, quiz, volunteer_assignments
 from .routers import auth as auth_router
 
 logging.basicConfig(
@@ -101,18 +101,6 @@ app.include_router(requests.router, prefix="/api/requests")
 app.include_router(ai.router, prefix="/api/ai")
 app.include_router(alerts.router, prefix="/api/alerts")
 app.include_router(donations.router, prefix="/api/donations")
-
-from fastapi import APIRouter
-
-missions_router = missions.router
-admin_router = APIRouter(tags=["Admin"])
-locator_router = APIRouter(tags=["Locator"])
-
-app.include_router(missions_router, prefix="/api/missions")
-app.include_router(admin_router, prefix="/api/admin")
+app.include_router(missions.router, prefix="/api/missions")
 app.include_router(quiz.router, prefix="/api/quiz")
-app.include_router(locator_router, prefix="/api/locator")
-
-@app.get("/")
-async def root():
-    return {"status": "ResQAI API running"}
+app.include_router(volunteer_assignments.router, prefix="/api/volunteer-assignments")

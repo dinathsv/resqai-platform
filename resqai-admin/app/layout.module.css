@@ -199,26 +199,53 @@
 
 /* ── Theme Toggle ── */
 .themeToggle {
-  background: var(--bg-surface-elevated);
-  border: 1px solid var(--border-default);
-  color: var(--text-secondary);
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   padding: 0;
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  display: flex;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-card);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: var(--transition-theme), transform var(--transition-fast), box-shadow var(--transition-fast);
   flex-shrink: 0;
+}
+
+.themeToggle svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .themeToggle:hover {
   background: var(--accent-subtle);
   color: var(--accent);
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+  transform: translateY(-1px);
+}
+
+.themeToggle:active {
+  transform: scale(0.94);
+}
+
+.themeToggle:focus-visible {
+  outline: 3px solid var(--accent-subtle);
+  outline-offset: 2px;
+  border-color: var(--accent);
+}
+
+.themeToggle[aria-pressed="true"] {
+  background: var(--bg-surface-elevated);
+  color: var(--status-warning);
 }
 
 /* ── Main Content ── */

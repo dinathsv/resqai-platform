@@ -51,11 +51,13 @@ function subscribeTheme(callback: () => void) {
 }
 
 function getThemeSnapshot(): Theme {
-  return localStorage.getItem("resqai-theme") === "light" ? "light" : "dark";
+  if (typeof window === "undefined") return "light";
+  const saved = localStorage.getItem("resqai-theme");
+  return saved === "dark" ? "dark" : "light";
 }
 
 function getServerTheme(): Theme {
-  return "dark";
+  return "light";
 }
 
 function subscribeAuth(callback: () => void) {
@@ -133,9 +135,20 @@ function Sidebar({ isOpen, onClose, theme, onToggleTheme }: SidebarProps) {
               type="button"
               className={styles.themeToggle}
               onClick={onToggleTheme}
-              aria-label="Toggle theme"
+              aria-label={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              aria-pressed={theme === "dark"}
             >
-              {theme === "dark" ? "Light" : "Dark"}
+              {theme === "dark" ? (
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+              )}
             </button>
 
             <button
@@ -273,6 +286,12 @@ export default function RootLayout({
         />
 
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('resqai-theme');document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light')}catch(e){document.documentElement.setAttribute('data-theme','light')}})();`,
+          }}
+        />
       </head>
 
       <body>
