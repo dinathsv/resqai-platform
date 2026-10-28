@@ -7,31 +7,15 @@ Includes automatic fallback when the API is unreachable.
 import os
 import json
 import logging
-import asyncio
-import vertexai
-from vertexai.generative_models import GenerativeModel, GenerationConfig
+from google import genai
+from google.genai import types
 
 logger = logging.getLogger("resqai.llm")
 
-_initialized = False
-
-def _init_vertex():
-    """Initialize Vertex AI with credentials."""
-    global _initialized
-    if not _initialized:
-        credential_file = os.getenv("GOOGLE_CREDENTIAL_FILE")
-        project_id = os.getenv("PROJECT_ID")
-
-        if not credential_file or not project_id:
-            logger.warning("GOOGLE_CREDENTIAL_FILE or PROJECT_ID not configured")
-        else:
-            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credential_file
-            vertexai.init(project=project_id, location="us-central1")
-            _initialized = True
-            logger.info("Vertex AI initialized successfully")
 
 def get_model() -> str:
-    return os.getenv("LLM_MODEL", "gemini-1.5-flash-001")
+    return os.getenv("LLM_MODEL", "gemini-flash-latest")
+
 
 async def chat(
     system_prompt: str,
@@ -39,30 +23,30 @@ async def chat(
     max_tokens: int = 1024,
     temperature: float = 0.3,
 ) -> str:
-    """Send a single-turn chat to the LLM and return the text response."""
-    try:
-        _init_vertex()
+    """Call Gemini directly with an API key; no Vertex AI credentials required."""
+    api_key = (
+        os.getenv("GEMINI_API_KEY")
+        or os.getenv("GOOGLE_API_KEY")
+        or os.getenv("API_KEY")
+        or os.getenv("AI_API_KEY")
+    )
+    if not api_key:
+        raise RuntimeError("Set GEMINI_API_KEY in ai-service/.env")
 
-        # Run the blocking Vertex AI call in a thread pool
-        def _generate():
-            model = GenerativeModel(
-                model_name=get_model(),
+    async with genai.Client(api_key=api_key, vertexai=False).aio as client:
+        response = await client.models.generate_content(
+            model=get_model(),
+            contents=user_message,
+            config=types.GenerateContentConfig(
                 system_instruction=system_prompt,
-            )
-            response = model.generate_content(
-                contents=[{"role": "user", "parts": [{"text": user_message}]}],
-                generation_config=GenerationConfig(
-                    max_output_tokens=max_tokens,
-                    temperature=temperature,
-                ),
-            )
-            return response.text
+                max_output_tokens=max_tokens,
+                temperature=temperature,
+            ),
+        )
+    if not response.text or not response.text.strip():
+        raise ValueError("Gemini returned an empty response")
+    return response.text
 
-        result = await asyncio.to_thread(_generate)
-        return result or ""
-    except Exception as exc:
-        logger.error("LLM API call failed: %s", exc, exc_info=True)
-        raise
 
 async def chat_json(
     system_prompt: str,
@@ -92,7 +76,5 @@ async def chat_json(
         raise ValueError(f"LLM response was not valid JSON: {raw[:200]}")
 
 async def close():
-    """Close the underlying HTTP client gracefully."""
-    global _initialized
-    _initialized = False
-    logger.info("Vertex AI client closed")
+    """Clients are closed after each request by the async context manager."""
+    pass
