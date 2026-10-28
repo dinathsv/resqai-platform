@@ -234,7 +234,7 @@ export default function QuizScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <TopBar title={t('quiz.safetyQuizTitle')} showBack onBack={handleBack} />
-        <ScrollView contentContainerStyle={styles.finishedContainer} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.finishedContainer} showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false}>
           <View style={[styles.scoreCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Text style={[styles.scoreText, { color: theme.textPrimary }]}>
               {score} / {questions.length}
@@ -251,6 +251,8 @@ export default function QuizScreen() {
               <FlatList
                 data={wrongAnswers}
                 scrollEnabled={false}
+                showsVerticalScrollIndicator={false}
+                showsHorizontalScrollIndicator={false}
                 keyExtractor={(_, i) => String(i)}
                 renderItem={({ item }: { item: WrongAnswer }) => (
                   <View style={[styles.reviewItem, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -284,7 +286,7 @@ export default function QuizScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <TopBar title={t('quiz.safetyQuizTitle')} showBack onBack={handleBack} />
-      <ScrollView contentContainerStyle={styles.questionContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.questionContainer} showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false}>
 
         <Text style={[styles.progressLabel, { color: theme.textMuted }]}>
           {t('quiz.questionCount', { current: currentIndex + 1, total })}

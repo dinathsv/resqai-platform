@@ -171,7 +171,7 @@ export default function HelpScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <TopBar title={t('help.title')} showBack onBack={handleBack} />
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false}>
 
         <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
           {t('help.subtitle')}
@@ -270,7 +270,7 @@ export default function HelpScreen() {
                 <View style={{ width: 60 }} />
               </View>
 
-              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false}>
                 <Text style={[styles.formLabel, { color: theme.textPrimary }]}>{t('help.describeEmergency')}</Text>
                 <TextInput
                   style={[styles.messageInput, {

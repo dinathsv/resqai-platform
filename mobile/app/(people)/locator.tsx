@@ -613,6 +613,7 @@ export default function LocatorScreen() {
 
       <FlatList
         showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
         data={hospitals}
         keyExtractor={(item) => item.hospital_id}
         renderItem={renderHospitalItem}
@@ -623,6 +624,7 @@ export default function LocatorScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
               style={styles.typeSelector}
               contentContainerStyle={styles.typeSelectorContent}
             >

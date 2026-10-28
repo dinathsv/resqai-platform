@@ -335,6 +335,7 @@ export default function AlertsScreen() {
           />
         }
         showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
       >
         {/* Screen Header Banner */}
         <View style={styles.headerCard}>
@@ -500,6 +501,7 @@ export default function AlertsScreen() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.typeFilterRow}
           >
             <TouchableOpacity

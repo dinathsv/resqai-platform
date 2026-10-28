@@ -221,6 +221,7 @@ export default function VolunteerScreen() {
         <FlatList
           data={missions}
           showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
           keyExtractor={(item: Mission) => item.mission_id}
           renderItem={renderMission}
           contentContainerStyle={styles.listContent}
@@ -232,6 +233,7 @@ export default function VolunteerScreen() {
         <FlatList
           data={assignments}
           showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
           keyExtractor={(item: Assignment) => item.assignment_id}
           renderItem={renderAssignment}
           contentContainerStyle={styles.listContent}

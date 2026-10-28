@@ -157,7 +157,7 @@ export default function DonateScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalBody}
         >
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false}>
             <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{t('donate.securePayment')}</Text>
 
             <MinimalInput
@@ -211,7 +211,7 @@ export default function DonateScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.modalBody}
       >
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false}>
           <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{selectedMission.title}</Text>
           <Text style={[styles.modalDescription, { color: theme.textSecondary }]}>
             {selectedMission.description}
@@ -249,6 +249,7 @@ export default function DonateScreen() {
       ) : (
         <FlatList
           showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
           data={missions}
           keyExtractor={(item: Mission) => item.mission_id}
           renderItem={renderMission}
