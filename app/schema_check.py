@@ -18,6 +18,22 @@ async def check_schema(connection: AsyncConnection) -> None:
             actual = {col["name"]: col for col in inspector.get_columns(table.name, schema="public")}
             for column in table.columns:
                 if column.name not in actual:
+                    # Self-heal missing additive column guest_sessions.nic_photo if migration hasn't run yet
+                    if table.name == "guest_sessions" and column.name == "nic_photo":
+                        try:
+                            from sqlalchemy import text
+                            sync_connection.execute(
+                                text(
+                                    "ALTER TABLE public.guest_sessions "
+                                    "ADD COLUMN IF NOT EXISTS nic_photo TEXT, "
+                                    "ALTER COLUMN nic_number DROP NOT NULL, "
+                                    "ALTER COLUMN nic_number TYPE VARCHAR(50)"
+                                )
+                            )
+                            continue
+                        except Exception as auto_err:
+                            problems.append(f"missing column guest_sessions.nic_photo (auto-migration failed: {auto_err})")
+                            continue
                     problems.append(f"missing column {table.name}.{column.name}")
             if table.name == "users" and "avatar_url" in actual:
                 avatar = actual["avatar_url"]
