@@ -1,3 +1,4 @@
+import Constants from 'expo-constants'
 import * as Device from 'expo-device'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import axios from 'axios'
@@ -6,28 +7,42 @@ import { API_BASE } from '../config/api'
 
 let Notifications: any = null
 if (Platform.OS !== 'web') {
-  Notifications = require('expo-notifications')
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-    }),
-  })
+  try {
+    Notifications = require('expo-notifications')
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    })
+  } catch (error) {
+    Notifications = null
+    console.warn('Notifications unavailable:', error)
+  }
 }
 
 export async function registerForPushNotifications(): Promise<string | null> {
   if (Platform.OS === 'web' || !Notifications) return null
   if (!Device.isDevice) return null
 
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'Emergency alerts',
+      importance: Notifications.AndroidImportance.HIGH,
+    })
+  }
   const { status } = await Notifications.requestPermissionsAsync()
   if (status !== 'granted') return null
 
   let token: string | null = null;
   try {
-    token = (await Notifications.getExpoPushTokenAsync({ projectId: '00000000-0000-0000-0000-000000000000' })).data
+    const projectId = Constants.easConfig?.projectId ?? Constants.expoConfig?.extra?.eas?.projectId
+    if (!projectId) return null
+    token = (await Notifications.getExpoPushTokenAsync({ projectId })).data
   } catch (error) {
-    console.warn('Could not fetch Expo push token. A development build with a valid EAS project ID is required.');
+    console.warn('Could not fetch Expo push token. Check the EAS project ID and push credentials.');
   }
 
   const authToken = await AsyncStorage.getItem('token')

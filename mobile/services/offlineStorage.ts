@@ -2,14 +2,12 @@ import { Platform } from 'react-native'
 
 let db: any = null
 
-if (Platform.OS !== 'web') {
-  const SQLite = require('expo-sqlite')
-  db = SQLite.openDatabaseSync('resqai.db')
-}
-
 export function initDB() {
-  if (!db) return
-  db.execSync(`
+  if (Platform.OS === 'web' || db) return
+  const SQLite = require('expo-sqlite')
+  const connection = SQLite.openDatabaseSync('resqai.db')
+  try {
+    connection.execSync(`
     CREATE TABLE IF NOT EXISTS pending_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       message TEXT,
@@ -36,7 +34,12 @@ export function initDB() {
       lng REAL,
       specialization TEXT
     );
-  `)
+    `)
+    db = connection
+  } catch (error) {
+    connection.closeSync()
+    throw error
+  }
 }
 
 export function saveRequestOffline(

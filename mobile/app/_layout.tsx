@@ -41,8 +41,14 @@ function AppLayout() {
   const { t } = useLanguage();
 
   useEffect(() => {
-    initDB();
-    registerForPushNotifications();
+    try {
+      initDB();
+    } catch (error) {
+      console.warn('Offline storage initialization failed:', error);
+    }
+    registerForPushNotifications().catch((error) => {
+      console.warn('Push notifications unavailable:', error);
+    });
     const cleanup = setupNotificationListeners(router);
     return cleanup;
   }, []);

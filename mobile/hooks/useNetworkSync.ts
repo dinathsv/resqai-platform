@@ -12,7 +12,9 @@ export function useNetworkSync() {
     const unsubscribe = NetInfo.addEventListener((state) => {
       const online = state.isConnected && state.isInternetReachable
       setIsOnline(!!online)
-      if (online) syncPending()
+      if (online) syncPending().catch((error) => {
+        console.warn('Offline sync unavailable:', error)
+      })
     })
 
     return unsubscribe

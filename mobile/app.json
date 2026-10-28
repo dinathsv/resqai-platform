@@ -19,9 +19,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#0A1628",
-        "foregroundImage": "./assets/resqai_logo_square.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/resqai_logo_square.png"
       },
       "package": "com.resqai.app",
       "permissions": [
@@ -46,10 +44,12 @@
         {
           "backgroundColor": "#0A1628",
           "image": "./assets/resqai_logo_square.png",
-          "imageWidth": 300,
+          "imageWidth": 180,
           "resizeMode": "contain"
         }
-      ]
+      ],
+      "./plugins/withLauncherIconPadding",
+      "expo-notifications"
     ],
     "extra": {
       "router": {

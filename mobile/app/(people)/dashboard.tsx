@@ -12,6 +12,7 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
+import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -402,7 +403,7 @@ export default function DashboardScreen() {
                 allowFullScreen
                 referrerPolicy="strict-origin-when-cross-origin"
               />
-          ) : Platform.OS !== 'web' ? (
+          ) : Platform.OS !== 'web' && Constants.expoConfig?.extra?.nativeMapsEnabled ? (
               <MapView
                 style={styles.nativeMap}
                 initialRegion={{
