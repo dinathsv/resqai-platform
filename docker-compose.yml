@@ -60,8 +60,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      migrations:
-        condition: service_completed_successfully
 
   ml-models:
     build:
@@ -103,8 +101,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      migrations:
-        condition: service_completed_successfully
 
   admin-dashboard:
     build:
@@ -140,19 +136,6 @@ services:
     depends_on:
       - python-api
       - ml-models
-
-  migrations:
-    build:
-      context: .
-      dockerfile: app/Dockerfile
-    container_name: resqai_migrations
-    restart: "no"
-    environment:
-      DATABASE_URL: ${PYTHON_DATABASE_URL:?Set PYTHON_DATABASE_URL in .env}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    command: ["python", "database/run_migrations.py"]
 
 volumes:
   pgdata:
