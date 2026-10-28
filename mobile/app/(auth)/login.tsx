@@ -9,7 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { apiFetch } from '../../config/api';
+import { apiFetch, parseErrorResponse } from '../../config/api';
 import { Fonts, makeGlass } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -40,8 +40,8 @@ export default function LoginScreen() {
         method: 'POST',
         body: JSON.stringify({ email: trimmedEmail, password: trimmedPassword }),
       });
-      const data = await res.json();
       if (res.ok) {
+        const data = await res.json();
         await AsyncStorage.setItem('token', data.access_token);
         // If user has a saved language preference in backend, apply it
         if (data.user?.language_pref && (data.user.language_pref === 'en' || data.user.language_pref === 'ta' || data.user.language_pref === 'si')) {
@@ -52,12 +52,10 @@ export default function LoginScreen() {
         if (res.status === 401) setError(t('auth.invalidCredentials'));
         else if (res.status === 403) setError(t('auth.accountNotVerified'));
         else if (res.status === 429) setError(t('auth.accountLocked'));
+        else if (res.status === 503) setError(t('auth.connectionError'));
         else {
-          const detail = data.detail;
-          if (typeof detail === 'string') setError(detail);
-          else if (Array.isArray(detail)) setError(detail.map((d: any) => d.msg || JSON.stringify(d)).join('; '));
-          else if (detail && typeof detail === 'object') setError(detail.msg || JSON.stringify(detail));
-          else setError(t('common.error'));
+          const errorMsg = await parseErrorResponse(res);
+          setError(errorMsg);
         }
       }
     } catch (err) {

@@ -12,10 +12,22 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://resqai-platform-api.onrender.com",
+        "EXPO_PUBLIC_SOCKET_URL": "https://resqai-platform-backend.onrender.com",
+        "EXPO_PUBLIC_AI_URL": "https://resqai-platform-ai-service.onrender.com",
+        "EXPO_PUBLIC_ML_API_URL": "https://resqai-platform-ml-model.onrender.com"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://resqai-platform-api.onrender.com",
+        "EXPO_PUBLIC_SOCKET_URL": "https://resqai-platform-backend.onrender.com",
+        "EXPO_PUBLIC_AI_URL": "https://resqai-platform-ai-service.onrender.com",
+        "EXPO_PUBLIC_ML_API_URL": "https://resqai-platform-ml-model.onrender.com"
+      }
     }
   },
   "submit": {
