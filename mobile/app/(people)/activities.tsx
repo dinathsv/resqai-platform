@@ -218,7 +218,9 @@ export default function ActivitiesScreen() {
                   </Text>
                 </View>
               </View>
-              <Text style={styles.rescueTitle}>{item.title}</Text>
+              <Text style={[styles.rescueTitle, { color: theme.isDark ? '#E2E8F0' : '#0F172A' }]}>
+                {item.title}
+              </Text>
               <View style={styles.locationRow}>
                 <View style={styles.locItem}>
                   <Ionicons name="location-outline" size={16} color={theme.textSecondary} />
@@ -229,7 +231,7 @@ export default function ActivitiesScreen() {
                   onPress={() => router.push('/(people)/help')}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.arrowIcon}>➔</Text>
+                  <Text style={[styles.arrowIcon, { color: theme.isDark ? '#E2E8F0' : '#0F172A' }]}>➔</Text>
                 </TouchableOpacity>
               </View>
               <View style={styles.calendarRow}>
@@ -280,11 +282,11 @@ export default function ActivitiesScreen() {
                   onPress={() => router.push('/(people)/donate')}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.arrowIcon}>➔</Text>
+                  <Text style={[styles.arrowIcon, { color: theme.isDark ? '#E2E8F0' : '#0F172A' }]}>➔</Text>
                 </TouchableOpacity>
               </View>
-              <Text style={styles.donationTitle}>{don.title}</Text>
-              <Text style={styles.donationAmountDate}>
+              <Text style={[styles.donationTitle, { color: theme.isDark ? '#E2E8F0' : '#0F172A' }]}>{don.title}</Text>
+              <Text style={[styles.donationAmountDate, { color: theme.isDark ? '#94A3B8' : '#475569' }]}>
                 LKR {don.amount.toLocaleString()}
                 {'   '}
                 {don.date}
@@ -494,7 +496,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontFamily: Fonts.bold,
     fontWeight: '800',
-    color: '#0F172A',
     marginBottom: 10,
   },
   locationRow: {
@@ -565,7 +566,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontFamily: Fonts.bold,
     fontWeight: '800',
-    color: '#0F172A',
     marginBottom: 8,
   },
   donationAmountDate: {

@@ -27,18 +27,6 @@ REDIS_STARTUP_TIMEOUT = 15
 
 
 async def check_startup_dependencies():
-    # 1. Auto-apply any pending database migrations before schema check
-    logger.info("Applying pending database migrations")
-    try:
-        from database.run_migrations import run_migrations
-        applied = await run_migrations()
-        if applied:
-            logger.info("Applied migrations: %s", ", ".join(applied))
-        else:
-            logger.info("Database schema migrations are up to date")
-    except Exception as exc:
-        logger.warning("Auto-migration runner notice: %s", exc)
-
     async def check_database():
         async with engine.connect() as conn:
             await check_schema(conn)
