@@ -6,20 +6,31 @@ function initSocket(io) {
 
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token;
-    if (!token) {
-      return next(new Error('Authentication required'));
+    if (!token || token === 'anonymous') {
+      socket.user = {
+        user_id: 'guest_' + socket.id,
+        email: 'guest@resqai.local',
+        role: 'people',
+      };
+      return next();
     }
 
     try {
       const decoded = verifyToken(token);
       socket.user = {
-        user_id: decoded.user_id || decoded.sub,
-        email: decoded.email || decoded.nic || 'anonymous',
+        user_id: decoded.user_id || decoded.sub || 'citizen_' + socket.id,
+        email: decoded.email || decoded.nic || 'citizen',
         role: decoded.role || 'people',
       };
       next();
     } catch (err) {
-      next(new Error('Invalid or expired token'));
+      // Allow citizen connection so emergency alerts are always received
+      socket.user = {
+        user_id: 'guest_' + socket.id,
+        email: 'guest@resqai.local',
+        role: 'people',
+      };
+      next();
     }
   });
 
@@ -27,9 +38,7 @@ function initSocket(io) {
     console.log(`Socket connected: ${socket.user.email} (${socket.user.role})`);
 
     socket.join(`role:${socket.user.role}`);
-    if (socket.user.role === 'guest') {
-      socket.join('role:people');
-    }
+    socket.join('role:people'); // Ensure all citizen connections receive people alerts
     socket.join(`user:${socket.user.user_id}`);
 
     socket.on('disconnect', () => {

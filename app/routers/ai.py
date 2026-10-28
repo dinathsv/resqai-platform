@@ -69,6 +69,8 @@ class HospitalInfo(BaseModel):
     specialization: str | None = None
     has_cardiac_icu: bool
     has_trauma_unit: bool
+    latitude: float | None = 0.0
+    longitude: float | None = 0.0
     distance_meters: float
 
 class LocateResourcesRequest(BaseModel):

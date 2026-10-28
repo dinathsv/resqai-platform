@@ -1,0 +1,247 @@
+-- ResQAI: Seed Major Sri Lankan Hospitals with PostGIS coordinates
+-- Includes National, Teaching, Provincial General, and Base Hospitals across districts
+
+INSERT INTO public.hospitals (
+    hospital_id, name, phone, gps_location, specialization, has_cardiac_icu, has_trauma_unit, is_active, created_at, updated_at
+) VALUES
+    (
+        'a1111111-1111-1111-1111-111111111101',
+        'National Hospital of Sri Lanka (Colombo)',
+        '0112691111',
+        ST_SetSRID(ST_MakePoint(79.8687, 6.9195), 4326),
+        'Tertiary Care, Major Trauma, Cardiac Surgery, ICU',
+        true,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111102',
+        'Colombo South Teaching Hospital (Kalubowila)',
+        '0112763066',
+        ST_SetSRID(ST_MakePoint(79.8841, 6.8770), 4326),
+        'General, Emergency Trauma, Intensive Care, Pediatric',
+        true,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111103',
+        'Colombo North Teaching Hospital (Ragama)',
+        '0112959261',
+        ST_SetSRID(ST_MakePoint(79.9238, 7.0264), 4326),
+        'General, Toxicology, Trauma Unit, Intensive Care',
+        true,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111104',
+        'Sri Jayewardenepura General Hospital',
+        '0112778610',
+        ST_SetSRID(ST_MakePoint(79.9272, 6.8711), 4326),
+        'Cardiology, Cardiac ICU, Renal, General Surgery',
+        true,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111105',
+        'Lady Ridgeway Hospital for Children',
+        '0112693711',
+        ST_SetSRID(ST_MakePoint(79.8732, 6.9202), 4326),
+        'Pediatric Emergency, Pediatric Intensive Care',
+        true,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111106',
+        'National Hospital Kandy',
+        '0812233337',
+        ST_SetSRID(ST_MakePoint(80.6277, 7.2885), 4326),
+        'Neurosurgery, Cardiac Surgery, Trauma Center, General',
+        true,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111107',
+        'Teaching Hospital Karapitiya (Galle)',
+        '0912232250',
+        ST_SetSRID(ST_MakePoint(80.2285, 6.0682), 4326),
+        'Southern Provincial Trauma, Oncology, Cardiac Unit',
+        true,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111108',
+        'Teaching Hospital Jaffna',
+        '0212222261',
+        ST_SetSRID(ST_MakePoint(80.0167, 9.6647), 4326),
+        'Northern Province Tertiary Care, Emergency Trauma',
+        true,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111109',
+        'Teaching Hospital Anuradhapura',
+        '0252222261',
+        ST_SetSRID(ST_MakePoint(80.4035, 8.3340), 4326),
+        'North Central Referral, Nephrology, Intensive Care',
+        true,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111110',
+        'Teaching Hospital Kurunegala',
+        '0372222261',
+        ST_SetSRID(ST_MakePoint(80.3609, 7.4818), 4326),
+        'Wayamba Tertiary Hospital, Emergency Trauma',
+        true,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111111',
+        'Provincial General Hospital Badulla',
+        '0552222261',
+        ST_SetSRID(ST_MakePoint(81.0558, 6.9895), 4326),
+        'Uva Province Main Referral, Emergency Trauma Care',
+        true,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111112',
+        'Provincial General Hospital Ratnapura',
+        '0452222261',
+        ST_SetSRID(ST_MakePoint(80.4036, 6.6828), 4326),
+        'Sabaragamuwa Main Referral, Toxicology & Trauma',
+        true,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111113',
+        'Teaching Hospital Batticaloa',
+        '0652222261',
+        ST_SetSRID(ST_MakePoint(81.6963, 7.7170), 4326),
+        'Eastern Province Tertiary Center, Trauma & ICU',
+        true,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111114',
+        'District General Hospital Negombo',
+        '0312222261',
+        ST_SetSRID(ST_MakePoint(79.8464, 7.2111), 4326),
+        'Coastal Gampaha Emergency Care, Trauma Unit',
+        true,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111115',
+        'District General Hospital Matara',
+        '0412222261',
+        ST_SetSRID(ST_MakePoint(80.5353, 5.9496), 4326),
+        'Southern Coastal Referral, Emergency Services',
+        true,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111116',
+        'District General Hospital Kalutara',
+        '0342222261',
+        ST_SetSRID(ST_MakePoint(79.9607, 6.5854), 4326),
+        'General, Trauma, Acute Care, Intensive Care Unit',
+        true,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111117',
+        'District General Hospital Gampaha',
+        '0332222261',
+        ST_SetSRID(ST_MakePoint(79.9925, 7.0897), 4326),
+        'General Medicine, Surgery, Emergency Trauma',
+        true,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111118',
+        'District General Hospital Hambantota',
+        '0472220261',
+        ST_SetSRID(ST_MakePoint(81.1185, 6.1248), 4326),
+        'Deep South Referral, Emergency Trauma Unit',
+        true,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111119',
+        'Base Hospital Panadura',
+        '0382232261',
+        ST_SetSRID(ST_MakePoint(79.9074, 6.7134), 4326),
+        'Emergency Treatment, General Surgery, Acute Care',
+        false,
+        true,
+        true,
+        NOW(),
+        NOW()
+    ),
+    (
+        'a1111111-1111-1111-1111-111111111120',
+        'Base Hospital Homagama',
+        '0112855261',
+        ST_SetSRID(ST_MakePoint(80.0033, 6.8428), 4326),
+        'Emergency Care, General Medicine, Trauma Support',
+        false,
+        true,
+        true,
+        NOW(),
+        NOW()
+    )
+ON CONFLICT (hospital_id) DO NOTHING;

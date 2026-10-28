@@ -1,6 +1,7 @@
 /**
  * Flow 4: Guest user asking for help
- * Photo verification of National Identity Card (NIC)
+ * Sri Lankan NIC Verification via Induwara.lk API
+ * Supports real-time real/fake detection and photo proof
  */
 import React, { useState, useMemo } from 'react';
 import {
@@ -28,6 +29,30 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import LanguageSelector from '../../components/LanguageSelector';
 
+interface NicDecodedData {
+  nic: string;
+  valid: boolean;
+  format?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  age?: {
+    years: number;
+    months: number;
+    days: number;
+  };
+  serial?: number;
+  votingEligible?: string | null;
+  equivalentNewNic?: string;
+  source?: string;
+  lastVerified?: string;
+}
+
+interface NicCheckResult {
+  isValid: boolean;
+  message: string;
+  data?: NicDecodedData | null;
+}
+
 export default function GuestScreen() {
   const router = useRouter();
   const { theme } = useTheme();
@@ -38,6 +63,8 @@ export default function GuestScreen() {
   const [nicPhoto, setNicPhoto] = useState<string | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [validatingNic, setValidatingNic] = useState(false);
+  const [nicCheckResult, setNicCheckResult] = useState<NicCheckResult | null>(null);
   const [error, setError] = useState('');
 
   const ensureBase64 = async (asset: ImagePicker.ImagePickerAsset): Promise<string> => {
@@ -132,22 +159,85 @@ export default function GuestScreen() {
     setPhotoUri(null);
   };
 
+  // Real-time NIC Validation via Induwara.lk API
+  const handleValidateNic = async (nicValue?: string) => {
+    const raw = (nicValue !== undefined ? nicValue : nic).trim().toUpperCase();
+    if (!raw) {
+      setError(t('auth.nicNumberRequired') || 'Please enter a Sri Lankan NIC number.');
+      setNicCheckResult(null);
+      return false;
+    }
+
+    const nicRegex = /^[0-9]{9}[VvXx]$|^[0-9]{12}$/;
+    if (!nicRegex.test(raw)) {
+      setNicCheckResult({
+        isValid: false,
+        message: 'NIC must be 10 characters (e.g. 923456789V) or 12 digits (e.g. 199234567890).',
+        data: null,
+      });
+      return false;
+    }
+
+    setError('');
+    setValidatingNic(true);
+
+    try {
+      const res = await apiFetch(`/api/auth/guest/validate-nic/${encodeURIComponent(raw)}`);
+      const body = await res.json();
+      const isOk = Boolean(body.is_valid);
+      setNicCheckResult({
+        isValid: isOk,
+        message: body.message,
+        data: body.data,
+      });
+      return isOk;
+    } catch (err) {
+      console.error('NIC validation network error:', err);
+      setNicCheckResult({
+        isValid: false,
+        message: 'Unable to connect to NIC verification service. Please verify your connection.',
+        data: null,
+      });
+      return false;
+    } finally {
+      setValidatingNic(false);
+    }
+  };
+
+  const handleNicTextChange = (text: string) => {
+    const uppercaseText = text.toUpperCase();
+    setNic(uppercaseText);
+
+    // Reset validation if user edits
+    if (nicCheckResult) {
+      setNicCheckResult(null);
+    }
+
+    // Auto-trigger validation when full NIC length is reached (10 or 12 chars)
+    const trimmed = uppercaseText.trim();
+    if (trimmed.length === 10 || trimmed.length === 12) {
+      handleValidateNic(trimmed);
+    }
+  };
+
   const handleVerifyNic = async () => {
-    if (!nicPhoto) {
-      setError(t('auth.nicPhotoRequired') || 'Please upload or capture a photo of your NIC card.');
+    const trimmedNic = nic.trim().toUpperCase();
+    if (!trimmedNic) {
+      setError(t('auth.nicNumberRequired') || 'Please enter your Sri Lankan NIC number.');
       return;
     }
 
-    const trimmedNic = nic.trim();
-    if (trimmedNic) {
-      const nicRegex = /^[0-9]{9}[VvXx]$|^[0-9]{12}$/;
-      if (!nicRegex.test(trimmedNic)) {
-        setError(t('auth.invalidNic'));
+    // Validate real/fake NIC first
+    setError('');
+    let isRealNic = nicCheckResult?.isValid;
+    if (isRealNic === undefined || !isRealNic) {
+      isRealNic = await handleValidateNic(trimmedNic);
+      if (!isRealNic) {
+        setError(nicCheckResult?.message || 'Invalid or fake NIC number. Please enter a genuine NIC.');
         return;
       }
     }
 
-    setError('');
     setLoading(true);
 
     try {
@@ -167,8 +257,8 @@ export default function GuestScreen() {
       const res = await apiFetch('/api/auth/guest/verify-nic', {
         method: 'POST',
         body: JSON.stringify({
-          nic_photo: nicPhoto,
-          nic_number: trimmedNic || undefined,
+          nic_number: trimmedNic,
+          nic_photo: nicPhoto || undefined,
           lat,
           lng,
         }),
@@ -226,16 +316,138 @@ export default function GuestScreen() {
               </View>
             ) : null}
 
-            {/* NIC Photo Upload Section (Primary Requirement) */}
+            {/* 1. Sri Lankan NIC Number Input & Real/Fake Live Validation */}
             <View style={styles.inputGroup}>
               <View style={styles.labelRow}>
+                <Ionicons name="card-outline" size={16} color={theme.brandActive} style={{ marginRight: 6 }} />
                 <Text style={[styles.label, { color: theme.textPrimary }]}>
-                  {t('auth.uploadNicPhoto') || 'NIC Photo Verification'}
+                  {t('auth.nicNumber') || 'Sri Lankan NIC Number'}
                 </Text>
                 <Text style={styles.requiredStar}> *</Text>
               </View>
+              <Text style={[styles.hint, { color: theme.textMuted, marginBottom: 8 }]}>
+                Enter 10-char old format (e.g. 923456789V) or 12-digit new format (e.g. 199234567890).
+              </Text>
+
+              <View style={styles.nicInputRow}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.nicInputFlex,
+                    {
+                      backgroundColor: theme.inputBg,
+                      borderColor: nicCheckResult?.isValid
+                        ? '#10B981'
+                        : nicCheckResult && !nicCheckResult.isValid
+                        ? '#EF4444'
+                        : theme.inputBorder,
+                      color: theme.textPrimary,
+                    },
+                  ]}
+                  value={nic}
+                  onChangeText={handleNicTextChange}
+                  placeholder="e.g. 199234567890 or 923456789V"
+                  placeholderTextColor={theme.textMuted}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  editable={!loading}
+                  maxLength={12}
+                />
+
+                <TouchableOpacity
+                  style={[
+                    styles.validateBtn,
+                    { backgroundColor: theme.brandActive },
+                    validatingNic && styles.buttonDisabled,
+                  ]}
+                  onPress={() => handleValidateNic()}
+                  disabled={validatingNic || loading}
+                  activeOpacity={0.8}
+                >
+                  {validatingNic ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.validateBtnText}>{t('auth.verifyBtn') || 'Check'}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* Verified Real NIC Badge & Decoded Identity Card */}
+              {nicCheckResult?.isValid && nicCheckResult.data ? (
+                <View style={[styles.verifiedCard, { backgroundColor: theme.isDark ? '#064E3B40' : '#ECFDF5', borderColor: '#10B981' }]}>
+                  <View style={styles.verifiedHeaderRow}>
+                    <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                    <Text style={[styles.verifiedTitle, { color: '#047857' }]}>
+                      Real Sri Lankan NIC Verified
+                    </Text>
+                    <View style={styles.validFormatPill}>
+                      <Text style={styles.validFormatPillText}>
+                        {nicCheckResult.data.format === 'old' ? 'Old Format' : 'New Format'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.decodedGrid}>
+                    <View style={styles.decodedItem}>
+                      <Text style={[styles.decodedLabel, { color: theme.textMuted }]}>Gender</Text>
+                      <View style={styles.decodedValueRow}>
+                        <Ionicons
+                          name={nicCheckResult.data.gender === 'Female' ? 'female' : 'male'}
+                          size={13}
+                          color={theme.brandActive}
+                          style={{ marginRight: 4 }}
+                        />
+                        <Text style={[styles.decodedValue, { color: theme.textPrimary }]}>
+                          {nicCheckResult.data.gender || 'N/A'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.decodedItem}>
+                      <Text style={[styles.decodedLabel, { color: theme.textMuted }]}>Date of Birth</Text>
+                      <Text style={[styles.decodedValue, { color: theme.textPrimary }]}>
+                        {nicCheckResult.data.dateOfBirth || 'N/A'}
+                      </Text>
+                    </View>
+
+                    {nicCheckResult.data.age ? (
+                      <View style={styles.decodedItem}>
+                        <Text style={[styles.decodedLabel, { color: theme.textMuted }]}>Age</Text>
+                        <Text style={[styles.decodedValue, { color: theme.textPrimary }]}>
+                          {nicCheckResult.data.age.years} yrs
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </View>
+              ) : null}
+
+              {/* Fake / Invalid NIC Error Notice */}
+              {nicCheckResult && !nicCheckResult.isValid ? (
+                <View style={[styles.fakeNicAlert, { backgroundColor: theme.isDark ? '#450A0A50' : '#FEF2F2', borderColor: '#EF4444' }]}>
+                  <View style={styles.fakeNicHeaderRow}>
+                    <Ionicons name="alert-circle" size={18} color="#EF4444" />
+                    <Text style={[styles.fakeNicTitle, { color: '#B91C1C' }]}>
+                      Fake or Invalid NIC Detected
+                    </Text>
+                  </View>
+                  <Text style={[styles.fakeNicMessage, { color: theme.isDark ? '#FCA5A5' : '#991B1B' }]}>
+                    {nicCheckResult.message}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* 2. NIC Photo Card Upload Section (Optional Supporting Proof) */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Ionicons name="camera-outline" size={16} color={theme.brandActive} style={{ marginRight: 6 }} />
+                <Text style={[styles.label, { color: theme.textPrimary }]}>
+                  {t('auth.uploadNicPhoto') || 'NIC Photo Card (Optional Proof)'}
+                </Text>
+              </View>
               <Text style={[styles.hint, { color: theme.textMuted, marginBottom: 10 }]}>
-                {t('auth.nicPhotoHint') || 'Upload or take a clear photo of the front of your National Identity Card.'}
+                Upload or capture a photo of your National Identity Card for faster verification.
               </Text>
 
               {photoUri ? (
@@ -243,7 +455,7 @@ export default function GuestScreen() {
                   <Image source={{ uri: photoUri }} style={styles.previewImage} resizeMode="cover" />
                   <View style={styles.badgeSuccess}>
                     <Ionicons name="checkmark-circle" size={14} color="#FFFFFF" />
-                    <Text style={styles.badgeSuccessText}>{t('auth.photoAttached') || 'NIC Photo Attached'}</Text>
+                    <Text style={styles.badgeSuccessText}>{t('auth.photoAttached') || 'Photo Attached'}</Text>
                   </View>
 
                   <View style={styles.photoActionsRow}>
@@ -278,10 +490,10 @@ export default function GuestScreen() {
               ) : (
                 <View style={[styles.uploadBox, { borderColor: theme.border, backgroundColor: theme.inputBg }]}>
                   <View style={[styles.uploadIconCircle, { backgroundColor: theme.accentSubtle }]}>
-                    <Ionicons name="camera" size={28} color={theme.brandActive} />
+                    <Ionicons name="camera" size={24} color={theme.brandActive} />
                   </View>
                   <Text style={[styles.uploadBoxTitle, { color: theme.textPrimary }]}>
-                    {t('auth.uploadNicPhoto') || 'Capture or Select NIC'}
+                    {t('auth.uploadNicPhoto') || 'Upload NIC Card Photo'}
                   </Text>
                   <Text style={[styles.uploadBoxSubtitle, { color: theme.textMuted }]}>
                     Take a photo or choose an existing image from your device
@@ -293,8 +505,8 @@ export default function GuestScreen() {
                       onPress={handleTakePhoto}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name="camera" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                      <Text style={styles.uploadOptionBtnText}>{t('auth.takeNicPhoto') || 'Take Photo'}</Text>
+                      <Ionicons name="camera" size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
+                      <Text style={styles.uploadOptionBtnText}>{t('auth.takeNicPhoto') || 'Camera'}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -302,34 +514,12 @@ export default function GuestScreen() {
                       onPress={handlePickGallery}
                       activeOpacity={0.8}
                     >
-                      <Ionicons name="images" size={16} color={theme.brandActive} style={{ marginRight: 6 }} />
+                      <Ionicons name="images" size={15} color={theme.brandActive} style={{ marginRight: 6 }} />
                       <Text style={[styles.uploadOptionBtnText, { color: theme.textPrimary }]}>{t('auth.chooseFromGallery') || 'Gallery'}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
               )}
-            </View>
-
-            {/* Optional NIC text number */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>
-                {t('auth.optionalNicNumber') || 'NIC Number (Optional)'}
-              </Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary }]}
-                value={nic}
-                onChangeText={setNic}
-                placeholder={t('auth.nicPlaceholder')}
-                placeholderTextColor={theme.textMuted}
-                autoCapitalize="characters"
-                autoCorrect={false}
-                editable={!loading}
-                onSubmitEditing={handleVerifyNic}
-                maxLength={12}
-              />
-              <Text style={[styles.hint, { color: theme.textMuted }]}>
-                {t('auth.nicHint')}
-              </Text>
             </View>
 
             <TouchableOpacity
@@ -340,13 +530,13 @@ export default function GuestScreen() {
                 loading && styles.buttonDisabled,
               ]}
               onPress={handleVerifyNic}
-              disabled={loading}
+              disabled={loading || validatingNic}
               activeOpacity={0.7}
             >
               {loading ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text style={styles.verifyButtonText}>{t('common.confirm') || 'Verify & Continue'}</Text>
+                <Text style={styles.verifyButtonText}>{t('common.confirm') || 'Verify & Continue as Guest'}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -359,13 +549,13 @@ export default function GuestScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
-  content: { flexGrow: 1, paddingHorizontal: 22, paddingVertical: 20 },
+  content: { flexGrow: 1, paddingHorizontal: 20, paddingVertical: 18 },
   backLink: { marginBottom: 12 },
   backText: { fontSize: 14, fontFamily: Fonts.semiBold },
-  iconCircle: { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 12 },
-  title: { fontSize: 24, fontFamily: Fonts.bold, textAlign: 'center', marginBottom: 4 },
-  subtitle: { fontSize: 13, fontFamily: Fonts.regular, textAlign: 'center', marginBottom: 18, paddingHorizontal: 16 },
-  card: { padding: 20, borderRadius: 14 },
+  iconCircle: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 10 },
+  title: { fontSize: 23, fontFamily: Fonts.bold, textAlign: 'center', marginBottom: 4 },
+  subtitle: { fontSize: 13, fontFamily: Fonts.regular, textAlign: 'center', marginBottom: 16, paddingHorizontal: 16 },
+  card: { padding: 18, borderRadius: 14 },
   errorBox: { borderRadius: 8, padding: 12, marginBottom: 16, borderWidth: 1 },
   errorText: { fontSize: 13, fontFamily: Fonts.bold, textAlign: 'center' },
   inputGroup: { marginBottom: 18 },
@@ -373,7 +563,113 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontFamily: Fonts.semiBold, marginBottom: 4 },
   requiredStar: { fontSize: 14, fontFamily: Fonts.bold, color: '#EF4444' },
   hint: { fontSize: 11, fontFamily: Fonts.regular, marginTop: 2 },
-  input: { paddingVertical: 12, paddingHorizontal: 14, fontSize: 14, fontFamily: Fonts.semiBold, borderRadius: 8, borderWidth: 1 },
+
+  nicInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  nicInputFlex: {
+    flex: 1,
+  },
+  input: {
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    borderRadius: 8,
+    borderWidth: 1.5,
+  },
+  validateBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 70,
+  },
+  validateBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontFamily: Fonts.bold,
+  },
+
+  // Verified NIC card
+  verifiedCard: {
+    borderWidth: 1.5,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 10,
+  },
+  verifiedHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  verifiedTitle: {
+    fontSize: 13,
+    fontFamily: Fonts.bold,
+    flex: 1,
+  },
+  validFormatPill: {
+    backgroundColor: '#10B98120',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  validFormatPillText: {
+    color: '#047857',
+    fontSize: 10,
+    fontFamily: Fonts.semiBold,
+  },
+  decodedGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    paddingTop: 4,
+    borderTopWidth: 0.5,
+    borderTopColor: '#10B98140',
+  },
+  decodedItem: {
+    minWidth: 70,
+  },
+  decodedLabel: {
+    fontSize: 10,
+    fontFamily: Fonts.regular,
+    marginBottom: 2,
+  },
+  decodedValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  decodedValue: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+  },
+
+  // Fake NIC alert
+  fakeNicAlert: {
+    borderWidth: 1.5,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 10,
+  },
+  fakeNicHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  fakeNicTitle: {
+    fontSize: 13,
+    fontFamily: Fonts.bold,
+  },
+  fakeNicMessage: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    lineHeight: 16,
+  },
 
   // Upload area styles
   uploadBox: {
@@ -386,23 +682,23 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   uploadIconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
   },
   uploadBoxTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Fonts.bold,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   uploadBoxSubtitle: {
     fontSize: 11,
     fontFamily: Fonts.regular,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
     paddingHorizontal: 10,
   },
   uploadButtonsRow: {
@@ -415,7 +711,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderRadius: 8,
   },
   uploadOptionBtnText: {
@@ -434,7 +730,7 @@ const styles = StyleSheet.create({
   },
   previewImage: {
     width: '100%',
-    height: 180,
+    height: 160,
     borderRadius: 8,
   },
   badgeSuccess: {

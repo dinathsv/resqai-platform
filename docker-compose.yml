@@ -54,6 +54,7 @@ services:
       SMSLENZ_SENDER_ID: ${SMSLENZ_SENDER_ID:-}
       SMSLENZ_BASE_URL: ${SMSLENZ_BASE_URL:-https://smslenz.lk/api}
       NODE_BACKEND_URL: http://node-backend:5000
+      INDUWARA_API_KEY: ${INDUWARA_API_KEY:-ilk_live_2e72ea094d19d9119b74033c8453a1cc063b56f3fe1154d4}
     depends_on:
       postgres:
         condition: service_healthy
