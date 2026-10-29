@@ -34,6 +34,35 @@ interface Hospital {
 
 const EMERGENCY_TYPES = ['Medical', 'Flood', 'Accident', 'Fire', 'Trapped'];
 
+export const SRI_LANKA_DISTRICTS = [
+  { name: 'Colombo', lat: 6.9271, lng: 79.8612 },
+  { name: 'Kandy', lat: 7.2906, lng: 80.6337 },
+  { name: 'Galle', lat: 6.0535, lng: 80.2210 },
+  { name: 'Jaffna', lat: 9.6647, lng: 80.0167 },
+  { name: 'Trincomalee', lat: 8.5711, lng: 81.2333 },
+  { name: 'Nuwara Eliya', lat: 6.9708, lng: 80.7672 },
+  { name: 'Matale', lat: 7.4722, lng: 80.6234 },
+  { name: 'Gampaha', lat: 7.0897, lng: 79.9925 },
+  { name: 'Negombo', lat: 7.2111, lng: 79.8464 },
+  { name: 'Kalutara', lat: 6.5854, lng: 79.9607 },
+  { name: 'Matara', lat: 5.9496, lng: 80.5353 },
+  { name: 'Hambantota', lat: 6.1248, lng: 81.1185 },
+  { name: 'Anuradhapura', lat: 8.3340, lng: 80.4035 },
+  { name: 'Polonnaruwa', lat: 7.9403, lng: 81.0028 },
+  { name: 'Kurunegala', lat: 7.4818, lng: 80.3609 },
+  { name: 'Chilaw / Puttalam', lat: 7.5758, lng: 79.7958 },
+  { name: 'Batticaloa', lat: 7.7170, lng: 81.6963 },
+  { name: 'Ampara', lat: 7.2917, lng: 81.6722 },
+  { name: 'Badulla', lat: 6.9895, lng: 81.0558 },
+  { name: 'Monaragala', lat: 6.8722, lng: 81.3486 },
+  { name: 'Ratnapura', lat: 6.6828, lng: 80.4036 },
+  { name: 'Kegalle', lat: 7.2522, lng: 80.3467 },
+  { name: 'Kilinochchi', lat: 9.3803, lng: 80.4042 },
+  { name: 'Mannar', lat: 8.9806, lng: 79.9042 },
+  { name: 'Vavuniya', lat: 8.7542, lng: 80.4983 },
+  { name: 'Mullaitivu', lat: 9.2667, lng: 80.8142 },
+];
+
 // Google Maps API Key from environment (optional - falls back to free direct embed)
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 
@@ -718,6 +747,49 @@ export default function LocatorScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* Quick District Selector Chips */}
+            <View style={styles.districtSelectorContainer}>
+              <Text style={[styles.districtSelectorTitle, { color: theme.textSecondary }]}>
+                {t('locator.selectDistrict') || 'Select District / City:'}
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.districtChipsContainer}
+              >
+                {SRI_LANKA_DISTRICTS.map((dist) => {
+                  const isSelected = userLocation?.label === dist.name;
+                  return (
+                    <TouchableOpacity
+                      key={dist.name}
+                      style={[
+                        styles.districtChip,
+                        {
+                          backgroundColor: isSelected ? theme.accent : theme.surfaceElevated,
+                          borderColor: isSelected ? theme.accent : theme.border,
+                        },
+                      ]}
+                      onPress={() => {
+                        const coords = { lat: dist.lat, lng: dist.lng, label: dist.name };
+                        setUserLocation(coords);
+                        fetchHospitals(dist.lat, dist.lng, emergencyType);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.districtChipText,
+                          { color: isSelected ? Colors.white : theme.textPrimary },
+                        ]}
+                      >
+                        {dist.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
             {locationError ? (
               <Text style={styles.locationErrorText}>{locationError}</Text>
             ) : null}
@@ -1248,5 +1320,30 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontFamily: Fonts.bold,
     color: '#0F172A',
+  },
+  districtSelectorContainer: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  districtSelectorTitle: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    marginBottom: 6,
+    paddingHorizontal: 2,
+  },
+  districtChipsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 2,
+  },
+  districtChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  districtChipText: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
   },
 });

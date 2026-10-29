@@ -31,6 +31,7 @@ const NAV_ITEMS = [
   { href: "/requests", label: "Requests" },
   { href: "/missions", label: "Missions" },
   { href: "/users", label: "Users" },
+  { href: "/guest-verification", label: "NIC Verification" },
   { href: "/reports", label: "Reports" },
 ];
 

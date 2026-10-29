@@ -22,6 +22,9 @@ class GuestSession(Base):
     nic_format_valid: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     phone_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
     phone_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    admin_status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    admin_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    admin_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     temp_token: Mapped[str] = mapped_column(String(512), unique=True, nullable=False)
     gps_location = mapped_column(Geometry("POINT", srid=4326), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

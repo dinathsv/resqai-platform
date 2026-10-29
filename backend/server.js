@@ -13,6 +13,7 @@ const alertsRoutes = require("./routes/alerts");
 const requestsRoutes = require("./routes/requests");
 const usersRoutes = require("./routes/users");
 const missionsRoutes = require("./routes/missions");
+const guestsRoutes = require("./routes/guests");
 const { generateDashboardReport, getDashboardStats } = require("./services/dashboardService");
 
 const PORT = parseInt(process.env.PORT || "3000", 10);
@@ -69,6 +70,7 @@ app.use("/api/alerts", alertsRoutes);
 app.use("/api/requests", requestsRoutes);
 app.use("/api/admin/users", usersRoutes);
 app.use("/api/users", usersRoutes);
+app.use("/api/admin/guests", guestsRoutes);
 app.use("/api/missions", missionsRoutes);
 
 app.get("/api/admin/dashboard/stats", requireAdmin, async (req, res) => {
