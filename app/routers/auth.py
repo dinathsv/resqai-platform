@@ -260,12 +260,7 @@ async def login(
         await redis_client.expire(fail_key, 900)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-    if not user.phone_number or not user.is_verified:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Mobile number not verified",
-        )
-
+    # OTP belongs to registration and guest verification, not password sign-in.
     await redis_client.delete(fail_key)
 
     access_token = create_access_token(

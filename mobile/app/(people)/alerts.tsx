@@ -12,6 +12,7 @@ import {
   Animated,
   Platform,
   Linking,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -141,6 +142,16 @@ export default function AlertsScreen() {
         const data = await res.json();
         if (data && Array.isArray(data.alerts)) {
           setAlerts(data.alerts);
+          setAcknowledgedIds((previous) => {
+            const next = new Set(previous);
+            for (const alert of data.alerts) {
+              if (typeof alert.acknowledged === 'boolean') {
+                if (alert.acknowledged) next.add(alert.alert_id);
+                else next.delete(alert.alert_id);
+              }
+            }
+            return next;
+          });
           try {
             cacheAlerts(data.alerts);
           } catch (e) {
@@ -271,14 +282,20 @@ export default function AlertsScreen() {
   const handleAcknowledge = async (alertId: string) => {
     if (acknowledgedIds.has(alertId)) return;
 
-    const newSet = new Set(acknowledgedIds);
-    newSet.add(alertId);
-    setAcknowledgedIds(newSet);
     try {
-      await AsyncStorage.setItem(ACK_STORAGE_KEY, JSON.stringify(Array.from(newSet)));
-      await apiFetch(`/api/alerts/${alertId}/acknowledge`, { method: 'PATCH' });
+      const response = await apiFetch(`/api/alerts/${alertId}/acknowledge`, { method: 'PATCH' });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Could not acknowledge this request. Please try again.');
+      }
+      setAcknowledgedIds((previous) => {
+        const next = new Set(previous);
+        next.add(alertId);
+        AsyncStorage.setItem(ACK_STORAGE_KEY, JSON.stringify(Array.from(next))).catch(console.warn);
+        return next;
+      });
     } catch (e) {
-      console.warn('Acknowledge sync notice:', e);
+      Alert.alert('Acknowledgement failed', e instanceof Error ? e.message : 'Please try again.');
     }
   };
 

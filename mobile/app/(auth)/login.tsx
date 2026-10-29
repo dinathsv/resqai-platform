@@ -50,7 +50,6 @@ export default function LoginScreen() {
         router.replace('/(people)/dashboard');
       } else {
         if (res.status === 401) setError(t('auth.invalidCredentials'));
-        else if (res.status === 403) setError(t('auth.accountNotVerified'));
         else if (res.status === 429) setError(t('auth.accountLocked'));
         else if (res.status === 503) setError(t('auth.connectionError'));
         else {

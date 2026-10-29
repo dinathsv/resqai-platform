@@ -49,6 +49,7 @@ export default function RequestsPage() {
   const { data, error, isLoading, mutate } = useSWR<RequestsResponse>(
     `/api/requests?${params.toString()}`,
     fetcher,
+    { refreshInterval: 5000 },
   );
 
   const totalPages = data?.pages ?? 1;

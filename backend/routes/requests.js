@@ -229,8 +229,8 @@ router.get('/:id', requireAuth, async (req, res) => {
 
     return res.json({
       ...request,
-      participants: request.request_type === 'donation' ? donationResult.rows : volunteerResult.rows,
-      accepting_users: request.request_type === 'donation' ? donationResult.rows : volunteerResult.rows,
+      participants: [...volunteerResult.rows, ...donationResult.rows],
+      accepting_users: [...volunteerResult.rows, ...donationResult.rows],
       missions: missionResult.rows,
       status_history: historyResult.rows,
       timeline: historyResult.rows.map((item) => ({ status: item.new_status, timestamp: item.changed_at })),

@@ -200,3 +200,26 @@ async def test_sms_failure_rolls_back_registration(client, isolate_otp_delivery)
     assert response.status_code == 502
     async for session in app.dependency_overrides[get_db]():
         assert (await session.execute(select(User).where(User.email == 'failed@example.com'))).scalar_one_or_none() is None
+
+
+@pytest.mark.asyncio
+async def test_password_login_does_not_require_registration_otp(client: AsyncClient):
+    registration = await client.post('/api/auth/register', json={
+        "full_name": "Password Login User",
+        "email": "password-only@example.com",
+        "password": "password123",
+        "phone_number": "0771234572",
+    })
+    assert registration.status_code == 201
+
+    response = await client.post('/api/auth/login', json={
+        "email": "password-only@example.com", "password": "password123",
+    })
+    assert response.status_code == 200
+    assert response.json()["access_token"]
+
+    # Password authentication must still reject an incorrect password.
+    response = await client.post('/api/auth/login', json={
+        "email": "password-only@example.com", "password": "incorrect",
+    })
+    assert response.status_code == 401

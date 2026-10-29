@@ -252,11 +252,22 @@ async def list_alerts(
         req_result = await db.execute(req_query)
         community_requests = req_result.scalars().all()
 
+        accepted_request_ids = set()
+        if current_user and role == "people":
+            accepted = await db.execute(text("""
+                SELECT rm.origin_request_id
+                FROM volunteer_assignments va
+                JOIN relief_missions rm ON rm.mission_id=va.mission_id
+                WHERE va.user_id=:user_id AND va.status IN ('accepted', 'active', 'completed')
+            """), {"user_id": current_user.get("sub")})
+            accepted_request_ids = {str(row[0]) for row in accepted.all()}
+
         for r in community_requests:
             is_active = r.status in ["pending", "verified", "in_progress", "dispatched"]
             req_title = "Donation Request" if r.emergency_type == "donation" else "Help & Rescue Request"
             alert_items.append({
                 "alert_id": str(r.request_id),
+                "acknowledged": str(r.request_id) in accepted_request_ids,
                 "disaster_type": r.emergency_type or "help_rescue",
                 "severity": r.urgency_level or 3,
                 "work_plan": r.original_message or r.ai_summary or req_title,
@@ -339,3 +350,55 @@ async def update_alert(
         "alert_id": str(alert.alert_id),
         "status": alert.status,
     }
+
+
+@router.patch("/{alert_id}/acknowledge")
+async def acknowledge_request_alert(
+    alert_id: uuid.UUID,
+    current_user: dict[str, Any] = Depends(require_role("people")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Accept a community request atomically; retries reuse the same assignment."""
+    user_id = current_user.get("sub")
+    user = await db.execute(text("SELECT user_id FROM users WHERE user_id=:id AND is_active=true"), {"id": user_id})
+    if not user.first():
+        raise HTTPException(status_code=403, detail="An active registered account is required")
+    result = await db.execute(text("SELECT * FROM help_requests WHERE request_id=:id FOR UPDATE"), {"id": alert_id})
+    request = result.mappings().first()
+    if not request:
+        raise HTTPException(status_code=404, detail="Community request not found")
+    if str(request["user_id"]) == str(user_id):
+        raise HTTPException(status_code=400, detail="You cannot accept your own request")
+    if request["status"] in ("resolved", "cancelled") or request["admin_status"] == "finished":
+        raise HTTPException(status_code=409, detail="This request is already closed")
+    mission_type = "donation" if request["emergency_type"] == "donation" else "help"
+    result = await db.execute(text("SELECT mission_id, status FROM relief_missions WHERE origin_request_id=:id ORDER BY created_at LIMIT 1"), {"id": alert_id})
+    mission = result.mappings().first()
+    if mission:
+        mission_id = mission["mission_id"]
+        if mission["status"] in ("completed", "cancelled"):
+            raise HTTPException(status_code=409, detail="This mission is already closed")
+        await db.execute(text("UPDATE relief_missions SET status='active', updated_at=NOW() WHERE mission_id=:id"), {"id": mission_id})
+    else:
+        mission_id = uuid.uuid4()
+        await db.execute(text("""
+            INSERT INTO relief_missions (mission_id, title, description, origin_request_id, mission_type, status)
+            VALUES (:id, :title, :description, :request_id, :type, 'active')
+        """), {"id": mission_id, "title": "Donation Mission" if mission_type == "donation" else "Help Mission",
+               "description": request["original_message"], "request_id": alert_id, "type": mission_type})
+    await db.execute(text("""
+        INSERT INTO volunteer_assignments (user_id, mission_id, status)
+        SELECT :user_id, :mission_id, 'accepted'
+        WHERE NOT EXISTS (SELECT 1 FROM volunteer_assignments WHERE user_id=:user_id AND mission_id=:mission_id)
+    """), {"user_id": user_id, "mission_id": mission_id})
+    if request["admin_status"] == "pending":
+        await db.execute(text("""
+            UPDATE help_requests SET admin_status='in_progress', status='in_progress', updated_at=NOW()
+            WHERE request_id=:id
+        """), {"id": alert_id})
+        await db.execute(text("""
+            INSERT INTO request_status_history (request_id, old_status, new_status)
+            VALUES (:id, 'pending', 'in_progress')
+        """), {"id": alert_id})
+    await db.commit()
+    return {"success": True, "acknowledged": True, "mission_id": str(mission_id)}

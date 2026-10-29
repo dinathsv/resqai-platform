@@ -16,7 +16,7 @@ const fetcher = (url: string) => api.get(url).then((res) => res.data);
 
 export default function MissionsPage() {
   const [filter, setFilter] = useState<'all' | 'active' | 'help' | 'donation' | 'completed'>('active');
-  const { data, error, isLoading, mutate } = useSWR<MissionResponse>(`/api/missions?filter=${filter}`, fetcher, { refreshInterval: 30000 });
+  const { data, error, isLoading, mutate } = useSWR<MissionResponse>(`/api/missions?filter=${filter}`, fetcher, { refreshInterval: 5000 });
 
   async function updateStatus(id: string, status: string) {
     try { await api.patch(`/api/missions/${id}/status`, { status }); await mutate(); }
@@ -48,7 +48,7 @@ export default function MissionsPage() {
                 <td>{mission.mission_type === 'donation' ? 'Donation Mission' : 'Help Mission'}</td>
                 <td>{mission.original_message || mission.description || '—'}</td>
                 <td>{mission.requester_name || '—'}</td>
-                <td>{mission.volunteer_count || mission.donation_count || 0}</td>
+                <td>{(mission.volunteer_count || 0) + (mission.donation_count || 0)}</td>
                 <td>{mission.created_at ? new Date(mission.created_at).toLocaleString() : '—'}</td>
                 <td>{mission.status}</td>
                 <td><Link href={`/missions/${mission.mission_id}`}>View Details</Link></td>

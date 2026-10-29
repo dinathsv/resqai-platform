@@ -29,7 +29,7 @@ export default function MissionDetailPage({ params }: { params: Promise<{ id: st
   if (!data) return <div className="page">Mission not found.</div>;
 
   const mission = data.mission;
-  const participants = mission.mission_type === 'donation' ? data.donations : data.participants;
+  const participants = [...data.participants, ...data.donations];
 
   return (
     <div className="page">

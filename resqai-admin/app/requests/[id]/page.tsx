@@ -23,7 +23,7 @@ interface RequestDetail {
 const fetcher = (url: string) => api.get(url).then((res) => res.data);
 export default function RequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { data: request, error, isLoading, mutate } = useSWR<RequestDetail>(`/api/requests/${id}`, fetcher);
+  const { data: request, error, isLoading, mutate } = useSWR<RequestDetail>(`/api/requests/${id}`, fetcher, { refreshInterval: 5000 });
   const [status, setStatus] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -81,7 +81,7 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
       </div>
 
       <div className={styles.section}>
-        <h2>{request.request_type === 'donation' ? 'Donors / Commitments' : 'Accepted Users'}</h2>
+        <h2>Accepted Users</h2>
         {participantList.length === 0 ? (
           <p className={styles.metaText}>No users have accepted this request yet.</p>
         ) : (
