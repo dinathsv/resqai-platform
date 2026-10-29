@@ -382,15 +382,16 @@ async def acknowledge_request_alert(
     else:
         mission_id = uuid.uuid4()
         await db.execute(text("""
-            INSERT INTO relief_missions (mission_id, title, description, origin_request_id, mission_type, status)
-            VALUES (:id, :title, :description, :request_id, :type, 'active')
+            INSERT INTO relief_missions (mission_id, title, description, origin_request_id, mission_type, status, target, funds_collected)
+            VALUES (:id, :title, :description, :request_id, :type, 'active', 0, 0)
         """), {"id": mission_id, "title": "Donation Mission" if mission_type == "donation" else "Help Mission",
                "description": request["original_message"], "request_id": alert_id, "type": mission_type})
+    # Raw SQL bypasses SQLAlchemy's Python-side UUID and numeric defaults.
     await db.execute(text("""
-        INSERT INTO volunteer_assignments (user_id, mission_id, status)
-        SELECT :user_id, :mission_id, 'accepted'
+        INSERT INTO volunteer_assignments (assignment_id, user_id, mission_id, status, hours_logged)
+        SELECT CAST(:assignment_id AS uuid), :user_id, :mission_id, 'accepted', 0
         WHERE NOT EXISTS (SELECT 1 FROM volunteer_assignments WHERE user_id=:user_id AND mission_id=:mission_id)
-    """), {"user_id": user_id, "mission_id": mission_id})
+    """), {"assignment_id": uuid.uuid4(), "user_id": user_id, "mission_id": mission_id})
     if request["admin_status"] == "pending":
         await db.execute(text("""
             UPDATE help_requests SET admin_status='in_progress', status='in_progress', updated_at=NOW()

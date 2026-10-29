@@ -19,6 +19,8 @@ async def check_schema(connection: AsyncConnection) -> None:
             for column in table.columns:
                 if column.name not in actual:
                     problems.append(f"missing column {table.name}.{column.name}")
+            if table.name == "relief_missions" and "admin_id" in actual and not actual["admin_id"]["nullable"]:
+                problems.append("relief_missions.admin_id must be nullable; apply 010_community_request_missions.sql")
             if table.name == "users" and "avatar_url" in actual:
                 avatar = actual["avatar_url"]
                 if str(avatar["type"]).upper() != "TEXT" or not avatar["nullable"] or avatar["default"] is not None:
