@@ -337,44 +337,97 @@ export default function TopBar({
         animationType="fade"
         onRequestClose={() => setMenuVisible(false)}
       >
-        <Pressable onPress={() => setMenuVisible(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContentWrapper}>
-              <Pressable>
+        <Pressable
+          style={[
+            StyleSheet.absoluteFill,
+            styles.modalBackdrop,
+            Platform.OS === 'web' && ({ cursor: 'default' } as any),
+          ]}
+          onPress={() => setMenuVisible(false)}
+        >
+          <View style={[styles.modalContentWrapper, { paddingTop: insets.top + 52 }]}>
+            <Pressable
+              style={[
+                styles.menuDropdown,
+                {
+                  backgroundColor: isDark ? '#1C1C1F' : '#FFFFFF',
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : '#E2E8F0',
+                },
+                Platform.OS === 'web'
+                  ? ({
+                      boxShadow: isDark
+                        ? '0 12px 32px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.35)'
+                        : '0 12px 28px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.06)',
+                    } as any)
+                  : { elevation: 12 },
+              ]}
+              onPress={(e) => {
+                // Prevent taps inside menu from closing the modal
+                e.stopPropagation?.();
+              }}
+            >
+              {/* Language & Appearance */}
+              <TouchableOpacity
+                style={[
+                  styles.menuItem,
+                  { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : '#F8FAFC' },
+                ]}
+                onPress={() => {
+                  setMenuVisible(false);
+                  setSettingsVisible(true);
+                }}
+                activeOpacity={0.7}
+              >
                 <View
                   style={[
-                    styles.menuDropdown,
-                    { backgroundColor: appTheme.surface, borderColor: appTheme.border },
+                    styles.menuItemIconWrap,
+                    { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#EEF2F6' },
                   ]}
                 >
-                  {/* Language & Appearance */}
-                  <TouchableOpacity
-                    style={styles.menuItem}
-                    onPress={() => {
-                      setMenuVisible(false);
-                      setSettingsVisible(true);
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="language-outline" size={16} color={appTheme.textPrimary} />
-                    <Text style={[styles.menuItemLabel, { color: appTheme.textPrimary }]}>
-                      {t('nav.language')} / {t('nav.appearance')}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <View style={styles.menuDivider} />
-
-                  <TouchableOpacity
-                    style={styles.menuItemSignOut}
-                    onPress={handleSignOut}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="log-out-outline" size={16} color={appTheme.emergency} />
-                    <Text style={styles.menuSignOutLabel}>{t('nav.signOut')}</Text>
-                  </TouchableOpacity>
+                  <Ionicons name="language-outline" size={17} color={appTheme.textPrimary} />
                 </View>
-              </Pressable>
-            </View>
+                <Text style={[styles.menuItemLabel, { color: appTheme.textPrimary }]}>
+                  {t('nav.language')} / {t('nav.appearance')}
+                </Text>
+              </TouchableOpacity>
+
+              <View
+                style={[
+                  styles.menuDivider,
+                  { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#E2E8F0' },
+                ]}
+              />
+
+              {/* Sign Out with explicit highlighted background */}
+              <TouchableOpacity
+                style={[
+                  styles.menuItemSignOut,
+                  {
+                    backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2',
+                    borderColor: isDark ? 'rgba(239, 68, 68, 0.28)' : '#FECACA',
+                  },
+                ]}
+                onPress={handleSignOut}
+                activeOpacity={0.7}
+              >
+                <View
+                  style={[
+                    styles.menuItemIconWrap,
+                    { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.25)' : '#FCA5A5' },
+                  ]}
+                >
+                  <Ionicons name="log-out-outline" size={17} color="#EF4444" />
+                </View>
+                <Text
+                  style={[
+                    styles.menuSignOutLabel,
+                    { color: isDark ? '#FCA5A5' : '#DC2626' },
+                  ]}
+                >
+                  {t('nav.signOut') || 'Sign Out'}
+                </Text>
+              </TouchableOpacity>
+            </Pressable>
           </View>
         </Pressable>
       </Modal>
@@ -565,67 +618,64 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: '#FFFFFF',
   },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    zIndex: 1000,
+  },
   modalContentWrapper: {
     width: '100%',
     maxWidth: 480,
+    alignSelf: 'center',
     alignItems: 'flex-end',
     paddingRight: 16,
-    paddingTop: Platform.OS === 'ios' ? 56 : 56,
   },
   menuDropdown: {
-    width: 250,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    width: 260,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     paddingVertical: 12,
     paddingHorizontal: 12,
-    ...(Platform.OS === 'web'
-      ? ({ boxShadow: '0 12px 24px rgba(15, 23, 42, 0.1)' } as any)
-      : {}),
-    elevation: 10,
   },
   menuDivider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
-    marginVertical: 8,
+    marginVertical: 10,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 12,
     gap: 12,
   },
-  menuItemActive: {
-    backgroundColor: '#FEE2E2',
-  },
-  menuItemIcon: {
-    fontSize: 18,
+  menuItemIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   menuItemLabel: {
     fontSize: 14,
     fontFamily: Fonts.medium,
-    color: '#1E293B',
-  },
-  menuItemLabelActive: {
-    color: '#DC2626',
-    fontFamily: Fonts.bold,
   },
   menuItemSignOut: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 12,
+    borderWidth: 1,
     gap: 12,
-    marginTop: 4,
   },
   menuSignOutLabel: {
     fontSize: 14,
     fontFamily: Fonts.bold,
-    color: '#DC2626',
   },
   langPill: {
     minHeight: 34,

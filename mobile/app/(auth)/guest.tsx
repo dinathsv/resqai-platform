@@ -389,12 +389,8 @@ export default function GuestScreen() {
       if (res.ok) {
         const data = await res.json();
         setOtpSent(true);
-        if (data.otp_debug) {
-          setOtp(data.otp_debug);
-          setOtpMessage(`Verification code sent to ${data.phone || trimmedPhone} (Test code: ${data.otp_debug})`);
-        } else {
-          setOtpMessage(data.message || `Verification code sent to ${trimmedPhone}`);
-        }
+        setOtp(''); // Keep OTP blank so user must type code received via SMS
+        setOtpMessage(data.message || `Verification code sent to ${trimmedPhone}. Please enter it below.`);
         setResendCountdown(45);
       } else {
         const errMsg = await parseErrorResponse(res);
@@ -501,8 +497,18 @@ export default function GuestScreen() {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={[styles.container, { backgroundColor: theme.background }]}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'android' ? 'height' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingBottom: 220 }]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
+        >
           {/* Top navigation */}
           <TouchableOpacity
             style={styles.backLink}

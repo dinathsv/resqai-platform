@@ -88,6 +88,12 @@ async def create_request(
     role = current_user.get("role") if current_user else "guest"
 
     emergency_type = req.request_type if req.request_type in ["donation", "help_rescue"] else "help_rescue"
+
+    if role == "guest" and emergency_type == "donation":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You should have a registered account to request donations.",
+        )
     urgency_level = 3
     ai_summary = None
 

@@ -110,6 +110,10 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    volumes:
+      - ./resqai-admin:/app
+      - /app/node_modules
+      - /app/.next
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:5000
       NEXT_PUBLIC_AUTH_API_URL: http://localhost:5000

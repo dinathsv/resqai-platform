@@ -519,12 +519,11 @@ async def guest_send_otp(
     except Exception as exc:
         logger.warning("Guest OTP SMS failed to send: %s", exc)
 
-    logger.info("Guest OTP sent to %s (OTP=%s)", phone, otp)
+    logger.info("Guest OTP sent to %s (SMS dispatched)", phone)
     return {
         "message": f"Verification code sent to {phone}",
         "phone": phone,
         "delivery": delivery,
-        "otp_debug": otp if getattr(settings, "DEBUG", False) or getattr(settings, "ENVIRONMENT", "") != "production" else None,
     }
 
 

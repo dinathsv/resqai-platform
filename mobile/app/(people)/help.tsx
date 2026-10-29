@@ -35,6 +35,7 @@ import {
   Dimensions,
 } from 'react-native';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { connectSocket } from '../../config/socket';
@@ -172,6 +173,29 @@ export default function HelpScreen() {
     }
   };
 
+  const handleSelectDonation = async () => {
+    const guestToken = await AsyncStorage.getItem('guest_token');
+    const userToken = await AsyncStorage.getItem('token');
+    if (guestToken && !userToken) {
+      Alert.alert(
+        'Registered Account Required',
+        'You should have a registered account to request donations.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Sign In / Register',
+            onPress: () => {
+              setShowRequestForm(false);
+              router.push('/(auth)/login');
+            },
+          },
+        ]
+      );
+      return;
+    }
+    setRequestType('donation');
+  };
+
   /**
    * Option 3: Submit a manual help request
    */
@@ -180,6 +204,28 @@ export default function HelpScreen() {
     if (!trimmed) {
       Alert.alert('Required', 'Please describe your emergency situation.');
       return;
+    }
+
+    if (requestType === 'donation') {
+      const guestToken = await AsyncStorage.getItem('guest_token');
+      const userToken = await AsyncStorage.getItem('token');
+      if (guestToken && !userToken) {
+        Alert.alert(
+          'Registered Account Required',
+          'You should have a registered account to request donations.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Sign In / Register',
+              onPress: () => {
+                setShowRequestForm(false);
+                router.push('/(auth)/login');
+              },
+            },
+          ]
+        );
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -422,7 +468,7 @@ export default function HelpScreen() {
                       styles.submitButton,
                       { flex: 1, marginLeft: 6, backgroundColor: requestType === 'donation' ? '#10B981' : theme.surfaceSubtle }
                     ]}
-                    onPress={() => setRequestType('donation')}
+                    onPress={handleSelectDonation}
                   >
                     <Text style={{ color: requestType === 'donation' ? '#FFFFFF' : theme.textSecondary, fontFamily: Fonts.bold, textAlign: 'center' }}>
                       {t('help.donationType')}
