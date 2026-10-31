@@ -54,7 +54,17 @@ npm --prefix resqai-admin run dev
 npm --prefix mobile start
 ```
 
-The AI and ML services use their own requirements, Dockerfiles and API entry points. Keep their URLs aligned with the Expo build configuration. The repository also includes Docker Compose configuration for local service orchestration; initialize and migrate the database first.
+The AI and ML services use their own requirements, Dockerfiles and API entry points. Keep their URLs aligned with the Expo build configuration.
+
+For an existing local Docker database, run:
+
+```sh
+docker compose up -d postgres redis
+docker compose run --rm --build migrate
+docker compose up -d --build
+```
+
+The Docker PostgreSQL volume is separate from Supabase. Applying SQL in Supabase does not upgrade the local volume. The migration command preserves existing data and supports the older filename-only migration ledger; historical entries without checksums are reported as unverified. Use the same command after pulling later migrations. Initialize `database/schema.sql` first only for a new empty database. See [local Docker troubleshooting](docs/LOCAL_DOCKER.md).
 
 ## Checks
 

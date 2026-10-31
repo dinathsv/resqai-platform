@@ -32,6 +32,24 @@ services:
       timeout: 3s
       retries: 5
 
+  # Explicit schema upgrades; run `docker compose run --rm migrate` before
+  # starting upgraded APIs. Normal application startup remains read-only.
+  migrate:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    environment:
+      DATABASE_URL: ${PYTHON_DATABASE_URL:?Set PYTHON_DATABASE_URL in .env}
+    volumes:
+      - ./database:/workspace/database:ro
+      - ./backend/migrations:/workspace/backend/migrations:ro
+    command: ["python", "-m", "database.run_migrations"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   python-api:
     build:
       context: .
