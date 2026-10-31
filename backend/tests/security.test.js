@@ -63,7 +63,12 @@ test('schema readiness is read-only and propagates incompatible schema failures'
   const { checkSchema } = require('../services/schemaService');
   const statements = [];
   await checkSchema({ async query(sql) { statements.push(sql); } });
-  assert.equal(statements.length, 5);
+  for (const table of ['users','help_requests','relief_missions','mission_needs','donations','goods_deliveries','goods_events','request_verifications','request_status_history','mission_status_history','volunteer_assignments']) {
+    assert.ok(statements.some(sql => sql.includes(`FROM public.${table} LIMIT 0`)), `Readiness must inspect ${table}`);
+  }
+  for (const column of ['verification_status','requested_items','goods_status','operation_id','recipient_confirmed_at']) {
+    assert.ok(statements.some(sql => sql.includes(column)), `Readiness must inspect ${column}`);
+  }
   assert.ok(statements.every(sql => sql.startsWith('SELECT ') && sql.endsWith('LIMIT 0')));
   await assert.rejects(checkSchema({ async query() { throw Error('missing column'); } }), /missing column/);
 });

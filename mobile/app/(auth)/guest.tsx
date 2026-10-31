@@ -1,8 +1,8 @@
 /**
  * Flow 4: Guest user emergency access
- * Sri Lankan NIC Verification via Induwara.lk API
+ * Sri Lankan NIC format checks and manual identity review
  * Enforces compulsory:
- * 1. Real NIC number verification
+ * 1. NIC format validation
  * 2. NIC photo card image
  * 3. Mobile phone number + OTP verification
  */
@@ -162,7 +162,7 @@ export default function GuestScreen() {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       const input = document.createElement('input');
       input.type = 'file';
-      input.accept = 'image/*';
+      input.accept = 'image/jpeg,image/png,image/webp';
       input.setAttribute('capture', 'environment');
       input.style.display = 'none';
       document.body.appendChild(input);
@@ -187,7 +187,7 @@ export default function GuestScreen() {
     if (asset.base64) {
       return asset.base64.startsWith('data:')
         ? asset.base64
-        : `data:image/jpeg;base64,${asset.base64}`;
+        : `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`;
     }
     if (Platform.OS === 'web' && asset.uri) {
       try {
@@ -212,7 +212,7 @@ export default function GuestScreen() {
       if (Platform.OS === 'web') {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = 'image/*';
+        input.accept = 'image/jpeg,image/png,image/webp';
         input.style.display = 'none';
         document.body.appendChild(input);
         input.onchange = (e: any) => {
@@ -305,7 +305,7 @@ export default function GuestScreen() {
     setPhotoUri(null);
   };
 
-  // Real-time NIC Validation via Induwara.lk API
+  // Local NIC format validation
   const handleValidateNic = async (nicValue?: string) => {
     const raw = (nicValue !== undefined ? nicValue : nic).trim().toUpperCase();
     if (!raw) {
@@ -341,7 +341,7 @@ export default function GuestScreen() {
       console.error('NIC validation network error:', err);
       setNicCheckResult({
         isValid: false,
-        message: 'Unable to connect to NIC verification service. Please verify your connection.',
+        message: 'Unable to check NIC format. Please check your connection.',
         data: null,
       });
       return false;
@@ -416,9 +416,9 @@ export default function GuestScreen() {
     }
 
     if (!nicCheckResult?.isValid) {
-      const isReal = await handleValidateNic(trimmedNic);
-      if (!isReal) {
-        setError(nicCheckResult?.message || 'Invalid or fake NIC number. Please enter a genuine NIC.');
+      const formatValid = await handleValidateNic(trimmedNic);
+      if (!formatValid) {
+        setError(nicCheckResult?.message || 'The NIC format is not valid. Please check the number.');
         return;
       }
     }
@@ -426,6 +426,11 @@ export default function GuestScreen() {
     // 2. Compulsory NIC photo
     if (!nicPhoto || !photoUri) {
       setError('NIC image is compulsory. Please capture or upload your NIC card photo.');
+      return;
+    }
+
+    if (!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(nicPhoto) || nicPhoto.split(',')[1].length * 0.75 > 3 * 1024 * 1024) {
+      setError('Choose a JPEG, PNG or WebP image smaller than 3 MB.');
       return;
     }
 
@@ -442,7 +447,7 @@ export default function GuestScreen() {
     }
 
     const trimmedOtp = otp.trim();
-    if (!trimmedOtp || trimmedOtp.length < 4) {
+    if (!/^\d{6}$/.test(trimmedOtp)) {
       setError('Please enter the 6-digit OTP code sent to your mobile number.');
       return;
     }
@@ -477,7 +482,9 @@ export default function GuestScreen() {
 
       if (res.ok) {
         const data = await res.json();
+        await AsyncStorage.removeItem('token');
         await AsyncStorage.setItem('guest_token', data.access_token);
+        await AsyncStorage.setItem('guest_review_status', data.admin_review_status || 'pending');
         await AsyncStorage.setItem('guest_phone', data.phone_number || trimmedPhone);
         await AsyncStorage.setItem('guest_nic', data.nic_number || trimmedNic);
         router.replace('/(people)/dashboard');
@@ -538,6 +545,10 @@ export default function GuestScreen() {
           <View style={[styles.card, glass.card, { borderColor: theme.border }]}>
             <LanguageSelector variant="segmented" style={{ marginBottom: 18 }} />
 
+            <View style={{ marginBottom: 16, gap: 10 }}>
+              <Text style={{ color: theme.textSecondary, lineHeight: 21 }}>Phone verification confirms access to the number. NIC format checks do not prove identity; an administrator reviews the submitted document.</Text>
+              <TouchableOpacity onPress={() => router.push('/(people)/help')}><Text style={{ color: theme.brandActive, fontWeight: '600' }}>Need urgent help? Continue without documents</Text></TouchableOpacity>
+            </View>
             {error ? (
               <View style={[styles.errorBox, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2', borderColor: '#EF4444' }]}>
                 <Ionicons name="alert-circle" size={18} color="#EF4444" style={{ marginRight: 6 }} />
@@ -598,79 +609,24 @@ export default function GuestScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Verified Real NIC Badge & Decoded Identity Card */}
-              {nicCheckResult?.isValid && nicCheckResult.data ? (
-                <View style={[styles.verifiedCard, { backgroundColor: isDark ? '#064E3B30' : '#ECFDF5', borderColor: '#10B981' }]}>
-                  <View style={styles.verifiedHeaderRow}>
-                    <View style={styles.verifiedHeaderLeft}>
-                      <Ionicons name="checkmark-circle" size={22} color="#10B981" />
-                      <View style={{ marginLeft: 8 }}>
-                        <Text style={[styles.verifiedTitle, { color: isDark ? '#34D399' : '#047857' }]}>
-                          Real Sri Lankan NIC Verified
-                        </Text>
-                        <Text style={[styles.verifiedSubtitle, { color: isDark ? '#6EE7B7' : '#059669' }]}>
-                          Department for Registration of Persons
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={[styles.validFormatPill, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.25)' : '#D1FAE5' }]}>
-                      <Text style={[styles.validFormatPillText, { color: isDark ? '#34D399' : '#047857' }]}>
-                        {nicCheckResult.data.format === 'old' ? 'Old Format' : 'New 12-Digit'}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={[styles.decodedGrid, { borderTopColor: isDark ? 'rgba(16, 185, 129, 0.25)' : '#A7F3D0' }]}>
-                    <View style={[styles.decodedTile, { backgroundColor: isDark ? '#0B291E' : '#FFFFFF', borderColor: isDark ? '#134E39' : '#D1FAE5' }]}>
-                      <Text style={[styles.decodedLabel, { color: theme.textMuted }]}>Gender</Text>
-                      <View style={styles.decodedValueRow}>
-                        <Ionicons
-                          name={nicCheckResult.data.gender === 'Female' ? 'female' : 'male'}
-                          size={14}
-                          color={nicCheckResult.data.gender === 'Female' ? '#EC4899' : '#3B82F6'}
-                          style={{ marginRight: 4 }}
-                        />
-                        <Text style={[styles.decodedValue, { color: isDark ? '#F1F5F9' : '#0F172A' }]}>
-                          {nicCheckResult.data.gender || 'N/A'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={[styles.decodedTile, { backgroundColor: isDark ? '#0B291E' : '#FFFFFF', borderColor: isDark ? '#134E39' : '#D1FAE5' }]}>
-                      <Text style={[styles.decodedLabel, { color: theme.textMuted }]}>Date of Birth</Text>
-                      <View style={styles.decodedValueRow}>
-                        <Ionicons name="calendar" size={13} color={theme.brandActive} style={{ marginRight: 4 }} />
-                        <Text style={[styles.decodedValue, { color: isDark ? '#F1F5F9' : '#0F172A' }]}>
-                          {nicCheckResult.data.dateOfBirth || 'N/A'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {nicCheckResult.data.age ? (
-                      <View style={[styles.decodedTile, { backgroundColor: isDark ? '#0B291E' : '#FFFFFF', borderColor: isDark ? '#134E39' : '#D1FAE5' }]}>
-                        <Text style={[styles.decodedLabel, { color: theme.textMuted }]}>Age</Text>
-                        <View style={styles.decodedValueRow}>
-                          <Ionicons name="time" size={13} color="#F59E0B" style={{ marginRight: 4 }} />
-                          <Text style={[styles.decodedValue, { color: isDark ? '#F1F5F9' : '#0F172A' }]}>
-                            {nicCheckResult.data.age.years} yrs
-                          </Text>
-                        </View>
-                      </View>
-                    ) : null}
-                  </View>
+              {/* A matching format is not proof of identity. */}
+              {nicCheckResult?.isValid ? (
+                <View style={[styles.verifiedCard, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}>
+                  <Text style={{ color: theme.textPrimary, fontWeight: '600' }}>NIC format checked</Text>
+                  <Text style={{ color: theme.textSecondary, marginTop: 6 }}>Identity remains pending until an administrator reviews the document.</Text>
                 </View>
               ) : null}
 
-              {/* Fake / Invalid NIC Error Notice */}
+              {/* NIC format error */}
               {nicCheckResult && !nicCheckResult.isValid ? (
-                <View style={[styles.fakeNicAlert, { backgroundColor: isDark ? 'rgba(69, 10, 10, 0.4)' : '#FEF2F2', borderColor: '#EF4444' }]}>
-                  <View style={styles.fakeNicHeaderRow}>
+                <View style={[styles.invalidNicAlert, { backgroundColor: isDark ? 'rgba(69, 10, 10, 0.4)' : '#FEF2F2', borderColor: '#EF4444' }]}>
+                  <View style={styles.invalidNicHeaderRow}>
                     <Ionicons name="close-circle" size={18} color="#EF4444" />
-                    <Text style={[styles.fakeNicTitle, { color: isDark ? '#FCA5A5' : '#B91C1C' }]}>
-                      Fake or Invalid NIC Detected
+                    <Text style={[styles.invalidNicTitle, { color: isDark ? '#FCA5A5' : '#B91C1C' }]}>
+                      NIC format needs correction
                     </Text>
                   </View>
-                  <Text style={[styles.fakeNicMessage, { color: isDark ? '#F87171' : '#991B1B' }]}>
+                  <Text style={[styles.invalidNicMessage, { color: isDark ? '#F87171' : '#991B1B' }]}>
                     {nicCheckResult.message}
                   </Text>
                 </View>
@@ -1080,23 +1036,23 @@ const styles = StyleSheet.create({
   },
 
   // Fake NIC alert
-  fakeNicAlert: {
+  invalidNicAlert: {
     borderWidth: 1.5,
     borderRadius: 10,
     padding: 12,
     marginTop: 10,
   },
-  fakeNicHeaderRow: {
+  invalidNicHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     marginBottom: 4,
   },
-  fakeNicTitle: {
+  invalidNicTitle: {
     fontSize: 13,
     fontFamily: Fonts.bold,
   },
-  fakeNicMessage: {
+  invalidNicMessage: {
     fontSize: 12,
     fontFamily: Fonts.medium,
     lineHeight: 16,

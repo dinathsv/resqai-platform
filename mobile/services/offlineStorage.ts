@@ -42,33 +42,6 @@ export function initDB() {
   }
 }
 
-export function saveRequestOffline(
-  message: string,
-  lat: number,
-  lng: number,
-  isGuest: boolean,
-  nic: string | null
-): number {
-  if (!db) return -1
-  const result = db.runSync(
-    'INSERT INTO pending_requests VALUES (null,?,?,?,?,?,0,?)',
-    [message, lat, lng, isGuest ? 1 : 0, nic, new Date().toISOString()]
-  )
-  return result.lastInsertRowId
-}
-
-export function getPendingRequests() {
-  if (!db) return []
-  return db.getAllSync(
-    'SELECT * FROM pending_requests WHERE synced=0'
-  )
-}
-
-export function markSynced(id: number) {
-  if (!db) return
-  db.runSync('UPDATE pending_requests SET synced=1 WHERE id=?', [id])
-}
-
 export function cacheAlerts(alerts: any[]) {
   if (!db) return
   db.runSync('DELETE FROM cached_alerts')

@@ -1,3 +1,4 @@
+import { disconnectSocket } from '../config/socket';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -165,7 +166,8 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
 
   const handleSignOut = async () => {
     setProfileModalVisible(false);
-    await AsyncStorage.clear();
+    await AsyncStorage.multiRemove(['token', 'guest_token', 'guest_nic', 'guest_phone', 'guest_name', 'user_name', 'user_avatar']);
+    disconnectSocket();
     router.replace('/');
   };
 

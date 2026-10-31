@@ -43,13 +43,19 @@ export default function LoginScreen() {
       if (res.ok) {
         const data = await res.json();
         await AsyncStorage.setItem('token', data.access_token);
+        await AsyncStorage.multiRemove(['guest_token', 'guest_nic', 'guest_phone']);
         // If user has a saved language preference in backend, apply it
         if (data.user?.language_pref && (data.user.language_pref === 'en' || data.user.language_pref === 'ta' || data.user.language_pref === 'si')) {
           await setLanguage(data.user.language_pref);
         }
         router.replace('/(people)/dashboard');
       } else {
-        if (res.status === 401) setError(t('auth.invalidCredentials'));
+        if (res.status === 403) {
+          const data = await res.json().catch(() => ({}));
+          if (data.detail?.code === 'verification_required' && data.detail?.user_id) {
+            router.push({ pathname: '/(auth)/verify-otp', params: { userId: data.detail.user_id, email: trimmedEmail } });
+          } else setError(typeof data.detail === 'string' ? data.detail : data.detail?.message || t('common.error'));
+        } else if (res.status === 401) setError(t('auth.invalidCredentials'));
         else if (res.status === 429) setError(t('auth.accountLocked'));
         else if (res.status === 503) setError(t('auth.connectionError'));
         else {
@@ -144,6 +150,9 @@ export default function LoginScreen() {
               </View>
             </View>
 
+            <TouchableOpacity onPress={() => router.push('/(people)/help')} style={{ paddingVertical: 16 }} accessibilityRole="button">
+              <Text style={{ color: theme.emergency, fontFamily: Fonts.semiBold, textAlign: 'center' }}>{t('relief.urgentTitle')} · {t('relief.requestTitle')}</Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={[
                 styles.loginButton,

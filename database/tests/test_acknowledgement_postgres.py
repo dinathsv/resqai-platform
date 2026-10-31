@@ -11,7 +11,7 @@ from app.routers.alerts import acknowledge_request_alert
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('kind', ['help_rescue', 'donation'])
+@pytest.mark.parametrize('kind', ['help_rescue'])
 async def test_acknowledgement_without_database_defaults(kind):
     url = os.environ.get('TEST_POSTGRES_URL')
     if not url:
@@ -22,9 +22,9 @@ async def test_acknowledgement_without_database_defaults(kind):
         async with engine.connect() as connection:
             # Match ORM-created databases: Python defaults are absent from SQL DDL.
             for ddl in [
-                'CREATE TEMP TABLE users (user_id uuid PRIMARY KEY, is_active boolean)',
+                'CREATE TEMP TABLE users (user_id uuid PRIMARY KEY, is_active boolean, is_verified boolean)',
                 '''CREATE TEMP TABLE help_requests (request_id uuid PRIMARY KEY, user_id uuid,
-                   status text, admin_status text, emergency_type text, original_message text,
+                   status text, admin_status text, verification_status text, emergency_type text, original_message text,
                    updated_at timestamptz DEFAULT now())''',
                 '''CREATE TEMP TABLE relief_missions (mission_id uuid PRIMARY KEY, admin_id uuid,
                    title text NOT NULL, description text, origin_request_id uuid, mission_type text,
@@ -37,10 +37,10 @@ async def test_acknowledgement_without_database_defaults(kind):
             ]:
                 await connection.execute(text(ddl))
             user_id, request_id = uuid.uuid4(), uuid.uuid4()
-            await connection.execute(text('INSERT INTO users VALUES (:id, true)'), {'id': user_id})
+            await connection.execute(text('INSERT INTO users VALUES (:id, true, true)'), {'id': user_id})
             await connection.execute(text('''INSERT INTO help_requests
-                (request_id, user_id, status, admin_status, emergency_type, original_message)
-                VALUES (:id, :owner, 'pending', 'pending', :kind, 'Please help')'''),
+                (request_id, user_id, status, admin_status, verification_status, emergency_type, original_message)
+                VALUES (:id, :owner, 'pending', 'pending', 'verified', :kind, 'Please help')'''),
                 {'id': request_id, 'owner': uuid.uuid4(), 'kind': kind})
             await connection.commit()
             async with AsyncSession(bind=connection) as db:

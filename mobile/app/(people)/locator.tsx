@@ -76,6 +76,7 @@ export default function LocatorScreen() {
     label?: string;
   } | null>(null);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
+  const [recommendation, setRecommendation] = useState<{name: string; reason: string} | null>(null);
   const [emergencyType, setEmergencyType] = useState('medical');
   const emergencyTypeRef = useRef(emergencyType);
   const [loadingHospitals, setLoadingHospitals] = useState(false);
@@ -322,6 +323,8 @@ export default function LocatorScreen() {
       if (res.ok) {
         const data = await res.json();
         setHospitals(data.hospitals || []);
+        const suggested = data.recommendation || data.recommended;
+        setRecommendation(suggested ? { name: suggested.name, reason: data.recommendation_reason || '' } : null);
       }
     } catch (err) {
       console.error('Fetch hospitals error:', err);
@@ -656,6 +659,12 @@ export default function LocatorScreen() {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View>
+            {recommendation && <View style={{ padding: 18, borderRadius: 16, backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1, gap: 8, marginBottom: 16 }}>
+              <Text style={{ color: theme.brandActive, fontFamily: Fonts.semiBold }}>{t('relief.recommendation')}</Text>
+              <Text style={{ color: theme.textPrimary, fontSize: 18, fontFamily: Fonts.semiBold }}>{recommendation.name}</Text>
+              {recommendation.reason ? <Text style={{ color: theme.textSecondary }}>{recommendation.reason}</Text> : null}
+              <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{t('relief.recommendationNote')}</Text>
+            </View>}
             {/* Emergency Type Selector */}
             <ScrollView
               horizontal

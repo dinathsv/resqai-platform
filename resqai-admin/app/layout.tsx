@@ -11,6 +11,7 @@ import { useState, useEffect, useSyncExternalStore } from "react";
 import Cookies from "js-cookie";
 import styles from "./layout.module.css";
 import { AUTH_EVENT } from "@/lib/auth-events";
+import { disconnectSocket } from "@/lib/socket";
 
 // ---------------------------------------------
 // Types and constants
@@ -30,6 +31,8 @@ const NAV_ITEMS = [
   { href: "/alerts", label: "Alerts" },
   { href: "/requests", label: "Requests" },
   { href: "/missions", label: "Missions" },
+  { href: "/goods", label: "Goods & Deliveries" },
+  { href: "/coordination", label: "Agency Coordination" },
   { href: "/users", label: "Users" },
   { href: "/guest-verification", label: "NIC Verification" },
   { href: "/reports", label: "Reports" },
@@ -91,6 +94,8 @@ function Sidebar({ isOpen, onClose, theme, onToggleTheme }: SidebarProps) {
 
   const handleLogout = () => {
     Cookies.remove("admin_token", { path: "/" });
+    localStorage.removeItem('admin_token');
+    disconnectSocket();
 
     window.dispatchEvent(new Event(AUTH_EVENT));
 

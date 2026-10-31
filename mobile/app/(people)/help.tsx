@@ -1,928 +1,118 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-/**
- * Flow 3: Asking for Help (registered users) & Flow 4: Guest help
- *
- * Help Center with 3 options:
- * 1. AI Chatbot (first-aid guidance)
- * 2. Call 1990 (ambulance) + send help request w/ location to backend
- * 3. Submit a help request manually
- *
- * When calling 1990:
- *  - App calls 1990 ambulance directly
- *  - App also sends help message & location to Backend
- *  - Backend sends request to AI Brain to analyze the message
- *  - AI Brain identifies emergency details
- *  - Backend saves the request to Database
- *  - If critical: Backend alerts Admin
- *  - Backend confirms request received
- */
-
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Linking,
-  Alert,
-  ActivityIndicator,
-  ScrollView,
-  Modal,
-  KeyboardAvoidingView,
-  Platform,
-  Dimensions,
-} from 'react-native';
+import React, { useState } from 'react';
+import { View, Linking, ActivityIndicator } from 'react-native';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { apiFetch } from '../../config/api';
-import { connectSocket } from '../../config/socket';
-import { Colors, Fonts, Glass } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
-import BottomNav from '../../components/BottomNav';
-import TopBar from '../../components/TopBar';
+import MinimalButton from '../../components/MinimalButton';
+import { ReliefPage, ReliefCard, ReliefText, ReliefField, ReliefBadge, reliefStyles } from '../../components/ReliefUI';
+import { createClientId, submitDurableRequest, getMyQueuedRequests } from '../../services/requestQueue';
 
 export default function HelpScreen() {
-  const { theme } = useTheme();
-  const { t } = useLanguage();
-  const router = useRouter();
-  const [showRequestForm, setShowRequestForm] = useState(false);
-  const [message, setMessage] = useState('');
-  const [requestType, setRequestType] = useState<'help_rescue' | 'donation'>('help_rescue');
-  const [submitting, setSubmitting] = useState(false);
-  const [calling1990, setCalling1990] = useState(false);
-  const [successData, setSuccessData] = useState<{ id: string; type: string } | null>(null);
-  const [communityRequests, setCommunityRequests] = useState<any[]>([]);
+  const { theme } = useTheme(); const { t } = useLanguage(); const router = useRouter();
+  const [kind, setKind] = useState<'help_rescue' | 'donation'>('help_rescue');
+  const [message, setMessage] = useState(''); const [locationLabel, setLocationLabel] = useState('');
+  const [people, setPeople] = useState('1'); const [urgency, setUrgency] = useState(3);
+  const [evidence, setEvidence] = useState(''); const [busy, setBusy] = useState(false);
+  const [locating, setLocating] = useState(false); const [error, setError] = useState('');
+  const [coords, setCoords] = useState<{lat: number; lng: number} | null>(null);
+  const [locationNotice, setLocationNotice] = useState('');
+  const [items, setItems] = useState([{ item_name: '', quantity: '1', unit: 'packs' }]);
+  const [result, setResult] = useState<{state: string; id: string} | null>(null);
+  const [clientId, setClientId] = useState(createClientId);
 
-  // Load public community requests and listen for live broadcasts
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadPublicRequests() {
-      try {
-        const res = await apiFetch('/api/requests/public?limit=8');
-        if (res.ok) {
-          const data = await res.json();
-          if (mounted && Array.isArray(data)) {
-            setCommunityRequests(data);
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to load community requests:', err);
-      }
-    }
-
-    loadPublicRequests();
-
-    async function initLiveSocket() {
-      try {
-        const socket = await connectSocket();
-        if (!socket) return;
-
-        const onCommunityReq = (req: any) => {
-          if (!mounted) return;
-          const isDonation = req.emergency_type === 'donation';
-          const defaultMsg = isDonation ? 'Donation request' : 'Emergency help request';
-          const item = {
-            request_id: req.request_id || String(Date.now()),
-            emergency_type: req.emergency_type || 'help_rescue',
-            status: req.status || 'pending',
-            message: req.message || req.ai_summary || defaultMsg,
-            created_at: req.alerted_at || new Date().toISOString(),
-          };
-          setCommunityRequests((prev) => [
-            item,
-            ...prev.filter((r) => r.request_id !== item.request_id),
-          ]);
-        };
-
-        socket.on('new_request', onCommunityReq);
-        socket.on('community_request', onCommunityReq);
-      } catch (err) {
-        console.warn('Socket listener error in help screen:', err);
-      }
-    }
-
-    initLiveSocket();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  /**
-   * Get the user's current location.
-   */
-  const getLocation = async (): Promise<{ lat: number; lng: number } | null> => {
+  async function locate() {
+    setLocating(true); setLocationNotice('');
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Location Required', 'Please enable location access for emergency services.');
-        return null;
-      }
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== 'granted') throw new Error();
+      const location = await Promise.race([
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 12000)),
+      ]);
+      setCoords({ lat: location.coords.latitude, lng: location.coords.longitude });
+      setLocationNotice(t('relief.gpsCaptured'));
+    } catch { setCoords(null); setLocationNotice(t('relief.gpsUnavailable')); }
+    finally { setLocating(false); }
+  }
+  async function submit() {
+    if (busy) return;
+    setError('');
+    if (message.trim().length < 5) { setError(t('relief.describeRequired')); return; }
+    const affected = Number(people);
+    if (!Number.isInteger(affected) || affected < 1 || affected > 100000) { setError(t('relief.peopleInvalid')); return; }
+    const requested = kind === 'donation' ? items.map(i => ({ item_name: i.item_name.trim(), quantity: Number(i.quantity), unit: i.unit.trim() })) : [];
+    if (requested.some(i => i.item_name.length < 2 || !i.unit || !Number.isInteger(i.quantity) || i.quantity <= 0 || i.quantity > 100000)) { setError(t('relief.itemsInvalid')); return; }
+    if (kind === 'donation' && !await AsyncStorage.getItem('token')) { setError(t('relief.accountForGoods')); return; }
+    setBusy(true);
+    try {
+      const state = await submitDurableRequest({
+        client_request_id: clientId, message: message.trim(), request_type: kind,
+        lat: coords?.lat ?? null, lng: coords?.lng ?? null,
+        location_source: coords ? 'gps' : locationLabel.trim() ? 'manual' : 'unknown',
+        location_label: locationLabel.trim(), affected_people: affected,
+        urgency_level: urgency, requested_items: requested, evidence_note: evidence.trim(),
       });
-      return {
-        lat: location.coords.latitude,
-        lng: location.coords.longitude,
-      };
-    } catch {
-      return null;
-    }
-  };
-
-  /**
-   * Option 2: Call 1990 + send help request with location to backend
-   */
-  const handleCall1990 = async () => {
-    setCalling1990(true);
-
-    try {
-      // Initiate the phone call to 1990
-      Linking.openURL('tel:1990');
-
-      // Simultaneously send the help request with location to backend
-      const coords = await getLocation();
-      if (coords) {
-        const res = await apiFetch('/api/requests', {
-          method: 'POST',
-          body: JSON.stringify({
-            message: 'Emergency: User called 1990 ambulance service. Automatic help request sent with location.',
-            lat: coords.lat,
-            lng: coords.lng,
-          }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          Alert.alert(
-            'Help Request Sent',
-            `Your location has been sent to emergency services.\n\nRequest ID: ${data.request_id}\nEmergency: ${data.emergency_type}\nUrgency: ${data.urgency_level}/5`,
-            [{ text: 'OK' }]
-          );
-        }
+      setResult({ state, id: clientId });
+      if (state === 'failed') {
+        const pending = (await getMyQueuedRequests()).find(r => r.id === clientId);
+        setError(pending?.error || t('relief.retryRequired'));
       }
-    } catch (err) {
-      console.error('Call 1990 + request error:', err);
-    } finally {
-      setCalling1990(false);
-    }
-  };
-
-  const handleSelectDonation = async () => {
-    const guestToken = await AsyncStorage.getItem('guest_token');
-    const userToken = await AsyncStorage.getItem('token');
-    if (guestToken && !userToken) {
-      Alert.alert(
-        'Registered Account Required',
-        'You should have a registered account to request donations.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Sign In / Register',
-            onPress: () => {
-              setShowRequestForm(false);
-              router.push('/(auth)/login');
-            },
-          },
-        ]
-      );
-      return;
-    }
-    setRequestType('donation');
-  };
-
-  /**
-   * Option 3: Submit a manual help request
-   */
-  const handleSubmitRequest = async () => {
-    const trimmed = message.trim();
-    if (!trimmed) {
-      Alert.alert('Required', 'Please describe your emergency situation.');
-      return;
-    }
-
-    if (requestType === 'donation') {
-      const guestToken = await AsyncStorage.getItem('guest_token');
-      const userToken = await AsyncStorage.getItem('token');
-      if (guestToken && !userToken) {
-        Alert.alert(
-          'Registered Account Required',
-          'You should have a registered account to request donations.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Sign In / Register',
-              onPress: () => {
-                setShowRequestForm(false);
-                router.push('/(auth)/login');
-              },
-            },
-          ]
-        );
-        return;
-      }
-    }
-
-    setSubmitting(true);
-
-    try {
-      let coords = await getLocation();
-      if (!coords) {
-        // Fallback for web without HTTPS/Location permissions
-        coords = { lat: 6.9271, lng: 79.8612 };
-      }
-
-      const res = await apiFetch('/api/requests', {
-        method: 'POST',
-        body: JSON.stringify({
-          message: trimmed,
-          lat: coords.lat,
-          lng: coords.lng,
-          request_type: requestType,
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setMessage('');
-        setShowRequestForm(false);
-        setSuccessData({ id: data.request_id, type: requestType });
-      } else {
-        const errorData = await res.json().catch(() => ({}));
-        Alert.alert('Error', errorData.detail || 'Failed to submit request. Please try again.');
-      }
-    } catch (err) {
-      console.error('Submit request error:', err);
-      Alert.alert('Error', 'Connection error. Your request will be saved offline and sent when connected.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace('/(people)/dashboard');
-    }
-  };
-
-  return (
-    <SafeAreaView edges={['left', 'right', 'bottom']} style={[styles.container, { backgroundColor: theme.background }]}>
-      <TopBar title={t('help.title')} showBack onBack={handleBack} />
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false}>
-
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-          {t('help.subtitle')}
-        </Text>
-
-        {/* Priority 1: Call 1990 Ambulance (Immediate Threat) */}
-        <TouchableOpacity
-          style={[styles.optionCard, styles.emergencyCard]}
-          onPress={handleCall1990}
-          disabled={calling1990}
-          activeOpacity={0.85}
-        >
-          <View style={[styles.optionIcon, styles.emergencyIcon]}>
-            {calling1990 ? (
-              <ActivityIndicator size="small" color={Colors.white} />
-            ) : (
-              <Text style={styles.emoji}>🚑</Text>
-            )}
+      // A retry keeps this identifier while any saved submission is unresolved.
+      if (state === 'sent') setClientId(createClientId());
+    } catch (e) { setError(e instanceof Error ? e.message : t('common.error')); }
+    finally { setBusy(false); }
+  }
+  return <ReliefPage title={t('relief.requestTitle')} subtitle={t('relief.requestIntro')}>
+    <ReliefCard>
+      <ReliefText title>{t('relief.urgentTitle')}</ReliefText>
+      <ReliefText muted>{t('relief.dialerNote')}</ReliefText>
+      <View style={reliefStyles.row}>
+        <MinimalButton title="1990" variant="cta" onPress={() => { void Linking.openURL('tel:1990').catch(() => setError(t('relief.dialerUnavailable'))); }} />
+        <MinimalButton title={t('relief.firstAid')} variant="outline" onPress={() => router.push('/(people)/chatbot')} />
+      </View>
+    </ReliefCard>
+    {result ? <ReliefCard>
+      <ReliefBadge status={result.state} />
+      <ReliefText title>{result.state === 'sent' ? t('relief.requestReceived') : t('relief.savedOnDevice')}</ReliefText>
+      <ReliefText>{result.state === 'sent' ? t('relief.receivedNote') : t('relief.queuedNote')}</ReliefText>
+      <ReliefText muted>{t('relief.reference')}: {result.id.slice(0, 8)}</ReliefText>
+      <MinimalButton title={t('relief.trackRequests')} onPress={() => router.push('/(people)/activities')} />
+      {result.state === 'sent' ? <MinimalButton title={t('relief.newRequest')} variant="outline" onPress={() => { setResult(null); setMessage(''); setEvidence(''); }} /> : null}
+    </ReliefCard> : null}
+    {(!result || result.state === 'failed') && <ReliefCard>
+      <ReliefText title>{t('relief.whatNeeded')}</ReliefText>
+      <View style={reliefStyles.row}>
+        <MinimalButton title={t('relief.helpRescue')} variant={kind === 'help_rescue' ? 'primary' : 'outline'} onPress={() => setKind('help_rescue')} disabled={busy} />
+        <MinimalButton title={t('relief.goodsRequest')} variant={kind === 'donation' ? 'primary' : 'outline'} onPress={() => setKind('donation')} disabled={busy} />
+      </View>
+      <ReliefField label={t('relief.situation')} value={message} onChangeText={setMessage} multiline maxLength={4000} editable={!busy} />
+      <ReliefField label={t('relief.affectedPeople')} value={people} onChangeText={setPeople} keyboardType="number-pad" maxLength={7} editable={!busy} />
+      <ReliefText>{t('relief.urgency')}</ReliefText>
+      <View style={reliefStyles.row}>{[1, 2, 3, 4, 5].map(level => <MinimalButton key={level} title={String(level)} small variant={urgency === level ? 'primary' : 'outline'} onPress={() => setUrgency(level)} disabled={busy} />)}</View>
+      <ReliefField label={t('relief.locationLabel')} value={locationLabel} onChangeText={setLocationLabel} placeholder={t('relief.locationPlaceholder')} maxLength={255} editable={!busy} />
+      <MinimalButton title={locating ? t('common.loading') : coords ? t('relief.updateGps') : t('relief.useGps')} variant="outline" onPress={() => { void locate(); }} disabled={locating || busy} />
+      {coords ? <ReliefText muted>{coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</ReliefText> : null}
+      {locationNotice ? <ReliefText muted>{locationNotice}</ReliefText> : null}
+      {kind === 'donation' && <>
+        <ReliefText title>{t('relief.requestedGoods')}</ReliefText>
+        <ReliefText muted>{t('relief.goodsReviewNote')}</ReliefText>
+        {items.map((item, index) => <View key={index} style={{ gap: 10, paddingVertical: 8 }}>
+          <ReliefField label={`${t('relief.item')} ${index + 1}`} value={item.item_name} onChangeText={value => setItems(old => old.map((r, i) => i === index ? { ...r, item_name: value } : r))} placeholder={t('relief.itemPlaceholder')} maxLength={120} />
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <View style={{ flex: 1 }}><ReliefField label={t('relief.quantity')} value={item.quantity} keyboardType="number-pad" onChangeText={value => setItems(old => old.map((r, i) => i === index ? { ...r, quantity: value } : r))} /></View>
+            <View style={{ flex: 1 }}><ReliefField label={t('relief.unit')} value={item.unit} onChangeText={value => setItems(old => old.map((r, i) => i === index ? { ...r, unit: value } : r))} maxLength={30} /></View>
           </View>
-          <View style={styles.optionContent}>
-            <View style={styles.badgeCritical}>
-              <Text style={styles.badgeCriticalText}>{t('help.urgentBadge')}</Text>
-            </View>
-            <Text style={[styles.optionTitle, styles.emergencyTitle]}>
-              {t('help.call1990')}
-            </Text>
-            <Text style={[styles.optionDesc, styles.emergencyDesc]}>
-              {t('help.call1990Desc')}
-            </Text>
-          </View>
-          <View style={styles.emergencyChevronWrap}>
-            <Text style={styles.emergencyChevron}>📞</Text>
-          </View>
-        </TouchableOpacity>
-
-        {/* Priority 2: AI First-Aid Chatbot */}
-        <TouchableOpacity
-          style={[styles.optionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
-          onPress={() => router.push('/(people)/chatbot')}
-          activeOpacity={0.75}
-        >
-          <View style={[styles.optionIcon, { backgroundColor: theme.accentSubtle }]}>
-            <Text style={styles.emoji}>💬</Text>
-          </View>
-          <View style={styles.optionContent}>
-            <Text style={[styles.optionTitle, { color: theme.textPrimary }]}>{t('help.firstAidTitle')}</Text>
-            <Text style={[styles.optionDesc, { color: theme.textSecondary }]}>{t('help.firstAidDesc')}</Text>
-          </View>
-          <Text style={[styles.chevron, { color: theme.textMuted }]}>›</Text>
-        </TouchableOpacity>
-
-        {/* Priority 3: Submit a Help Request */}
-        <TouchableOpacity
-          style={[styles.optionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
-          onPress={() => setShowRequestForm(true)}
-          activeOpacity={0.75}
-        >
-          <View style={[styles.optionIcon, { backgroundColor: theme.accentSubtle }]}>
-            <Text style={styles.emoji}>📝</Text>
-          </View>
-          <View style={styles.optionContent}>
-            <Text style={[styles.optionTitle, { color: theme.textPrimary }]}>{t('help.rescueTitle')}</Text>
-            <Text style={[styles.optionDesc, { color: theme.textSecondary }]}>{t('help.rescueDesc')}</Text>
-          </View>
-          <Text style={[styles.chevron, { color: theme.textMuted }]}>›</Text>
-        </TouchableOpacity>
-
-        {/* Official Hotline Callout */}
-        <View style={[styles.infoBox, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}>
-          <Text style={[styles.infoTitle, { color: theme.textPrimary }]}>{t('help.emergencyNumberTitle')}</Text>
-          <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-            {t('help.emergencyNumberDesc')}
-          </Text>
-        </View>
-
-        {/* Live Community Help & Donation Requests */}
-        <View style={styles.communitySection}>
-          <View style={styles.communityHeader}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <View style={styles.livePulseDot} />
-              <Text style={[styles.communityTitle, { color: theme.textPrimary }]}>
-                Community Requests
-              </Text>
-            </View>
-            <TouchableOpacity onPress={() => router.push('/(people)/alerts')} activeOpacity={0.7}>
-              <Text style={[styles.viewAllLink, { color: theme.brandActive }]}>
-                View All Alerts ›
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {communityRequests.length === 0 ? (
-            <View style={[styles.emptyBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-                No community requests currently active.
-              </Text>
-            </View>
-          ) : (
-            communityRequests.map((req) => {
-              const isDonation = req.emergency_type === 'donation';
-              return (
-                <View
-                  key={req.request_id}
-                  style={[styles.requestCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                >
-                  <View style={styles.requestCardHeader}>
-                    <View
-                      style={[
-                        styles.requestTypeBadge,
-                        { backgroundColor: isDonation ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)' }
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.requestTypeBadgeText,
-                          { color: isDonation ? '#10B981' : '#EF4444' }
-                        ]}
-                      >
-                        {isDonation ? '🤝 Donation' : '🆘 Help Needed'}
-                      </Text>
-                    </View>
-                    <Text style={[styles.requestTimeText, { color: theme.textMuted }]}>
-                      {req.created_at ? new Date(req.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Active'}
-                    </Text>
-                  </View>
-                  <Text style={[styles.requestMessage, { color: theme.textPrimary }]} numberOfLines={3}>
-                    {req.message}
-                  </Text>
-                </View>
-              );
-            })
-          )}
-        </View>
-      </ScrollView>
-
-      {/* Submit Request Modal */}
-      <Modal
-        visible={showRequestForm}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        transparent={isWeb}
-        onRequestClose={() => setShowRequestForm(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.surface }]}>
-            <KeyboardAvoidingView
-              style={styles.modalFlex}
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            >
-              <View style={[styles.modalHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-                <TouchableOpacity onPress={() => setShowRequestForm(false)}>
-                  <Text style={styles.modalCancel}>{t('common.cancel')}</Text>
-                </TouchableOpacity>
-                <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{t('help.title')}</Text>
-                <View style={{ width: 60 }} />
-              </View>
-
-              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false}>
-                <Text style={[styles.formLabel, { color: theme.textPrimary }]}>{t('help.describeEmergency')}</Text>
-                <TextInput
-                  style={[styles.messageInput, {
-                    backgroundColor: theme.inputBg,
-                    borderColor: theme.inputBorder,
-                    color: theme.textPrimary
-                  }]}
-                  value={message}
-                  onChangeText={setMessage}
-                  placeholder={t('help.describePlaceholder')}
-                  placeholderTextColor={Colors.textMuted}
-                  multiline
-                  numberOfLines={6}
-                  textAlignVertical="top"
-                  editable={!submitting}
-                />
-
-                <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginVertical: 12 }}>
-                  <TouchableOpacity
-                    style={[
-                      styles.submitButton,
-                      { flex: 1, marginRight: 6, backgroundColor: requestType === 'help_rescue' ? theme.emergency : theme.surfaceSubtle }
-                    ]}
-                    onPress={() => setRequestType('help_rescue')}
-                  >
-                    <Text style={{ color: requestType === 'help_rescue' ? '#FFFFFF' : theme.textSecondary, fontFamily: Fonts.bold, textAlign: 'center' }}>
-                      {t('help.helpRescueType')}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.submitButton,
-                      { flex: 1, marginLeft: 6, backgroundColor: requestType === 'donation' ? '#10B981' : theme.surfaceSubtle }
-                    ]}
-                    onPress={handleSelectDonation}
-                  >
-                    <Text style={{ color: requestType === 'donation' ? '#FFFFFF' : theme.textSecondary, fontFamily: Fonts.bold, textAlign: 'center' }}>
-                      {t('help.donationType')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                <Text style={styles.formHint}>
-                  {t('help.gpsAutoNotice')}
-                </Text>
-
-                <TouchableOpacity
-                  style={[styles.submitButton, submitting && styles.buttonDisabled]}
-                  onPress={handleSubmitRequest}
-                  disabled={submitting}
-                  activeOpacity={0.7}
-                >
-                  {submitting ? (
-                    <ActivityIndicator size="small" color={Colors.white} />
-                  ) : (
-                    <Text style={styles.submitButtonText}>{t('help.sendRequest')}</Text>
-                  )}
-                </TouchableOpacity>
-              </ScrollView>
-            </KeyboardAvoidingView>
-          </SafeAreaView>
-        </View>
-      </Modal>
-
-      {/* Custom Success Modal */}
-      <Modal
-        visible={!!successData}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setSuccessData(null)}
-      >
-        <View style={styles.successModalOverlay}>
-          <View style={[styles.successCard, { backgroundColor: theme.surface }]}>
-            <View style={styles.successIconWrap}>
-              <Text style={{ fontSize: 36 }}>✅</Text>
-            </View>
-            <Text style={[styles.successTitle, { color: theme.textPrimary }]}>{t('help.requestReceivedTitle')}</Text>
-            <Text style={[styles.successText, { color: theme.textSecondary }]}>
-              {t('help.requestReceivedDesc', {
-                type: successData?.type === 'donation' ? t('help.donationType') : t('help.helpRescueType')
-              })}
-            </Text>
-            <View style={styles.requestIdBox}>
-              <Text style={[styles.requestIdLabel, { color: theme.textMuted }]}>{t('help.requestIdLabel')}</Text>
-              <Text style={[styles.requestIdValue, { color: theme.textPrimary }]}>{successData?.id}</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.successBtn}
-              onPress={() => setSuccessData(null)}
-            >
-              <Text style={styles.successBtnText}>{t('common.done')}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
-  );
+          {items.length > 1 && <MinimalButton title={t('relief.remove')} small variant="outline" onPress={() => setItems(old => old.filter((_, i) => i !== index))} />}
+        </View>)}
+        {items.length < 20 && <MinimalButton title={t('relief.addItem')} variant="outline" onPress={() => setItems(old => [...old, { item_name: '', quantity: '1', unit: 'packs' }])} />}
+      </>}
+      <ReliefField label={t('relief.evidenceNote')} value={evidence} onChangeText={setEvidence} multiline maxLength={2000} editable={!busy} />
+      <ReliefText muted>{t('relief.noDocuments')}</ReliefText>
+      {busy && <ActivityIndicator color={theme.brandActive} />}
+      <MinimalButton title={busy ? t('relief.sending') : t('relief.sendRequest')} onPress={() => { void submit(); }} disabled={busy || locating} />
+    </ReliefCard>}
+    {error ? <ReliefCard><ReliefText>{error}</ReliefText><MinimalButton title={t('relief.trackRequests')} variant="outline" onPress={() => router.push('/(people)/activities')} /></ReliefCard> : null}
+  </ReliefPage>;
 }
-
-const { width: screenWidth } = Dimensions.get('window');
-const isWeb = Platform.OS === 'web';
-const isMobileWeb = isWeb && screenWidth <= 480;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  scrollContent: {
-    paddingBottom: 36,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 8 : 16,
-    paddingBottom: 8,
-    backgroundColor: '#FFFFFF',
-  },
-  backButtonTouch: {
-    paddingVertical: 6,
-    paddingRight: 10,
-  },
-  backButton: {
-    fontSize: 15,
-    fontFamily: Fonts.bold,
-    color: '#DC2626',
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 20,
-    fontFamily: Fonts.bold,
-    color: '#0F172A',
-    textAlign: 'center',
-    letterSpacing: -0.3,
-  },
-  headerSpacer: {
-    width: 60,
-  },
-  subtitle: {
-    fontSize: 13,
-    fontFamily: Fonts.medium,
-    color: '#64748B',
-    paddingHorizontal: 20,
-    marginTop: 2,
-    marginBottom: 20,
-    lineHeight: 18,
-  },
-  optionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginBottom: 14,
-    padding: 16,
-  },
-  emergencyCard: {
-    backgroundColor: '#DC2626',
-    borderColor: '#DC2626',
-  },
-  badgeCritical: {
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 2.5,
-    borderRadius: 8,
-    marginBottom: 6,
-  },
-  badgeCriticalText: {
-    fontSize: 9,
-    fontFamily: Fonts.bold,
-    color: '#FFFFFF',
-    letterSpacing: 0.8,
-  },
-  optionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  emergencyIcon: {
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
-  },
-  emoji: {
-    fontSize: 24,
-  },
-  optionContent: {
-    flex: 1,
-  },
-  optionTitle: {
-    fontSize: 16,
-    fontFamily: Fonts.bold,
-    color: '#0F172A',
-    marginBottom: 3,
-  },
-  emergencyTitle: {
-    color: '#FFFFFF',
-  },
-  optionDesc: {
-    fontSize: 13,
-    fontFamily: Fonts.regular,
-    color: '#64748B',
-    lineHeight: 18,
-  },
-  emergencyDesc: {
-    color: 'rgba(255, 255, 255, 0.95)',
-    fontFamily: Fonts.medium,
-  },
-  chevron: {
-    fontSize: 22,
-    fontFamily: Fonts.bold,
-    color: '#94A3B8',
-    marginLeft: 8,
-  },
-  emergencyChevronWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
-  },
-  emergencyChevron: {
-    fontSize: 18,
-    color: '#FFFFFF',
-  },
-  infoBox: {
-    marginHorizontal: 16,
-    marginTop: 10,
-    marginBottom: 20,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  infoTitle: {
-    fontSize: 13,
-    fontFamily: Fonts.bold,
-    color: '#0F172A',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  infoText: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    ...(isWeb
-      ? {
-          backgroundColor: 'transparent',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '100%',
-          height: '100%',
-        }
-      : {}),
-  },
-  modalContainer: {
-    flex: 1,
-    ...(isWeb
-      ? ({
-          width: '100%',
-          maxWidth: 480,
-          height: '100%',
-          maxHeight: '100%',
-          borderRadius: 0,
-          overflow: 'hidden',
-          borderWidth: 0,
-        } as any)
-      : {}),
-  },
-  modalFlex: {
-    flex: 1,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-  },
-  modalCancel: {
-    fontSize: 15,
-    fontFamily: Fonts.medium,
-    color: Colors.textMuted,
-    width: 60,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontFamily: Fonts.bold,
-  },
-  modalBody: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  formLabel: {
-    fontSize: 15,
-    fontFamily: Fonts.semiBold,
-    marginBottom: 10,
-  },
-  messageInput: {
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    fontSize: 15,
-    fontFamily: Fonts.regular,
-    minHeight: 140,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderRadius: 12,
-  },
-  formHint: {
-    fontSize: 13,
-    fontFamily: Fonts.regular,
-    color: Colors.textMuted,
-    lineHeight: 20,
-    marginBottom: 24,
-  },
-  submitButton: {
-    backgroundColor: '#059669',
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  submitButtonText: {
-    color: Colors.white,
-    fontSize: 16,
-    fontFamily: Fonts.bold,
-  },
-  // Success Modal Styles
-  successModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  successCard: {
-    width: '100%',
-    maxWidth: 400,
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    ...(Platform.OS === 'web'
-      ? ({ boxShadow: '0 10px 20px rgba(0, 0, 0, 0.15)' } as any)
-      : {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.15,
-          shadowRadius: 20,
-        }),
-    elevation: 10,
-  },
-  successIconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  successTitle: {
-    fontSize: 22,
-    fontFamily: Fonts.bold,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  successText: {
-    fontSize: 15,
-    fontFamily: Fonts.regular,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 20,
-  },
-  requestIdBox: {
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  requestIdLabel: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-    marginBottom: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  requestIdValue: {
-    fontSize: 13,
-    fontFamily: Fonts.mono,
-  },
-  successBtn: {
-    backgroundColor: '#059669',
-    width: '100%',
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  successBtnText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontFamily: Fonts.bold,
-  },
-  // Community Section Styles
-  communitySection: {
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  communityHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  communityTitle: {
-    fontSize: 16,
-    fontFamily: Fonts.bold,
-  },
-  livePulseDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10B981',
-  },
-  viewAllLink: {
-    fontSize: 13,
-    fontFamily: Fonts.semiBold,
-  },
-  emptyBox: {
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 13,
-    fontFamily: Fonts.regular,
-  },
-  requestCard: {
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 10,
-  },
-  requestCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  requestTypeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  requestTypeBadgeText: {
-    fontSize: 11,
-    fontFamily: Fonts.bold,
-  },
-  requestTimeText: {
-    fontSize: 11,
-    fontFamily: Fonts.regular,
-  },
-  requestMessage: {
-    fontSize: 13,
-    fontFamily: Fonts.medium,
-    lineHeight: 18,
-  },
-});

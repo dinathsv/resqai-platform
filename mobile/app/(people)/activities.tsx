@@ -1,708 +1,109 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Platform,
-  Image,
-} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
-import { apiFetch } from '../../config/api';
-import { Colors, Fonts } from '../../constants/theme';
+import React, { useCallback, useState } from 'react';
+import { View, ActivityIndicator, Modal, ScrollView } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { apiFetch, getToken, parseErrorResponse } from '../../config/api';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { Ionicons } from '@expo/vector-icons';
-import BottomNav from '../../components/BottomNav';
-import TopBar from '../../components/TopBar';
+import MinimalButton from '../../components/MinimalButton';
+import { ReliefPage, ReliefCard, ReliefText, ReliefField, ReliefBadge, reliefStyles } from '../../components/ReliefUI';
+import { getMyQueuedRequests, getMyRequestReceipts, syncMyRequests, subscribeQueue, QueuedRequest } from '../../services/requestQueue';
 
-interface RescueItem {
-  request_id: string;
-  title: string;
-  status: string;
-  location?: string;
-  date: string;
+interface RequestItem {
+  request_id: string; client_request_id?: string; message: string; status: string;
+  admin_status?: string; evidence_note?: string; verification_status?: string; review_notes?: string; verification_notes?: string;
+  location_label?: string; location_source?: string; created_at: string;
+  requested_items?: { item_name: string; quantity: number; unit: string }[];
+  history?: { status?: string; new_status?: string; note?: string; reason?: string; changed_at?: string }[];
 }
-
-interface DonationItem {
-  donation_id: string;
-  amount: number;
-  status: string;
-  title: string;
-  date: string;
-}
-
-interface AlertItem {
-  alert_id: string;
-  disaster_type: string;
-  severity: number;
-  district?: string;
-  work_plan?: string;
-  created_at?: string;
-}
-
 export default function ActivitiesScreen() {
-  const { theme } = useTheme();
-  const { t } = useLanguage();
-  const router = useRouter();
-  const [userName, setUserName] = useState<string>('Citizen');
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [myRequests, setMyRequests] = useState<RescueItem[]>([]);
-  const [myDonations, setMyDonations] = useState<DonationItem[]>([]);
-  const [recentAlerts, setRecentAlerts] = useState<AlertItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadActivities() {
-      try {
-        // 1. Instant username from cache
-        const cachedName = await AsyncStorage.getItem('user_name');
-        if (cachedName && mounted) {
-          setUserName(cachedName);
-        }
-
-        // 2. Fetch authenticated profile
-        const meRes = await apiFetch('/api/auth/me');
-        if (meRes.ok) {
-          const meData = await meRes.json();
-          if (mounted && meData.full_name) {
-            setUserName(meData.full_name);
-            await AsyncStorage.setItem('user_name', meData.full_name);
-          }
-          if (mounted) {
-            setAvatarUrl(typeof meData.avatar_url === 'string' ? meData.avatar_url : null);
-          }
-        }
-
-        // 3. Fetch user's real rescue requests
-        const reqRes = await apiFetch('/api/requests/my');
-        if (reqRes.ok) {
-          const reqData = await reqRes.json();
-          if (mounted && Array.isArray(reqData)) {
-            setMyRequests(
-              reqData.map((r: any) => ({
-                request_id: r.request_id,
-                title:
-                  r.message ||
-                  `${r.emergency_type ? r.emergency_type.toUpperCase() : 'Emergency'} Request`,
-                status: r.status || 'Active',
-                location: r.location || 'Reported Location',
-                date: r.created_at
-                  ? new Date(r.created_at).toLocaleString([], {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })
-                  : 'Recent',
-              }))
-            );
-          }
-        }
-
-        // 4. Fetch user's real donations
-        const donRes = await apiFetch('/api/donations');
-        if (donRes.ok) {
-          const donData = await donRes.json();
-          if (mounted && Array.isArray(donData)) {
-            setMyDonations(
-              donData.map((d: any) => ({
-                donation_id: d.donation_id
-                  ? `#DON${d.donation_id.slice(0, 6).toUpperCase()}`
-                  : '#DONATION',
-                amount: d.amount || 0,
-                status: d.status || 'completed',
-                title: d.mission_title || 'Disaster Relief Fund',
-                date: d.created_at
-                  ? new Date(d.created_at).toLocaleDateString([], {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })
-                  : 'Recent',
-              }))
-            );
-          }
-        }
-
-        // 5. Fetch real active alerts
-        const alertRes = await apiFetch('/api/alerts');
-        if (alertRes.ok) {
-          const alertData = await alertRes.json();
-          if (mounted && alertData.alerts && Array.isArray(alertData.alerts)) {
-            setRecentAlerts(alertData.alerts);
-          }
-        }
-      } catch (err) {
-        console.error('Activities load error:', err);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    loadActivities();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const handleSignOut = async () => {
+  const { t } = useLanguage(); const { theme } = useTheme(); const router = useRouter();
+  const [requests, setRequests] = useState<RequestItem[]>([]); const [queued, setQueued] = useState<QueuedRequest[]>([]);
+  const [loading, setLoading] = useState(false); const [retrying, setRetrying] = useState(false); const [error, setError] = useState('');
+  const [editing, setEditing] = useState<RequestItem | null>(null);
+  const [infoMessage, setInfoMessage] = useState(''); const [infoNote, setInfoNote] = useState('');
+  const [saving, setSaving] = useState(false); const [infoError, setInfoError] = useState('');
+  const [expanded, setExpanded] = useState<string | null>(null); const [history, setHistory] = useState<Record<string, RequestItem>>({});
+  const load = useCallback(async () => {
+    setLoading(true); setError('');
     try {
-      await AsyncStorage.clear();
-    } catch (e) {
-      console.warn('Sign out clear error:', e);
-    }
-    router.replace('/');
-  };
-
-  return (
-    <SafeAreaView edges={['left', 'right', 'bottom']} style={[styles.container, { backgroundColor: theme.background }]}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        showsHorizontalScrollIndicator={false}
-      >
-        {/* Standard TopBar */}
-        <TopBar transparent={false} />
-        {/* Avatar and User Info */}
-        <View style={styles.bannerUserRow}>
-          <View style={[styles.avatarCircle, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-            ) : (
-              <Ionicons name="person" size={28} color={theme.textPrimary} />
-            )}
-          </View>
-          <View style={styles.greetingWrap}>
-            <Text style={[styles.greetingText, { color: theme.textPrimary }]}>
-              {t('activities.helloUser', { name: userName || 'Citizen' })}
-            </Text>
-          </View>
-        </View>
-
-        {/* Floating ResQ-Quiz Card overlapping banner */}
-        <View style={styles.quizCardWrapper}>
-          <TouchableOpacity style={[styles.quizCard, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => router.push('/(people)/quiz')} activeOpacity={0.8}>
-            <View style={[styles.robotIconCircle, { backgroundColor: theme.emergency }]}>
-              <Ionicons name="hardware-chip-outline" size={16} color="#FFFFFF" />
-            </View>
-            <Text style={[styles.quizTitle, { color: theme.textPrimary }]}>{t('activities.resqQuiz')}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* My Rescue Section */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>{t('activities.myRescue')}</Text>
-          <TouchableOpacity
-            onPress={() => router.push('/(people)/help')}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.viewAllRed, { color: theme.brandActive }]}>{t('activities.viewAll')}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {myRequests.length > 0 ? (
-          myRequests.map((item) => (
-            <View key={item.request_id} style={[styles.rescueCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <View style={styles.badgeRow}>
-                <View style={styles.activeBadge}>
-                  <Text style={styles.activeBadgeText}>
-                    {item.status.toUpperCase()}
-                  </Text>
-                </View>
-              </View>
-              <Text style={[styles.rescueTitle, { color: theme.isDark ? '#E2E8F0' : '#0F172A' }]}>
-                {item.title}
-              </Text>
-              <View style={styles.locationRow}>
-                <View style={styles.locItem}>
-                  <Ionicons name="location-outline" size={16} color={theme.textSecondary} />
-                  <Text style={[styles.locText, { color: theme.textSecondary }]}>{item.location}</Text>
-                </View>
-                <TouchableOpacity
-                  style={[styles.arrowSquareBtn, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}
-                  onPress={() => router.push('/(people)/help')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.arrowIcon, { color: theme.isDark ? '#E2E8F0' : '#0F172A' }]}>➔</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.calendarRow}>
-                <Ionicons name="calendar-outline" size={15} color={theme.textMuted} />
-                <Text style={[styles.calText, { color: theme.textMuted }]}>{item.date}</Text>
-              </View>
-            </View>
-          ))
-        ) : (
-          <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Ionicons name="folder-open-outline" size={36} color={theme.textSecondary} />
-            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>{t('activities.noActiveRescue')}</Text>
-            <Text style={[styles.emptySub, { color: theme.textSecondary }]}>
-              {t('activities.noActiveRescueDesc')}
-            </Text>
-            <TouchableOpacity
-              style={[styles.emptyActionBtn, { backgroundColor: theme.emergency }]}
-              onPress={() => router.push('/(people)/help')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.emptyActionBtnText}>
-                {t('activities.requestEmergencyHelp')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* My Donations Section */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>{t('activities.myDonations')}</Text>
-          <TouchableOpacity
-            onPress={() => router.push('/(people)/donate')}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.viewAllRed, { color: theme.brandActive }]}>{t('activities.viewAll')}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {myDonations.length > 0 ? (
-          myDonations.map((don) => (
-            <View key={don.donation_id} style={[styles.donationCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <View style={styles.donationTopRow}>
-                <Text style={[styles.donationId, { color: theme.textMuted }]}>
-                  {t('activities.donationIdLabel', { id: don.donation_id })}
-                </Text>
-                <TouchableOpacity
-                  style={[styles.arrowSquareBtn, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}
-                  onPress={() => router.push('/(people)/donate')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.arrowIcon, { color: theme.isDark ? '#E2E8F0' : '#0F172A' }]}>➔</Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={[styles.donationTitle, { color: theme.isDark ? '#E2E8F0' : '#0F172A' }]}>{don.title}</Text>
-              <Text style={[styles.donationAmountDate, { color: theme.isDark ? '#94A3B8' : '#475569' }]}>
-                LKR {don.amount.toLocaleString()}
-                {'   '}
-                {don.date}
-              </Text>
-            </View>
-          ))
-        ) : (
-          <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Ionicons name="wallet-outline" size={36} color={theme.textSecondary} />
-            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>{t('activities.noDonationsYet')}</Text>
-            <Text style={[styles.emptySub, { color: theme.textSecondary }]}>
-              {t('activities.noDonationsDesc')}
-            </Text>
-            <TouchableOpacity
-              style={[styles.emptyActionBtn, { backgroundColor: theme.emergency }]}
-              onPress={() => router.push('/(people)/donate')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.emptyActionBtnText}>
-                {t('activities.donateToRelief')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Recent Alerts Section */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>{t('activities.recentAlerts')}</Text>
-        </View>
-
-        {recentAlerts.length > 0 ? (
-          recentAlerts.map((alert) => (
-            <View key={alert.alert_id} style={[styles.recentAlertCard, { backgroundColor: theme.emergencyLight, borderColor: theme.emergency }]}>
-              <View style={[styles.hazardSquare, { backgroundColor: theme.emergency }]}>
-                <Ionicons name="warning-outline" size={26} color="#FFFFFF" />
-              </View>
-              <View style={styles.alertContentTextWrap}>
-                <Text style={[styles.recentAlertTitle, { color: theme.emergency }]}>
-                  {alert.disaster_type.toUpperCase()} {t('alerts.title')}
-                  {alert.district ? ` in ${alert.district}` : ''}
-                </Text>
-                <Text style={styles.recentAlertSub}>
-                  {alert.work_plan ||
-                    'Active alert in your zone. Please follow safety instructions.'}
-                </Text>
-              </View>
-            </View>
-          ))
-        ) : (
-          <View style={[styles.safeAlertCard, { backgroundColor: theme.successLight, borderColor: theme.success }]}>
-            <View style={[styles.safeShieldSquare, { backgroundColor: theme.success }]}>
-              <Ionicons name="shield-checkmark-outline" size={24} color="#FFFFFF" />
-            </View>
-            <View style={styles.alertContentTextWrap}>
-              <Text style={[styles.safeAlertTitle, { color: theme.success }]}>{t('activities.noActiveAlertsTitle')}</Text>
-              <Text style={[styles.safeAlertSub, { color: theme.textSecondary }]}>
-                {t('activities.noActiveAlertsDesc')}
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* Account Sign Out Button */}
-        <View style={styles.signOutWrapper}>
-          <TouchableOpacity
-            style={[styles.signOutBtn, { backgroundColor: theme.emergency, borderColor: theme.emergency }]}
-            onPress={handleSignOut}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.signOutBtnText, { color: theme.white }]}>{t('activities.signOut')}</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-
-      {/* Bottom Navigation with Profile Active */}
-      <BottomNav currentTab="activities" />
-    </SafeAreaView>
-  );
+      setQueued(await getMyQueuedRequests());
+      const receipts = await getMyRequestReceipts();
+      if (!await getToken()) { setRequests(receipts); return; }
+      const response = await apiFetch('/api/requests/my');
+      if (!response.ok) { setRequests(receipts); throw new Error(await parseErrorResponse(response)); }
+      const data = await response.json(); const rows: RequestItem[] = Array.isArray(data) ? data : [];
+      setRequests([...rows, ...receipts.filter((r: RequestItem) => !rows.some(item => item.request_id === r.request_id))]);
+    } catch (e) { setError(e instanceof Error ? e.message : t('relief.loadFailed')); }
+    finally { setLoading(false); }
+  }, [t]);
+  useFocusEffect(useCallback(() => {
+    void load();
+    return subscribeQueue(() => { void load(); });
+  }, [load]));
+  async function retry() {
+    if (retrying) return; setRetrying(true); setError('');
+    try { await syncMyRequests(true); await load(); }
+    catch (e) { setError(e instanceof Error ? e.message : t('common.error')); }
+    finally { setRetrying(false); }
+  }
+  // Detail reads are explicit and remain scoped to the owner's API permissions.
+  async function openDetails(request: RequestItem) {
+    if (expanded === request.request_id) { setExpanded(null); return; }
+    setExpanded(request.request_id);
+    if (!await getToken()) return;
+    const response = await apiFetch(`/api/requests/${request.request_id}`);
+    if (response.ok) { const data = await response.json(); setHistory(old => ({ ...old, [request.request_id]: data })); }
+    else setError(await parseErrorResponse(response));
+  }
+  async function saveInformation() {
+    if (!editing || saving) return;
+    if (infoMessage.trim().length < 5) { setInfoError(t('relief.describeRequired')); return; }
+    setSaving(true); setInfoError('');
+    try {
+      const response = await apiFetch(`/api/requests/${editing.request_id}/information`, {
+        method: 'PATCH', body: JSON.stringify({ message: infoMessage.trim(), evidence_note: infoNote.trim() }),
+      });
+      if (!response.ok) throw new Error(await parseErrorResponse(response));
+      setEditing(null); await load();
+    } catch (e) { setInfoError(e instanceof Error ? e.message : t('common.error')); }
+    finally { setSaving(false); }
+  }
+  return <ReliefPage title={t('relief.activityTitle')} subtitle={t('relief.activityIntro')} refreshing={loading} onRefresh={() => { void load(); }}>
+    <View style={reliefStyles.row}><MinimalButton title={t('relief.newRequest')} onPress={() => router.push('/(people)/help')} /><MinimalButton title={t('relief.goodsTitle')} variant="outline" onPress={() => router.push('/(people)/donate')} /></View>
+    {error ? <ReliefCard><ReliefText>{error}</ReliefText></ReliefCard> : null}
+    {queued.length > 0 && <>
+      <ReliefText title>{t('relief.savedOnDevice')} · {queued.length}</ReliefText>
+      <ReliefText muted>{t('relief.queuedNote')}</ReliefText>
+      {queued.map(row => <ReliefCard key={row.id}><ReliefBadge status={row.status} /><ReliefText title>{row.payload.message}</ReliefText><ReliefText muted>{row.payload.location_label || t('relief.locationUnknown')}</ReliefText>{row.error ? <ReliefText>{row.error}</ReliefText> : null}<ReliefText muted>{new Date(row.created_at).toLocaleString()}</ReliefText></ReliefCard>)}
+      <MinimalButton title={retrying ? t('relief.sending') : t('relief.retrySaved')} onPress={() => { void retry(); }} disabled={retrying} />
+    </>}
+    <ReliefText title>{t('relief.submittedRequests')}</ReliefText>
+    {loading && <ActivityIndicator color={theme.brandActive} />}
+    {!loading && !requests.length && <ReliefCard><ReliefText>{t('relief.noRequests')}</ReliefText></ReliefCard>}
+    {requests.map(request => {
+      const detail = history[request.request_id] || request;
+      return <ReliefCard key={request.request_id || request.client_request_id}>
+        <View style={reliefStyles.row}><ReliefBadge status={request.verification_status || 'unverified'} /><ReliefBadge status={request.status || 'pending'} /></View>
+        <ReliefText title>{request.message}</ReliefText>
+        <ReliefText muted>{request.location_label || t('relief.locationUnknown')} · {new Date(request.created_at).toLocaleDateString()}</ReliefText>
+        {(request.review_notes || request.verification_notes) ? <ReliefText>{request.review_notes || request.verification_notes}</ReliefText> : null}
+        {request.verification_status === 'needs_information' && <ReliefText muted>{t('relief.moreInformation')}</ReliefText>}
+        {request.requested_items?.map((item, i) => <ReliefText key={i}>{item.quantity} {item.unit} · {item.item_name}</ReliefText>)}
+        {['unverified', 'needs_information'].includes(request.verification_status || '') && (!request.admin_status || request.admin_status === 'pending') && <MinimalButton title={t('relief.updateInformation')} onPress={() => { setEditing(request); setInfoMessage(request.message); setInfoNote(request.evidence_note || ''); setInfoError(''); }} />}
+        <MinimalButton title={t('relief.requestHistory')} variant="outline" onPress={() => { void openDetails(request); }} />
+        {expanded === request.request_id && <View style={{ gap: 10 }}><ReliefText muted>{t('relief.reference')}: {request.request_id}</ReliefText>{detail.history?.length ? detail.history.map((event, i) => <View key={i} style={{ borderLeftWidth: 2, borderColor: theme.brandActive, paddingLeft: 12 }}><ReliefText>{event.new_status || event.status}</ReliefText>{event.note || event.reason ? <ReliefText muted>{event.note || event.reason}</ReliefText> : null}{event.changed_at ? <ReliefText muted>{new Date(event.changed_at).toLocaleString()}</ReliefText> : null}</View>) : <ReliefText muted>{t('relief.noHistory')}</ReliefText>}</View>}
+      </ReliefCard>;
+    })}
+    <Modal visible={!!editing} transparent animationType="slide" onRequestClose={() => { if (!saving) setEditing(null); }}>
+      <View style={{ flex: 1, backgroundColor: theme.overlay, justifyContent: 'flex-end' }}><ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: '85%', backgroundColor: theme.background }} contentContainerStyle={{ padding: 24, gap: 18 }}>
+        <ReliefText title>{t('relief.updateInformation')}</ReliefText>
+        <ReliefText muted>{t('relief.resubmitNote')}</ReliefText>
+        <ReliefField label={t('relief.situation')} value={infoMessage} onChangeText={setInfoMessage} multiline maxLength={5000} editable={!saving} />
+        <ReliefField label={t('relief.evidenceNote')} value={infoNote} onChangeText={setInfoNote} multiline maxLength={2000} editable={!saving} />
+        {infoError ? <ReliefText>{infoError}</ReliefText> : null}
+        <MinimalButton title={saving ? t('relief.sending') : t('relief.resubmit')} onPress={() => { void saveInformation(); }} disabled={saving} />
+        <MinimalButton title={t('common.cancel')} variant="outline" onPress={() => setEditing(null)} disabled={saving} />
+      </ScrollView></View>
+    </Modal>
+  </ReliefPage>;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 24,
-  },
-
-  bannerUserRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    paddingHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  avatarCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 12,
-  },
-  avatarSilhouette: {
-    fontSize: 28,
-  },
-  greetingWrap: {
-    flex: 1,
-  },
-  greetingText: {
-    fontSize: 22,
-    fontFamily: Fonts.bold,
-    letterSpacing: -0.3,
-  },
-  greetingSubText: {
-    fontSize: 13,
-    fontFamily: Fonts.medium,
-    marginTop: 4,
-  },
-
-  quizCardWrapper: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  quizCard: {
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    borderWidth: 1,
-  },
-  robotIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  robotEmoji: {
-    fontSize: 16,
-    color: '#FFFFFF',
-  },
-  quizTitle: {
-    fontSize: 15,
-    fontFamily: Fonts.bold,
-  },
-
-  /* Section Header Rows */
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginTop: 10,
-    marginBottom: 8,
-  },
-  sectionHeading: {
-    fontSize: 18,
-    fontFamily: Fonts.bold,
-    fontWeight: '800',
-    color: '#000000',
-    letterSpacing: -0.3,
-  },
-  viewAllRed: {
-    fontSize: 13,
-    fontFamily: Fonts.bold,
-    fontWeight: '700',
-    color: '#DC2626',
-  },
-
-  rescueCard: {
-    marginHorizontal: 20,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    marginBottom: 16,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  activeBadge: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 12,
-    paddingVertical: 3.5,
-    borderRadius: 12,
-  },
-  activeBadgeText: {
-    color: '#16A34A',
-    fontSize: 12,
-    fontFamily: Fonts.bold,
-    fontWeight: '800',
-  },
-  rescueTitle: {
-    fontSize: 17,
-    fontFamily: Fonts.bold,
-    fontWeight: '800',
-    marginBottom: 10,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  locItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  locIcon: {
-    fontSize: 16,
-  },
-  locText: {
-    fontSize: 13,
-    fontFamily: Fonts.medium,
-    color: '#334155',
-  },
-  arrowSquareBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  arrowIcon: {
-    color: '#0F172A',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  calendarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  calIcon: {
-    fontSize: 15,
-  },
-  calText: {
-    fontSize: 13,
-    fontFamily: Fonts.medium,
-    color: '#64748B',
-  },
-
-  donationCard: {
-    marginHorizontal: 20,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    marginBottom: 16,
-  },
-  donationTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  donationId: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-    color: '#64748B',
-  },
-  donationTitle: {
-    fontSize: 17,
-    fontFamily: Fonts.bold,
-    fontWeight: '800',
-    marginBottom: 8,
-  },
-  donationAmountDate: {
-    fontSize: 13,
-    fontFamily: Fonts.medium,
-    color: '#475569',
-  },
-
-  emptyCard: {
-    marginHorizontal: 20,
-    borderRadius: 12,
-    padding: 20,
-    borderWidth: 1,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  emptyEmoji: {
-    fontSize: 36,
-    marginBottom: 8,
-  },
-  emptyTitle: {
-    fontSize: 15,
-    fontFamily: Fonts.bold,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  emptySub: {
-    fontSize: 13,
-    fontFamily: Fonts.regular,
-    color: '#64748B',
-    textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 14,
-  },
-  emptyActionBtn: {
-    backgroundColor: '#DC2626',
-    paddingVertical: 9,
-    paddingHorizontal: 18,
-    borderRadius: 12,
-  },
-  emptyActionBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontFamily: Fonts.bold,
-    fontWeight: '700',
-  },
-
-  recentAlertCard: {
-    marginHorizontal: 20,
-    borderRadius: 12,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    marginBottom: 10,
-  },
-  hazardSquare: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#0F172A',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  hazardTriangle: {
-    fontSize: 26,
-  },
-  alertContentTextWrap: {
-    flex: 1,
-  },
-  recentAlertTitle: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-    fontWeight: '800',
-    color: '#DC2626',
-    marginBottom: 2,
-  },
-  recentAlertSub: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-    color: '#475569',
-    lineHeight: 16,
-  },
-
-  /* Safe / No Alerts Card */
-  safeAlertCard: {
-    marginHorizontal: 20,
-    backgroundColor: '#F0FDF4',
-    borderRadius: 20,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-    marginBottom: 10,
-  },
-  safeShieldSquare: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#16A34A',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  safeShieldEmoji: {
-    fontSize: 24,
-  },
-  safeAlertTitle: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-    fontWeight: '800',
-    color: '#15803D',
-    marginBottom: 2,
-  },
-  safeAlertSub: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-    color: '#475569',
-    lineHeight: 16,
-  },
-  signOutWrapper: {
-    paddingHorizontal: 20,
-    marginTop: 24,
-    alignItems: 'center',
-  },
-  signOutBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  signOutBtnText: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-  },
-});

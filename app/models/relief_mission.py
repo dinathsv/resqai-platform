@@ -5,7 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import ENUM, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from geoalchemy2 import Geometry
 
@@ -30,7 +30,7 @@ class ReliefMission(Base):
     )
     mission_type: Mapped[str | None] = mapped_column(String(20), nullable=True)
     target_zone = mapped_column(Geometry(srid=4326), nullable=True)
-    status: Mapped[str] = mapped_column(String(30), nullable=False, default="planning")
+    status: Mapped[str] = mapped_column(ENUM('planning', 'active', 'paused', 'completed', 'cancelled', name="mission_status", create_type=False), nullable=False, default="planning")
     district: Mapped[str | None] = mapped_column(String(100), nullable=True)
     target: Mapped[Decimal] = mapped_column(
         Numeric(12, 2), nullable=False, default=0

@@ -21,9 +21,8 @@ class Settings(BaseSettings):
     AI_MODEL: str = "gemini-3.5-flash-lite"
 
     NODE_BACKEND_URL: str = "http://localhost:5000"
-    INDUWARA_API_KEY: str = "ilk_live_2e72ea094d19d9119b74033c8453a1cc063b56f3fe1154d4"
 
-    # --- OTP Delivery: Email (primary) ---
+    # --- Administrator recovery email; citizen OTPs use SMSlenz ---
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
@@ -36,10 +35,6 @@ class Settings(BaseSettings):
     SMSLENZ_SENDER_ID: str = ""
     SMSLENZ_BASE_URL: str = "https://smslenz.lk/api"
 
-    # --- Legacy Twilio SMS (deprecated fallback) ---
-    TWILIO_ACCOUNT_SID: str = ""
-    TWILIO_AUTH_TOKEN: str = ""
-    TWILIO_FROM_NUMBER: str = ""
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

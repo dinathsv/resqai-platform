@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock
 
 # Never use deployment secrets for test JWTs or make live SMS requests.
 os.environ["SECRET_KEY"] = "isolated-test-signing-key-at-least-32-characters"
+os.environ["AI_API_KEY"] = ""
 import pytest
 from httpx import AsyncClient, ASGITransport
 import fakeredis.aioredis
@@ -25,6 +26,11 @@ def compile_geometry_sqlite(element, compiler, **kw):
 
 Geometry.bind_expression = lambda self, bindvalue: bindvalue
 Geometry.column_expression = lambda self, col: col
+_geometry_result_processor = Geometry.result_processor
+Geometry.result_processor = lambda self, dialect, coltype: (
+    (lambda value: value) if dialect.name == "sqlite"
+    else _geometry_result_processor(self, dialect, coltype)
+)
 
 import geoalchemy2.admin.dialects.sqlite
 geoalchemy2.admin.dialects.sqlite.before_create = lambda *args, **kwargs: None

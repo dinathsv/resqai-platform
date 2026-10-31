@@ -1,3 +1,4 @@
+import { disconnectSocket } from '../config/socket';
 import React, { useState } from 'react';
 import {
   View,
@@ -68,7 +69,8 @@ export default function TopBar({
   const handleSignOut = async () => {
     setMenuVisible(false);
     try {
-      await AsyncStorage.clear();
+      await AsyncStorage.multiRemove(['token', 'guest_token', 'guest_nic', 'guest_phone', 'guest_name', 'user_name', 'user_avatar']);
+    disconnectSocket();
     } catch (e) {
       console.warn('Sign out clear error:', e);
     }

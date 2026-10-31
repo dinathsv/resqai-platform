@@ -35,6 +35,10 @@ router.post('/', requireAdmin, async (req, res) => {
     const severity = req.body.severity || 3;
     const is_draft = req.body.is_draft || false;
 
+    if (!Number.isInteger(Number(severity)) || Number(severity) < 1 || Number(severity) > 5 ||
+        !Number.isFinite(Number(expires_hours)) || Number(expires_hours) < 1 || Number(expires_hours) > 168) {
+      return res.status(400).json({ error: 'Severity must be 1–5 and expiry 1–168 hours' });
+    }
     if (!raw_disaster_type) {
       return res.status(400).json({ error: 'disaster_type is required' });
     }
@@ -60,6 +64,7 @@ router.post('/', requireAdmin, async (req, res) => {
       (cleanZone.toUpperCase().startsWith('POLYGON') || cleanZone.toUpperCase().startsWith('MULTIPOLYGON'))
     );
 
+    if (cleanZone && !isWktPolygon) return res.status(400).json({ error: 'Select a valid polygon or clear the zone for a nationwide alert' });
     let insertQuery;
     let insertParams;
 
@@ -91,13 +96,13 @@ router.post('/', requireAdmin, async (req, res) => {
 
     // Dispatch notifications if not a draft
     if (!is_draft) {
-      let userQuery = 'SELECT user_id, phone_number FROM users';
+      let userQuery = 'SELECT user_id, phone_number FROM users WHERE is_active=TRUE AND is_verified=TRUE';
       let userParams = [];
 
       if (isWktPolygon) {
         userQuery = `
           SELECT user_id, phone_number FROM users
-          WHERE gps_location IS NOT NULL
+          WHERE is_active=TRUE AND is_verified=TRUE AND gps_location IS NOT NULL
             AND ST_Within(gps_location, ST_GeomFromText($1, 4326))
         `;
         userParams = [cleanZone];
@@ -108,12 +113,11 @@ router.post('/', requireAdmin, async (req, res) => {
         const { rows } = await req.app.locals.pool.query(userQuery, userParams);
         users = rows;
       } catch (qErr) {
-        console.warn('WKT Spatial Query failed, falling back to all users:', qErr.message);
-        const { rows } = await req.app.locals.pool.query('SELECT user_id, phone_number FROM users');
-        users = rows;
+        console.warn('Spatial targeting unavailable; notification audience remains empty');
+        users = [];
       }
 
-      appCount = users.length;
+      appCount = 0; // Socket emit is not a confirmed handset delivery.
 
       const phoneContacts = users
         .map((u) => u.phone_number)
@@ -158,7 +162,7 @@ router.post('/', requireAdmin, async (req, res) => {
         };
         const { broadcastAlert } = require('../socket');
         if (broadcastAlert) {
-          broadcastAlert(io, broadcastPayload);
+          broadcastAlert(io, broadcastPayload, isWktPolygon ? users.map(user => user.user_id) : undefined);
         } else {
           io.to('role:people').emit('alert_received', broadcastPayload);
           io.to('role:people').emit('emergency_alert', broadcastPayload);
@@ -173,10 +177,12 @@ router.post('/', requireAdmin, async (req, res) => {
       alert,
       app_count: appCount,
       sms_count: smsCount,
+      delivery_confirmed: false,
+      delivery_note: 'SMSlenz accepted messages for sending; handset delivery is not confirmed.',
     });
   } catch (err) {
     console.error('POST /api/alerts error:', err.message);
-    return res.status(500).json({ error: err.message || 'Internal server error' });
+    return res.status(500).json({ error: 'Alert could not be created. Check the selected area and try again.' });
   }
 });
 

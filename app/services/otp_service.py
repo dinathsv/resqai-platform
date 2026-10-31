@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-import httpx
 
 from ..config import settings
 
@@ -15,14 +14,6 @@ class OTPSender(ABC):
     @abstractmethod
     async def send(self, *, recipient: str, otp: str) -> bool:
         ...
-
-
-class MockOTPSender(OTPSender):
-
-    async def send(self, *, recipient: str, otp: str) -> bool:
-        logger.info("[MOCK OTP] OTP for %s: %s", recipient, otp)
-        print(f"--- [MOCK OTP] OTP for {recipient}: {otp} ---")
-        return True
 
 
 class EmailOTPSender(OTPSender):
@@ -112,7 +103,7 @@ class SMSlenzOTPSender(OTPSender):
 
             result = await self.gateway.send_sms(contact=normalized, message=message)
             if result.get("success"):
-                logger.info("SMSlenz SMS OTP delivered successfully to %s", normalized)
+                logger.info("SMSlenz accepted OTP for sending")
                 return True
             else:
                 logger.error(
@@ -123,48 +114,6 @@ class SMSlenzOTPSender(OTPSender):
                 return False
         except Exception:
             logger.exception("Failed to send SMSlenz SMS OTP to %s", recipient)
-            return False
-
-
-class TwilioSMSOTPSender(OTPSender):
-
-    TWILIO_API_URL = "https://api.twilio.com/2010-04-01/Accounts/{sid}/Messages.json"
-
-    def __init__(self, account_sid: str, auth_token: str, from_number: str):
-        self.account_sid = account_sid
-        self.auth_token = auth_token
-        self.from_number = from_number
-
-    async def send(self, *, recipient: str, otp: str) -> bool:
-        try:
-            url = self.TWILIO_API_URL.format(sid=self.account_sid)
-            body = f"Your ResQAI verification code is: {otp}. It expires in 5 minutes."
-
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    url,
-                    data={
-                        "From": self.from_number,
-                        "To": recipient,
-                        "Body": body,
-                    },
-                    auth=(self.account_sid, self.auth_token),
-                )
-
-            if response.status_code in (200, 201):
-                logger.info("Twilio SMS OTP sent to %s", recipient)
-                return True
-            else:
-                logger.error(
-                    "Twilio SMS failed for %s: %s %s",
-                    recipient,
-                    response.status_code,
-                    response.text,
-                )
-                return False
-
-        except Exception:
-            logger.exception("Failed to send Twilio SMS OTP to %s", recipient)
             return False
 
 
@@ -198,27 +147,8 @@ def build_otp_senders() -> list[OTPSender]:
         )
         logger.info("Email OTP sender configured (host=%s)", settings.SMTP_HOST)
 
-    # Legacy Twilio SMS fallback (if SMSlenz not configured)
-    if not sms_gateway.is_configured and _is_configured(
-        settings.TWILIO_ACCOUNT_SID,
-        settings.TWILIO_AUTH_TOKEN,
-        settings.TWILIO_FROM_NUMBER,
-    ):
-        senders.append(
-            TwilioSMSOTPSender(
-                account_sid=settings.TWILIO_ACCOUNT_SID,
-                auth_token=settings.TWILIO_AUTH_TOKEN,
-                from_number=settings.TWILIO_FROM_NUMBER,
-            )
-        )
-        logger.info("Twilio SMS OTP sender configured")
-
     if not senders:
-        senders.append(MockOTPSender())
-        logger.warning(
-            "No OTP delivery providers configured — using MockOTPSender. "
-            "Set SMSLENZ_* or SMTP_* env vars to enable real delivery."
-        )
+        logger.warning("OTP delivery is unavailable: configure SMSlenz or administrator SMTP.")
 
     return senders
 
@@ -235,21 +165,12 @@ async def send_otp(*, email: str, phone: str | None, otp: str) -> dict[str, bool
             else:
                 logger.info("Skipping SMSlenz SMS — no phone number provided")
                 results["sms"] = False
-        elif isinstance(sender, TwilioSMSOTPSender):
-            if phone:
-                results["sms"] = await sender.send(recipient=phone, otp=otp)
-            else:
-                logger.info("Skipping Twilio SMS — no phone number provided")
-                results["sms"] = False
         elif isinstance(sender, EmailOTPSender):
             # Email OTP is only used as a fallback for accounts without a phone number (e.g. admins)
             if not phone:
                 results["email"] = await sender.send(recipient=email, otp=otp)
             else:
                 logger.info("Skipping email OTP — delivering via SMS to mobile number")
-        elif isinstance(sender, MockOTPSender):
-            mock_recipient = phone or email
-            results["mock"] = await sender.send(recipient=mock_recipient, otp=otp)
 
     return results
 

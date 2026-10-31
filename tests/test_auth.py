@@ -140,39 +140,52 @@ async def test_login_locked_after_5(client: AsyncClient):
     assert r_6.status_code == 429
     assert "locked" in r_6.json()["detail"].lower()
 
-@pytest.mark.asyncio
-async def test_guest_nic_valid_old_format(client: AsyncClient):
+async def get_test_redis():
+    from app.main import app
+    from app.routers.auth import get_redis
+    return await anext(app.dependency_overrides[get_redis]())
 
-    r = await client.post('/api/auth/guest/verify-nic', json={
-        "nic_number": "881234567V"
-    })
-    assert r.status_code == 200
-    assert "access_token" in r.json()
 
 @pytest.mark.asyncio
-async def test_guest_nic_valid_new_format(client: AsyncClient):
-
-    r = await client.post('/api/auth/guest/verify-nic', json={
-        "nic_number": "198812345678"
+@pytest.mark.parametrize('nic', ['881234567V', '198812345678'])
+async def test_guest_phone_verified_identity_pending(client, nic):
+    import base64
+    await client.post('/api/auth/guest/send-otp', json={'phone_number': '0771234567'})
+    redis = await get_test_redis()
+    code = await redis.get('guest_otp:+94771234567')
+    photo = 'data:image/png;base64,' + base64.b64encode(b'\x89PNG\r\n\x1a\n' + b'x' * 100).decode()
+    response = await client.post('/api/auth/guest/verify-nic', json={
+        'nic_number': nic, 'nic_photo': photo, 'phone_number': '0771234567', 'otp': code,
     })
-    assert r.status_code == 200
-    assert "access_token" in r.json()
+    assert response.status_code == 200, response.text
+    assert response.json()['identity_status'] == 'pending'
+    assert response.json()['decoded']['identity_verified'] is False
+
 
 @pytest.mark.asyncio
-async def test_guest_nic_invalid_format(client: AsyncClient):
-    r = await client.post('/api/auth/guest/verify-nic', json={
-        "nic_number": "1234"
-    })
-    assert r.status_code == 400
-    assert "format" in r.json()["detail"].lower()
+async def test_nic_format_does_not_claim_identity(client):
+    valid = await client.get('/api/auth/guest/validate-nic/881234567V')
+    assert valid.json()['is_valid'] is True
+    assert valid.json()['data']['identity_verified'] is False
+    invalid = await client.get('/api/auth/guest/validate-nic/1234')
+    assert invalid.json()['is_valid'] is False
+
 
 @pytest.mark.asyncio
-async def test_guest_nic_not_in_db(client: AsyncClient):
-    r = await client.post('/api/auth/guest/verify-nic', json={
-        "nic_number": "999999999V"
+async def test_guest_requires_actual_image_container(client):
+    response = await client.post('/api/auth/guest/verify-nic', json={
+        'nic_number': '881234567V', 'nic_photo': 'x' * 100,
+        'phone_number': '0771234567', 'otp': '123456',
     })
-    assert r.status_code == 400
-    assert "registry" in r.json()["detail"].lower()
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_guest_sms_failure_is_not_success(client, isolate_otp_delivery):
+    isolate_otp_delivery.return_value = {'sms': False}
+    response = await client.post('/api/auth/guest/send-otp', json={'phone_number': '0771234567'})
+    assert response.status_code == 502
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('changes', [
@@ -203,7 +216,7 @@ async def test_sms_failure_rolls_back_registration(client, isolate_otp_delivery)
 
 
 @pytest.mark.asyncio
-async def test_password_login_does_not_require_registration_otp(client: AsyncClient):
+async def test_password_login_requires_completed_registration_otp(client: AsyncClient):
     registration = await client.post('/api/auth/register', json={
         "full_name": "Password Login User",
         "email": "password-only@example.com",
@@ -215,11 +228,25 @@ async def test_password_login_does_not_require_registration_otp(client: AsyncCli
     response = await client.post('/api/auth/login', json={
         "email": "password-only@example.com", "password": "password123",
     })
-    assert response.status_code == 200
-    assert response.json()["access_token"]
+    assert response.status_code == 403
+    assert response.json()["detail"]["code"] == "verification_required"
 
     # Password authentication must still reject an incorrect password.
     response = await client.post('/api/auth/login', json={
         "email": "password-only@example.com", "password": "incorrect",
     })
     assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_otp_guessing_is_limited(client):
+    registration = await client.post('/api/auth/register', json={
+        'full_name': 'OTP limit', 'email': 'limit@example.com',
+        'password': 'password123', 'phone_number': '0771234567',
+    })
+    user_id = registration.json()['user_id']
+    for _ in range(5):
+        response = await client.post('/api/auth/verify-otp', json={'user_id': user_id, 'otp': '000000'})
+        assert response.status_code == 400
+    response = await client.post('/api/auth/verify-otp', json={'user_id': user_id, 'otp': '000000'})
+    assert response.status_code == 429

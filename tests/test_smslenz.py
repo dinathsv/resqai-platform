@@ -119,7 +119,7 @@ async def test_smslenz_otp_sender():
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(
-    not all(
+    os.environ.get("RUN_LIVE_SMSLENZ_TESTS") != "1" or not all(
         os.getenv(name)
         for name in ("SMSLENZ_USER_ID", "SMSLENZ_API_KEY", "SMSLENZ_SENDER_ID")
     ),

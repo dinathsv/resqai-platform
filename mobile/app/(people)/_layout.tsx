@@ -25,8 +25,8 @@ export default function PeopleLayout() {
       <Stack.Screen name="help" options={{ headerShown: false }} />
       <Stack.Screen name="chatbot" options={{ headerShown: false }} />
       <Stack.Screen name="locator" options={{ headerShown: false }} />
-      <Stack.Screen name="donate" options={{ headerShown: true, title: 'Donate' }} />
-      <Stack.Screen name="volunteer" options={{ headerShown: true, title: 'Volunteer' }} />
+      <Stack.Screen name="donate" options={{ headerShown: false, title: 'Donate' }} />
+      <Stack.Screen name="volunteer" options={{ headerShown: false, title: 'Volunteer' }} />
       <Stack.Screen name="prediction" options={{ headerShown: false }} />
       <Stack.Screen name="quiz" options={{ headerShown: true, title: 'Quiz' }} />
     </Stack>

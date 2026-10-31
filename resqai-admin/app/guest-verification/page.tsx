@@ -97,7 +97,7 @@ export default function GuestVerificationPage() {
         <div>
           <h1 className="page-title">Guest NIC & Identity Verification</h1>
           <p className="page-description">
-            Inspect uploaded National Identity Card (NIC) photos and approve or reject emergency guest sessions.
+            Review submitted NIC photos and record your findings. Format checks and phone OTP do not prove identity ownership or confirm a reported emergency.
           </p>
         </div>
       </div>
@@ -420,7 +420,7 @@ export default function GuestVerificationPage() {
                 <input
                   type="text"
                   className={styles.notesInput}
-                  placeholder="e.g. NIC verified with valid photo matching Sri Lankan standard format..."
+                  placeholder="Record what you checked, any callback or agency confirmation, and remaining uncertainty…"
                   value={actionNotes}
                   onChange={(e) => setActionNotes(e.target.value)}
                 />

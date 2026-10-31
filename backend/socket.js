@@ -1,91 +1,98 @@
-
-
 const { verifyToken } = require('./middleware/auth');
+const socketPools = new WeakMap();
 
-function initSocket(io) {
+async function activeSocketAccount(pool, user) {
+  if (!user?.user_id || !Number.isFinite(user.exp) || user.exp * 1000 <= Date.now()) return false;
+  let result;
+  if (user.role === 'admin') result = await pool.query('SELECT admin_id FROM administrators WHERE admin_id=$1 AND is_active=TRUE', [user.user_id]);
+  else if (user.role === 'people') result = await pool.query('SELECT user_id FROM users WHERE user_id=$1 AND is_active=TRUE AND is_verified=TRUE', [user.user_id]);
+  else if (user.role === 'guest') result = await pool.query("SELECT session_id FROM guest_sessions WHERE session_id=$1 AND expires_at>NOW() AND admin_status!='rejected'", [user.user_id]);
+  else return false;
+  return result.rows.length > 0;
+}
 
-  io.use((socket, next) => {
+// Authentication is rechecked for each sensitive broadcast, including sockets
+// established before an administrator was disabled. Fail closed on DB outages.
+async function emitToActiveAdmins(io, event, payload, pool = socketPools.get(io)) {
+  if (!io || !pool) return 0;
+  try {
+    const sockets = await io.in('role:admin').fetchSockets();
+    if (!sockets.length) return 0;
+    const ids = [...new Set(sockets.map(socket => (socket.data?.user || socket.user)?.user_id).filter(Boolean))];
+    const { rows } = await pool.query('SELECT admin_id FROM administrators WHERE admin_id=ANY($1::uuid[]) AND is_active=TRUE', [ids]);
+    const active = new Set(rows.map(row => String(row.admin_id)));
+    let delivered = 0;
+    for (const socket of sockets) {
+      const user = socket.data?.user || socket.user;
+      if (user?.role !== 'admin' || !active.has(user.user_id) || !Number.isFinite(user.exp) || user.exp * 1000 <= Date.now()) {
+        socket.disconnect(true);
+      } else { socket.emit(event, payload); delivered++; }
+    }
+    return delivered;
+  } catch {
+    console.warn('Protected socket notification withheld: authentication unavailable');
+    return 0;
+  }
+}
+
+function revokeUserSockets(io, userId) {
+  io?.in(`user:${userId}`).disconnectSockets(true);
+}
+
+function initSocket(io, pool) {
+  socketPools.set(io, pool);
+  io.use(async (socket, next) => {
     const token = socket.handshake.auth?.token;
     if (!token || token === 'anonymous') {
-      socket.user = {
-        user_id: 'guest_' + socket.id,
-        email: 'guest@resqai.local',
-        role: 'people',
-      };
+      socket.user = { user_id: null, role: 'public' };
       return next();
     }
-
     try {
       const decoded = verifyToken(token);
-      socket.user = {
-        user_id: decoded.user_id || decoded.sub || 'citizen_' + socket.id,
-        email: decoded.email || decoded.nic || 'citizen',
-        role: decoded.role || 'people',
-      };
+      const id = decoded.user_id || decoded.sub;
+      const role = decoded.role;
+      socket.user = { user_id: id, role, exp: decoded.exp };
+      if (!await activeSocketAccount(pool, socket.user)) return next(new Error('Account unavailable'));
+      socket.data.user = socket.user;
       next();
-    } catch (err) {
-      // Allow citizen connection so emergency alerts are always received
-      socket.user = {
-        user_id: 'guest_' + socket.id,
-        email: 'guest@resqai.local',
-        role: 'people',
-      };
-      next();
+    } catch {
+      next(new Error('Authentication unavailable or expired'));
     }
   });
-
-  io.on('connection', (socket) => {
-    console.log(`Socket connected: ${socket.user.email} (${socket.user.role})`);
-
-    socket.join(`role:${socket.user.role}`);
-    socket.join('role:people'); // Ensure all citizen connections receive people alerts
-    socket.join(`user:${socket.user.user_id}`);
-
-    socket.on('disconnect', () => {
-      console.log(`Socket disconnected: ${socket.user.email}`);
-    });
+  io.on('connection', socket => {
+    socket.join('public:alerts');
+    if (socket.user.user_id) {
+      socket.join(`role:${socket.user.role}`);
+      socket.join(`user:${socket.user.user_id}`);
+    }
+    const expiry = socket.user.exp ? setTimeout(() => socket.disconnect(true),
+      Math.max(0, Math.min(socket.user.exp * 1000 - Date.now(), 2147483647))) : null;
+    expiry?.unref?.();
+    // Also catch account changes made by operations outside this Node process.
+    let checking = false;
+    const recheck = socket.user.user_id ? setInterval(async () => {
+      if (checking) return;
+      checking = true;
+      try { if (!await activeSocketAccount(pool, socket.user)) socket.disconnect(true); }
+      catch { socket.disconnect(true); }
+      finally { checking = false; }
+    }, 30000) : null;
+    recheck?.unref?.();
+    socket.on('disconnect', () => { if (expiry) clearTimeout(expiry); if (recheck) clearInterval(recheck); });
   });
 }
 
-function broadcastAlert(io, alert) {
-  io.to('role:people').emit('alert_received', alert);
-  io.to('role:people').emit('emergency_alert', alert);
-  io.emit('emergency_alert', alert);
+function broadcastAlert(io, alert, userIds) {
+  const target = Array.isArray(userIds)
+    ? io.to(['role:admin', ...userIds.map(id => `user:${id}`)])
+    : io.to('public:alerts');
+  target.emit('alert_received', alert);
+  target.emit('emergency_alert', alert);
 }
 
-function notifyNewRequest(io, request) {
-  // 1. Broadcast to admin dashboard
-  io.to('role:admin').emit('new_request', request);
-
-  // 2. Build user-facing alert payload for person-to-person notifications
-  const isDonation = request.emergency_type === 'donation';
-  const defaultDesc = isDonation
-    ? 'New donation request submitted in your community.'
-    : 'Emergency help & rescue request submitted nearby.';
-  const description = request.message || request.ai_summary || defaultDesc;
-
-  const alertPayload = {
-    alert_id: request.request_id,
-    disaster_type: request.emergency_type || (isDonation ? 'donation' : 'help_rescue'),
-    severity: request.urgency_level || 3,
-    description: description,
-    work_plan: description,
-    status: 'active',
-    created_at: request.alerted_at || new Date().toISOString(),
-    lat: request.lat,
-    lng: request.lng,
-  };
-
-  // 3. Broadcast to all citizens (role:people) and all connected clients
-  io.to('role:people').emit('new_request', request);
-  io.to('role:people').emit('community_request', request);
-  io.to('role:people').emit('emergency_alert', alertPayload);
-  io.to('role:people').emit('alert_received', alertPayload);
-
-  // Universal broadcast across all rooms to ensure reach
-  io.emit('new_request', request);
-  io.emit('emergency_alert', alertPayload);
-  io.emit('alert_received', alertPayload);
+async function notifyNewRequest(io, request, pool) {
+  // A new claim is unverified. Precise location and free text are coordinator-only.
+  return emitToActiveAdmins(io, 'new_request', { ...request, verification_status: 'unverified' }, pool || socketPools.get(io));
 }
 
-module.exports = { initSocket, broadcastAlert, notifyNewRequest };
+module.exports = { initSocket, broadcastAlert, notifyNewRequest, emitToActiveAdmins, revokeUserSockets, activeSocketAccount };

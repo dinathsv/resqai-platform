@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 
 // ---------------------------------------------
 //  ResQAI Minimal Design System
-//  Inspired by Linear / Stripe / Vercel
+//  Shared visual tokens for mobile screens
 // ---------------------------------------------
 
 // Primary accent: a vibrant, accessible blue

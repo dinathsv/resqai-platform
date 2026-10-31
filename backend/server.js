@@ -61,7 +61,7 @@ const io = new SocketIOServer(server, {
   },
 });
 
-initSocket(io);
+initSocket(io, pool);
 
 app.locals.io = io;
 
@@ -72,6 +72,8 @@ app.use("/api/admin/users", usersRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/admin/guests", guestsRoutes);
 app.use("/api/missions", missionsRoutes);
+app.use("/api/goods", require("./routes/goods"));
+app.use("/api/chat", require("./routes/chat"));
 
 app.get("/api/admin/dashboard/stats", requireAdmin, async (req, res) => {
   if (req.user.role !== "admin") {

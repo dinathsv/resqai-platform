@@ -1,5 +1,6 @@
 const express = require('express');
 const { requireAdmin } = require('../middleware/auth');
+const { revokeUserSockets } = require('../socket');
 
 const router = express.Router();
 
@@ -112,17 +113,13 @@ router.get('/:id', async (req, res) => {
     );
 
     const donationsRes = await pool.query(
-      `SELECT d.amount, d.status, d.created_at AS date, COALESCE(r.title, 'General Emergency Fund') AS mission_name
+      `SELECT d.quantity, n.item_name, n.unit, d.delivered_quantity, d.goods_status AS status, d.created_at AS date, r.title AS mission_name
        FROM donations d
+       JOIN mission_needs n ON n.need_id=d.need_id
        LEFT JOIN relief_missions r ON d.mission_id = r.mission_id
        WHERE d.donor_id = $1
        ORDER BY d.created_at DESC`,
       [id]
-    );
-
-    const totalDonations = donationsRes.rows.reduce(
-      (sum, row) => sum + (parseFloat(row.amount) || 0),
-      0
     );
 
     return res.json({
@@ -142,8 +139,7 @@ router.get('/:id', async (req, res) => {
       created_at: u.created_at,
       joined: u.created_at,
       total_requests: requestsRes.rows.length,
-      donations_made: totalDonations,
-      quiz_attempts: 0,
+      goods_pledges: donationsRes.rows.length,
       requests_history: requestsRes.rows,
       donation_history: donationsRes.rows,
     });
@@ -161,6 +157,7 @@ router.patch('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { is_active, is_verified, user_type } = req.body;
+    if (is_verified === true) return res.status(400).json({ error: 'Phone verification requires the user to complete their SMS OTP' });
     const pool = req.app.locals.pool;
 
     const updates = [];
@@ -194,6 +191,7 @@ router.patch('/:id', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    if (is_active === false || is_verified === false) revokeUserSockets(req.app.locals.io, id);
     return res.json({ message: 'User updated successfully', user: rows[0] });
   } catch (err) {
     console.error(`PATCH /api/admin/users/${req.params.id} error:`, err);
@@ -215,7 +213,15 @@ router.post('/:id/resend-otp', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    return res.json({ message: 'OTP resent successfully', user_id: id });
+    const base = (process.env.FASTAPI_URL || 'http://localhost:8000').replace(/\/$/, '');
+    const response = await fetch(`${base}/api/auth/resend-otp`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: id }), signal: AbortSignal.timeout(15000),
+    });
+    const result = await response.json();
+    if (!response.ok) return res.status(response.status).json({ error: typeof result.detail === 'string' ? result.detail : 'SMS verification code could not be sent' });
+    if (result.delivery?.sms !== true) return res.status(502).json({ error: 'SMS delivery was not confirmed' });
+    return res.json({ message: 'Verification code sent to the registered mobile number', user_id: id });
   } catch (err) {
     console.error(`POST /api/admin/users/${req.params.id}/resend-otp error:`, err);
     return res.status(500).json({ error: 'Failed to resend OTP' });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import api from "@/lib/api";
@@ -237,13 +237,6 @@ export default function UsersPage() {
     fetcher,
   );
 
-  // Preserve raw API response logging.
-  useEffect(() => {
-    if (data !== undefined) {
-      console.log("Fetched users payload:", data);
-    }
-  }, [data]);
-
   // -------------------------------------------
   // Normalize users
   // -------------------------------------------
@@ -358,7 +351,7 @@ export default function UsersPage() {
             <th>Email</th>
             <th>Phone</th>
             <th>Type</th>
-            <th>Verified</th>
+            <th>Phone OTP</th>
             <th>Joined</th>
             <th>Actions</th>
           </tr>

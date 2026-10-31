@@ -44,6 +44,7 @@ export default function VerifyOtpScreen() {
       const data = await res.json();
       if (res.ok) {
         await AsyncStorage.setItem('token', data.access_token);
+        await AsyncStorage.multiRemove(['guest_token', 'guest_nic', 'guest_phone']);
         router.replace('/(people)/dashboard');
       } else {
         setOtp('');

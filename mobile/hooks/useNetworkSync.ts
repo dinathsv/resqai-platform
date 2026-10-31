@@ -1,43 +1,19 @@
-import { useEffect, useState } from 'react'
-import NetInfo from '@react-native-community/netinfo'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import axios from 'axios'
-import { BASE_URL } from '../constants/api'
-import { getPendingRequests, markSynced } from '../services/offlineStorage'
+import { useEffect, useState } from 'react';
+import { AppState } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
+import { syncMyRequests } from '../services/requestQueue';
 
 export function useNetworkSync() {
-  const [isOnline, setIsOnline] = useState(true)
-
+  const [isOnline, setIsOnline] = useState(true);
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      const online = state.isConnected && state.isInternetReachable
-      setIsOnline(!!online)
-      if (online) syncPending().catch((error) => {
-        console.warn('Offline sync unavailable:', error)
-      })
-    })
-
-    return unsubscribe
-  }, [])
-
-  async function syncPending() {
-    const pending = getPendingRequests() as any[]
-    for (const req of pending) {
-      try {
-        const token = await AsyncStorage.getItem(
-          req.is_guest ? 'guest_token' : 'token'
-        )
-        await axios.post(
-          `${BASE_URL}/api/requests`,
-          { message: req.message, lat: req.lat, lng: req.lng },
-          { headers: { Authorization: `Bearer ${token}` } }
-        )
-        markSynced(req.id)
-      } catch (e) {
-        console.log('Sync failed for', req.id)
-      }
-    }
-  }
-
-  return { isOnline }
+    const sync = () => { void syncMyRequests().catch(error => console.warn('Request sync unavailable:', error)); };
+    const unsubscribe = NetInfo.addEventListener(state => {
+      const online = state.isConnected === true && state.isInternetReachable !== false;
+      setIsOnline(online);
+      if (online) sync();
+    });
+    const foreground = AppState.addEventListener('change', state => { if (state === 'active') sync(); });
+    return () => { unsubscribe(); foreground.remove(); };
+  }, []);
+  return { isOnline };
 }

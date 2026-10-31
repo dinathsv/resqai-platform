@@ -208,8 +208,8 @@ export async function parseErrorResponse(res: Response): Promise<string> {
         .map((d: { msg?: string }) => d.msg || JSON.stringify(d))
         .join('; ');
     }
-    if (data.detail && typeof data.detail === 'object' && data.detail.msg) {
-      return data.detail.msg;
+    if (data.detail && typeof data.detail === 'object' && (data.detail.message || data.detail.msg)) {
+      return data.detail.message || data.detail.msg;
     }
 
     // Generic message / error fields

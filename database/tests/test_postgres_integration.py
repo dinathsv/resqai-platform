@@ -21,7 +21,7 @@ async def test_migration_and_registration(monkeypatch):
     monkeypatch.setenv('SECRET_KEY', 'isolated-test-signing-key-at-least-32-characters')
     monkeypatch.setenv('DATABASE_URL', url)
 
-    from database.run_migrations import run_migrations
+    from database.run_migrations import run_migrations, migration_files
     from app.database import get_db
     from app.main import app
     from app.routers import auth
@@ -50,7 +50,7 @@ async def test_migration_and_registration(monkeypatch):
         # Concurrent jobs must serialize their ledger/DDL operations.
         await asyncio.gather(run_migrations(), run_migrations())
         await run_migrations()
-        assert await connection.fetchval('SELECT count(*) FROM schema_migrations') == 3
+        assert await connection.fetchval('SELECT count(*) FROM schema_migrations') == len(migration_files())
         legacy = await connection.fetchrow('SELECT email, password_hash, avatar_url FROM users WHERE user_id=$1', legacy_id)
         assert tuple(legacy.values()) == ('legacy@example.com', 'legacy-hash', None)
         async with engine.connect() as conn:
@@ -62,6 +62,10 @@ async def test_migration_and_registration(monkeypatch):
                 yield session
         redis = AsyncMock()
         codes = {}
+        async def increment(key):
+            codes[key] = int(codes.get(key, 0)) + 1
+            return codes[key]
+        redis.incr.side_effect = increment
         async def save_code(key, value, **kwargs):
             codes[key] = value
         async def read_code(key):
@@ -100,7 +104,7 @@ async def test_migration_and_registration(monkeypatch):
                 failed = await client.post('/api/auth/register', json={**payload, 'email': 'failed@example.com'})
                 assert failed.status_code == 502
                 assert await connection.fetchval("SELECT count(*) FROM users WHERE email='failed@example.com'") == 0
-                assert not codes  # Verified token consumed; failed registration OTP removed.
+                assert not any(key.startswith('otp:') for key in codes)  # OTPs consumed; attempt counters retain their TTL.
         finally:
             app.dependency_overrides.clear()
             await engine.dispose()

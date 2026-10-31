@@ -88,13 +88,27 @@ async def test_chatbot_all_models_unavailable_returns_emergency_fallback(client,
     monkeypatch.setattr(llm_service.asyncio, 'sleep', AsyncMock())
 
     response = await client.post('/api/ai/first-aid-chat',
-        json={'message': 'My father is not breathing', 'language': 'en'})
+        json={'message': 'I need general guidance', 'language': 'en'})
 
     assert response.status_code == 200
     body = response.json()
     assert body['service_available'] is False
     assert body['show_1990'] is True
-    assert body['is_critical'] is True
+    assert body['is_critical'] is False
     assert '1990' in body['reply']
     assert generate.await_count == 2 * llm_service.MAX_ATTEMPTS_PER_MODEL
     sdk_client.aclose.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('message,language', [
+    ('My father is not breathing', 'en'), ('ඔහු සිහිසුන්', 'si'), ('சுவாசிக்க முடியவில்லை', 'ta'),
+])
+async def test_critical_warning_does_not_wait_for_llm(client, monkeypatch, message, language):
+    llm = AsyncMock(side_effect=AssertionError('Critical warning must not wait for the model'))
+    monkeypatch.setattr(llm_service, 'chat', llm)
+    response = await client.post('/api/ai/first-aid-chat', json={'message': message})
+    assert response.status_code == 200
+    assert response.json()['is_critical'] is True
+    assert response.json()['language_detected'] == language
+    llm.assert_not_awaited()

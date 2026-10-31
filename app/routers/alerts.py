@@ -147,51 +147,19 @@ async def create_alert(
     elif phone_contacts:
         logger.warning("SMSlenz not configured; skipping SMS broadcast for %d contacts", len(phone_contacts))
 
-    # Build per-user notification results
-    delivery_results = []
-    for user in affected_users:
-        uid = str(user.get("user_id", ""))
-        delivery_results.append({
-            "user_id": uid,
-            "channel": "push",
-            "status": "delivered",
-        })
-        if user.get("phone_number"):
-            delivery_results.append({
-                "user_id": uid,
-                "channel": "sms",
-                "status": "delivered" if sms_delivered_count > 0 else "skipped",
-                "phone": user["phone_number"],
-            })
-
-    total_targeted = len(affected_users)
-    delivered_count = total_targeted
-
-    # Update delivered_count in the alert record
-    await db.execute(
-        update(EmergencyAlert)
-        .where(EmergencyAlert.alert_id == new_alert.alert_id)
-        .values(delivered_count=delivered_count)
-    )
+    # Provider acceptance is not handset delivery. No push sender is configured.
+    await db.execute(update(EmergencyAlert).where(EmergencyAlert.alert_id == new_alert.alert_id)
+                     .values(delivered_count=0))
     await db.commit()
-
-    logger.info("Alert %s: %d users notified (%d via SMSlenz)", alert_id, delivered_count, sms_delivered_count)
-
-    # Return delivery report to admin (Flow 6, step 6)
     return {
-        "alert_id": alert_id,
-        "status": "active",
-        "disaster_type": req.disaster_type,
-        "severity": req.severity,
-        "app_count": total_targeted,
-        "sms_count": sms_delivered_count,
+        "alert_id": alert_id, "status": "active", "disaster_type": req.disaster_type,
+        "severity": req.severity, "app_count": 0, "sms_count": sms_delivered_count,
         "delivery_report": {
-            "total_targeted": total_targeted,
-            "delivered": delivered_count,
-            "sms_delivered": sms_delivered_count,
-            "failed": 0,
-            "channels_used": ["push", "sms"] if sms_delivered_count > 0 else ["push"],
-            "details": delivery_results[:20],  # Limit detail entries
+            "total_targeted": len(affected_users), "delivered": 0,
+            "sms_accepted": sms_delivered_count, "delivery_confirmed": False,
+            "sms_status": "accepted" if sms_delivered_count else sms_status,
+            "channels_used": ["smslenz"] if sms_delivered_count else [],
+            "note": "SMSlenz acceptance does not confirm handset delivery. Alerts are also available in the app feed.",
         },
         "created_at": new_alert.created_at.isoformat() if new_alert.created_at else None,
     }
@@ -238,7 +206,11 @@ async def list_alerts(
 
     # Also include community help and donation requests so citizens see them in alerts feed
     try:
-        req_query = select(HelpRequest).order_by(desc(HelpRequest.created_at))
+        req_query = select(HelpRequest).where(
+            HelpRequest.verification_status == "verified",
+            HelpRequest.status.notin_(["resolved", "cancelled"]),
+            HelpRequest.admin_status != "finished",
+        ).order_by(desc(HelpRequest.created_at))
         if selected_status == "all":
             pass
         elif selected_status == "active":
@@ -270,7 +242,8 @@ async def list_alerts(
                 "acknowledged": str(r.request_id) in accepted_request_ids,
                 "disaster_type": r.emergency_type or "help_rescue",
                 "severity": r.urgency_level or 3,
-                "work_plan": r.original_message or r.ai_summary or req_title,
+                "work_plan": "Verified goods assistance request" if r.emergency_type == "donation" else "Verified help request",
+                "verification_status": "verified",
                 "status": "active" if is_active else r.status,
                 "delivered_count": 0,
                 "created_at": r.created_at.isoformat() if r.created_at else None,
@@ -360,7 +333,7 @@ async def acknowledge_request_alert(
 ):
     """Accept a community request atomically; retries reuse the same assignment."""
     user_id = current_user.get("sub")
-    user = await db.execute(text("SELECT user_id FROM users WHERE user_id=:id AND is_active=true"), {"id": user_id})
+    user = await db.execute(text("SELECT user_id FROM users WHERE user_id=:id AND is_active=true AND is_verified=true"), {"id": user_id})
     if not user.first():
         raise HTTPException(status_code=403, detail="An active registered account is required")
     result = await db.execute(text("SELECT * FROM help_requests WHERE request_id=:id FOR UPDATE"), {"id": alert_id})
@@ -371,6 +344,8 @@ async def acknowledge_request_alert(
         raise HTTPException(status_code=400, detail="You cannot accept your own request")
     if request["status"] in ("resolved", "cancelled") or request["admin_status"] == "finished":
         raise HTTPException(status_code=409, detail="This request is already closed")
+    if request.get("verification_status") != "verified":
+        raise HTTPException(status_code=409, detail="A coordinator must verify this request before community acceptance. Urgent SOS remains visible to dispatchers.")
     mission_type = "donation" if request["emergency_type"] == "donation" else "help"
     result = await db.execute(text("SELECT mission_id, status FROM relief_missions WHERE origin_request_id=:id ORDER BY created_at LIMIT 1"), {"id": alert_id})
     mission = result.mappings().first()
@@ -378,8 +353,11 @@ async def acknowledge_request_alert(
         mission_id = mission["mission_id"]
         if mission["status"] in ("completed", "cancelled"):
             raise HTTPException(status_code=409, detail="This mission is already closed")
-        await db.execute(text("UPDATE relief_missions SET status='active', updated_at=NOW() WHERE mission_id=:id"), {"id": mission_id})
+        if mission["status"] != "active":
+            raise HTTPException(status_code=409, detail="This mission is not currently accepting volunteers")
     else:
+        if mission_type == "donation":
+            raise HTTPException(status_code=409, detail="A coordinator must create the approved goods needs first")
         mission_id = uuid.uuid4()
         await db.execute(text("""
             INSERT INTO relief_missions (mission_id, title, description, origin_request_id, mission_type, status, target, funds_collected)

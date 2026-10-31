@@ -1,3 +1,4 @@
+-- Historical baseline: apply backend/migrations using database.run_migrations before API startup.
 -- NEW EMPTY DATABASES ONLY. Existing databases must use versioned migrations.
 -- ============================================================================
 -- ResQAI — AI-Powered Disaster Relief Platform for Sri Lanka

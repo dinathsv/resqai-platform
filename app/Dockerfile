@@ -11,6 +11,8 @@ RUN pip install --default-timeout=1000 --retries 10 --upgrade pip && \
     pip install --default-timeout=1000 --retries 10 -r app/requirements.txt
 
 COPY app/ ./app/
+COPY database/ ./database/
+COPY backend/migrations/ ./backend/migrations/
 
 EXPOSE 8000
 

@@ -15,12 +15,12 @@ def result(row):
 
 class RequestAcknowledgementTests(unittest.IsolatedAsyncioTestCase):
     async def test_help_and_donation_create_active_mission_and_accepted_user(self):
-        for kind in ('help_rescue', 'donation'):
+        for kind in ('help_rescue',):
             with self.subTest(kind=kind):
                 db = AsyncMock()
                 db.execute.side_effect = [result({'user_id': uuid.uuid4()}), result({
                     'user_id': uuid.uuid4(), 'status': 'pending', 'admin_status': 'pending',
-                    'emergency_type': kind, 'original_message': 'Please help',
+                    'verification_status': 'verified', 'emergency_type': kind, 'original_message': 'Please help',
                 }), result(None), result(None), result(None), result(None), result(None)]
                 response = await acknowledge_request_alert(uuid.uuid4(), {'sub': str(uuid.uuid4())}, db)
                 self.assertTrue(response['acknowledged'])
@@ -36,8 +36,8 @@ class RequestAcknowledgementTests(unittest.IsolatedAsyncioTestCase):
         mission_id = uuid.uuid4()
         db.execute.side_effect = [result({'user_id': uuid.uuid4()}), result({
             'user_id': uuid.uuid4(), 'status': 'in_progress', 'admin_status': 'in_progress',
-            'emergency_type': 'donation', 'original_message': 'Please help',
-        }), result({'mission_id': mission_id, 'status': 'active'}), result(None), result(None)]
+            'verification_status': 'verified', 'emergency_type': 'donation', 'original_message': 'Please help',
+        }), result({'mission_id': mission_id, 'status': 'active'}), result(None)]
         response = await acknowledge_request_alert(uuid.uuid4(), {'sub': str(uuid.uuid4())}, db)
         self.assertEqual(response['mission_id'], str(mission_id))
         self.assertFalse(any('INSERT INTO relief_missions' in str(c.args[0]) for c in db.execute.call_args_list))
@@ -46,6 +46,18 @@ class RequestAcknowledgementTests(unittest.IsolatedAsyncioTestCase):
         db = AsyncMock()
         db.execute.side_effect = [result({'user_id': uuid.uuid4()}), result({
             'user_id': uuid.uuid4(), 'status': 'resolved', 'admin_status': 'finished',
+        })]
+        with self.assertRaises(HTTPException) as raised:
+            await acknowledge_request_alert(uuid.uuid4(), {'sub': str(uuid.uuid4())}, db)
+        self.assertEqual(raised.exception.status_code, 409)
+        db.commit.assert_not_awaited()
+
+
+    async def test_unverified_goods_cannot_create_mission(self):
+        db = AsyncMock()
+        db.execute.side_effect = [result({'user_id': uuid.uuid4()}), result({
+            'user_id': uuid.uuid4(), 'status': 'pending', 'admin_status': 'pending',
+            'emergency_type': 'donation', 'verification_status': 'unverified',
         })]
         with self.assertRaises(HTTPException) as raised:
             await acknowledge_request_alert(uuid.uuid4(), {'sub': str(uuid.uuid4())}, db)

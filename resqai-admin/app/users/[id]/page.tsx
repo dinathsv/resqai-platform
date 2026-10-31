@@ -14,7 +14,10 @@ interface Request {
 }
 
 interface Donation {
-  amount: number;
+  quantity: number;
+  delivered_quantity: number;
+  item_name: string;
+  unit: string;
   mission_name: string;
   date: string;
   status: string;
@@ -27,8 +30,7 @@ interface UserDetail {
   phone_number: string;
   created_at: string;
   total_requests: number;
-  donations_made: number;
-  quiz_attempts: number;
+  goods_pledges: number;
   requests_history: Request[];
   donation_history: Donation[];
 }
@@ -77,11 +79,8 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
         <div className={styles.label}>Total Requests:</div>
         <div className={styles.value}>{user.total_requests}</div>
 
-        <div className={styles.label}>Donations Made:</div>
-        <div className={styles.value}>LKR {user.donations_made.toLocaleString()}</div>
-
-        <div className={styles.label}>Quiz Attempts:</div>
-        <div className={styles.value}>{user.quiz_attempts}</div>
+        <div className={styles.label}>Goods Pledges:</div>
+        <div className={styles.value}>{user.goods_pledges}</div>
       </div>
 
       <div className={styles.section}>
@@ -115,11 +114,11 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
       </div>
 
       <div className={styles.section}>
-        <h2>Donation History</h2>
+        <h2>Goods Contribution History</h2>
         <table>
           <thead>
             <tr>
-              <th>Amount</th>
+              <th>Goods pledged / delivered</th>
               <th>Mission</th>
               <th>Date</th>
               <th>Status</th>
@@ -129,7 +128,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
             {user.donation_history && user.donation_history.length > 0 ? (
               user.donation_history.map((don, idx) => (
                 <tr key={idx}>
-                  <td>LKR {don.amount.toLocaleString()}</td>
+                  <td>{don.item_name}: {don.quantity} {don.unit} pledged / {don.delivered_quantity} {don.unit} delivered</td>
                   <td>{don.mission_name}</td>
                   <td>{new Date(don.date).toLocaleDateString()}</td>
                   <td>{don.status}</td>

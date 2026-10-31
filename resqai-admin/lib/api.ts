@@ -1,6 +1,7 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import { AUTH_EVENT } from './auth-events';
+import { disconnectSocket } from './socket';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
@@ -21,8 +22,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      Cookies.remove('admin_token');
+      Cookies.remove('admin_token', { path: '/' });
+      disconnectSocket();
       if (typeof window !== 'undefined') {
+        localStorage.removeItem('admin_token');
         window.dispatchEvent(new Event(AUTH_EVENT));
       }
     }

@@ -7,6 +7,8 @@ import os
 import logging
 import secrets
 import re
+import base64
+import binascii
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
@@ -73,7 +75,7 @@ import uuid
 
 class VerifyOtpRequest(BaseModel):
     user_id: uuid.UUID
-    otp: str
+    otp: str = Field(..., pattern=r"^\d{6}$")
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -85,19 +87,54 @@ class GuestSendOtpRequest(BaseModel):
 
 class GuestVerifyNicRequest(BaseModel):
     nic_number: str
-    nic_photo: str
+    nic_photo: str = Field(..., max_length=4000000)
     phone_number: str
-    otp: str
-    lat: float | None = None
-    lng: float | None = None
+    otp: str = Field(..., pattern=r"^\d{6}$")
+    lat: float | None = Field(None, ge=-90, le=90)
+    lng: float | None = Field(None, ge=-180, le=180)
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
 class ResetPasswordRequest(BaseModel):
     email: EmailStr
-    otp: str
-    new_password: str = Field(..., min_length=6)
+    otp: str = Field(..., pattern=r"^\d{6}$")
+    new_password: str = Field(..., min_length=6, max_length=72)
+
+    @field_validator("new_password")
+    @classmethod
+    def password_bytes(cls, value):
+        return RegisterRequest.validate_password_bytes(value)
+
+
+async def check_otp(redis_client, key: str, code: str) -> None:
+    """Bound guessing for every OTP flow, not just resend requests."""
+    attempt_key = f"attempts:{key}"
+    attempts = await redis_client.incr(attempt_key)
+    if attempts == 1:
+        await redis_client.expire(attempt_key, 900)
+    if attempts > 5:
+        raise HTTPException(status_code=429, detail="Too many verification attempts. Try again after 15 minutes.")
+    stored = await redis_client.get(key)
+    if not stored or not secrets.compare_digest(str(stored), code):
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP")
+
+
+def validate_identity_photo(value: str) -> str:
+    """Validate an actual small image container; document authenticity still requires review."""
+    match = re.fullmatch(r"data:image/(jpeg|png|webp);base64,([A-Za-z0-9+/=\r\n]+)", value)
+    if not match:
+        raise HTTPException(status_code=422, detail="Upload a JPEG, PNG or WebP NIC image.")
+    try:
+        raw = base64.b64decode(match.group(2), validate=True)
+    except (ValueError, binascii.Error):
+        raise HTTPException(status_code=422, detail="Invalid image encoding") from None
+    valid = ((match.group(1) == "jpeg" and raw.startswith(b"\xff\xd8\xff")) or
+             (match.group(1) == "png" and raw.startswith(b"\x89PNG\r\n\x1a\n")) or
+             (match.group(1) == "webp" and raw.startswith(b"RIFF") and raw[8:12] == b"WEBP"))
+    if not valid or not 64 <= len(raw) <= 3000000:
+        raise HTTPException(status_code=422, detail="Upload a valid image smaller than 3 MB.")
+    return value
 
 def create_access_token(data: dict[str, Any], expires_delta: timedelta) -> str:
     to_encode = data.copy()
@@ -219,9 +256,7 @@ async def verify_otp(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ):
-    stored_otp = await redis_client.get(f"otp:{req.user_id}")
-    if not stored_otp or stored_otp != req.otp:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP")
+    await check_otp(redis_client, f"otp:{req.user_id}", req.otp)
 
     result = await db.execute(select(User).where(User.user_id == req.user_id))
     user = result.scalars().first()
@@ -260,7 +295,13 @@ async def login(
         await redis_client.expire(fail_key, 900)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-    # OTP belongs to registration and guest verification, not password sign-in.
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account inactive")
+    if not user.is_verified:
+        raise HTTPException(status_code=403, detail={
+            "code": "verification_required", "user_id": str(user.user_id),
+            "message": "Complete the mobile OTP verification before signing in.",
+        })
     await redis_client.delete(fail_key)
 
     access_token = create_access_token(
@@ -286,7 +327,7 @@ async def get_me(
 ):
     """Return current authenticated user profile."""
     from app.middleware.auth import get_current_user
-    current_user = await get_current_user(token)
+    current_user = await get_current_user(token, db)
     sub = current_user.get("sub")
     role = current_user.get("role")
 
@@ -296,6 +337,7 @@ async def get_me(
             "full_name": f"Guest ({current_user.get('nic', 'Citizen')})",
             "email": None,
             "role": "guest",
+            "identity_status": current_user.get("identity_status", "pending"),
         }
 
     try:
@@ -337,7 +379,7 @@ async def update_me(
 ):
     """Update citizen profile name, avatar, phone number, or language preference."""
     from app.middleware.auth import get_current_user
-    current_user = await get_current_user(token)
+    current_user = await get_current_user(token, db)
     sub = current_user.get("sub")
     try:
         user_uuid = uuid.UUID(sub)
@@ -351,7 +393,8 @@ async def update_me(
         if "avatar_url" in req.model_fields_set:
             user.avatar_url = req.avatar_url
         if req.phone_number is not None:
-            user.phone_number = req.phone_number
+            if normalize_phone_number(req.phone_number) != user.phone_number:
+                raise HTTPException(status_code=409, detail="A verified mobile number cannot be changed through profile editing. Contact a coordinator to arrange verification of a replacement number.")
         if req.language_pref is not None:
             pref = req.language_pref.strip().lower()
             if pref in ("en", "ta", "si"):
@@ -414,67 +457,20 @@ async def admin_login(
 
 logger = logging.getLogger("resqai.auth")
 
-async def validate_nic_with_induwara(nic_number: str) -> tuple[bool, str, dict | None]:
-    """
-    Validate a Sri Lankan NIC number using the official Induwara.lk NIC decoder API.
-    Detects if the NIC is real or fake based on encoded checksum, day-of-year range,
-    and official Sri Lankan DRP format rules.
-    """
+async def validate_nic_format(nic_number: str) -> tuple[bool, str, dict | None]:
+    """Local format check only. No identity registry or document ownership is implied."""
     clean_nic = nic_number.strip().upper()
-    if not clean_nic:
-        return False, "NIC number cannot be empty", None
-
-    # Enforce basic format first (9 digits + V/X or 12 digits)
-    if not re.match(r"^[0-9]{9}[VvXx]$|^[0-9]{12}$", clean_nic):
-        return False, "NIC must be 10 characters (old format, e.g. 923456789V) or 12 digits (new format)", None
-
-    api_key = getattr(settings, "INDUWARA_API_KEY", "") or os.getenv(
-        "INDUWARA_API_KEY", "ilk_live_2e72ea094d19d9119b74033c8453a1cc063b56f3fe1154d4"
-    )
-
-    url = f"https://induwara.lk/api/v1/nic/{clean_nic}"
-    headers = {
-        "x-api-key": api_key,
-        "User-Agent": "ResQAI-Platform/1.0",
-        "Accept": "application/json",
+    valid = bool(re.fullmatch(r"(?:[0-9]{9}[VX]|[0-9]{12})", clean_nic))
+    return valid, ("NIC format accepted; identity requires administrator review" if valid
+                   else "Invalid NIC format: use 9 digits plus V/X or 12 digits"), {
+        "format_valid": valid, "identity_verified": False,
     }
-
-    try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
-            resp = await client.get(url, headers=headers)
-            if resp.status_code == 200:
-                payload = resp.json()
-                if payload.get("ok") and payload.get("data", {}).get("valid"):
-                    return True, "Valid Sri Lankan National Identity Card", payload.get("data")
-                err_msg = payload.get("error", {}).get("message") or "Invalid or fake NIC number"
-                return False, err_msg, None
-            else:
-                try:
-                    payload = resp.json()
-                    err_msg = payload.get("error", {}).get("message")
-                except Exception:
-                    err_msg = None
-                return False, err_msg or f"Invalid NIC number (HTTP {resp.status_code})", None
-    except Exception as exc:
-        logger.warning("Induwara.lk NIC API lookup failed: %s", exc)
-        # Fallback offline check if the external API is temporarily down
-        if re.match(r"^[0-9]{9}[VvXx]$|^[0-9]{12}$", clean_nic):
-            return True, "Valid NIC format (offline verification)", {"nic": clean_nic, "valid": True}
-        return False, "Invalid NIC format", None
 
 
 @router.get("/guest/validate-nic/{nic_number}")
 async def validate_guest_nic(nic_number: str):
-    """
-    Real-time Sri Lankan NIC real/fake verification endpoint using Induwara.lk API.
-    Decodes gender, DOB, age, and valid status for guest users.
-    """
-    is_valid, message, data = await validate_nic_with_induwara(nic_number)
-    return {
-        "is_valid": is_valid,
-        "message": message,
-        "data": data,
-    }
+    valid, message, data = await validate_nic_format(nic_number)
+    return {"is_valid": valid, "message": message, "data": data}
 
 
 @router.post("/guest/send-otp")
@@ -514,7 +510,10 @@ async def guest_send_otp(
     except Exception as exc:
         logger.warning("Guest OTP SMS failed to send: %s", exc)
 
-    logger.info("Guest OTP sent to %s (SMS dispatched)", phone)
+    if delivery.get("sms") is not True:
+        await redis_client.delete(otp_key)
+        raise HTTPException(status_code=502, detail="SMSlenz could not accept the verification message. Please try again.")
+    logger.info("Guest OTP accepted by SMSlenz")
     return {
         "message": f"Verification code sent to {phone}",
         "phone": phone,
@@ -530,10 +529,8 @@ async def verify_nic(
 ):
     """
     Guest verification endpoint:
-    Compulsorily validates:
-    1. Real Sri Lankan NIC number verified via Induwara.lk API
-    2. Front photo of the NIC card (compulsory)
-    3. Mobile phone number verified via 6-digit OTP code (compulsory)
+    Collect an NIC image for review and confirm phone ownership using SMSlenz.
+    A pending identity review does not mean the emergency itself is verified.
     """
     nic_num = (req.nic_number or "").strip()
     if not nic_num:
@@ -542,21 +539,15 @@ async def verify_nic(
             detail="NIC number is required for guest verification"
         )
 
-    # 1. Validate whether NIC is real or fake using Induwara.lk API
-    is_valid, validation_msg, decoded_data = await validate_nic_with_induwara(nic_num)
+    # 1. Check format without claiming authoritative identity verification
+    is_valid, validation_msg, decoded_data = await validate_nic_format(nic_num)
     if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Fake or invalid NIC: {validation_msg}"
+            detail=validation_msg
         )
 
-    # 2. Compulsorily validate NIC photo
-    nic_photo = (req.nic_photo or "").strip()
-    if not nic_photo or len(nic_photo) < 50:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="NIC photo is compulsory. Please take or upload a photo of your NIC."
-        )
+    nic_photo = validate_identity_photo((req.nic_photo or "").strip())
 
     # 3. Compulsorily validate mobile number & OTP
     phone = normalize_phone_number(req.phone_number)
@@ -574,12 +565,7 @@ async def verify_nic(
         )
 
     otp_key = f"guest_otp:{phone}"
-    stored_otp = await redis_client.get(otp_key)
-    if not stored_otp or stored_otp != otp_code:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired OTP code. Please request a new code."
-        )
+    await check_otp(redis_client, otp_key, otp_code)
 
     # Clean up OTP after successful verification
     await redis_client.delete(otp_key)
@@ -590,7 +576,7 @@ async def verify_nic(
     new_session = GuestSession(
         nic_number=clean_nic[:50],
         nic_photo=nic_photo,
-        nic_verified=True,
+        nic_verified=False,
         nic_format_valid=True,
         phone_number=phone[:20],
         phone_verified=True,
@@ -625,7 +611,8 @@ async def verify_nic(
         "phone_number": phone,
         "session_id": str(new_session.session_id),
         "decoded": decoded_data,
-        "message": "Guest verified successfully with NIC and Mobile OTP"
+        "identity_status": "pending",
+        "message": "Phone verified. Identity review is pending; urgent SOS remains available."
     }
 
 
@@ -659,9 +646,7 @@ async def reset_password(
     if not user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid request")
 
-    stored_otp = await redis_client.get(f"reset_otp:{user.user_id}")
-    if not stored_otp or stored_otp != req.otp:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP")
+    await check_otp(redis_client, f"reset_otp:{user.user_id}", req.otp)
 
     user.password_hash = pwd_context.hash(req.new_password)
     await db.commit()
@@ -701,9 +686,7 @@ async def admin_reset_password(
     if not admin:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid request")
 
-    stored_otp = await redis_client.get(f"reset_otp_admin:{admin.admin_id}")
-    if not stored_otp or stored_otp != req.otp:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP")
+    await check_otp(redis_client, f"reset_otp_admin:{admin.admin_id}", req.otp)
 
     admin.password_hash = pwd_context.hash(req.new_password)
     await db.commit()

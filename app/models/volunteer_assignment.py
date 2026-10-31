@@ -3,8 +3,8 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy.dialects.postgresql import ENUM, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -22,11 +22,17 @@ class VolunteerAssignment(Base):
         UUID(as_uuid=True), ForeignKey("relief_missions.mission_id", ondelete="CASCADE"),
         nullable=False,
     )
-    status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending")
+    status: Mapped[str] = mapped_column(ENUM('pending', 'accepted', 'active', 'completed', 'withdrawn', name="assignment_status", create_type=False), nullable=False, default="pending")
     assigned_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completion_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completion_note: Mapped[str | None] = mapped_column(Text)
+    recipient_confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completion_review_reason: Mapped[str | None] = mapped_column(Text)
+    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("administrators.admin_id"))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     hours_logged: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()

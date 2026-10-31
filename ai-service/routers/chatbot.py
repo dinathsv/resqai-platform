@@ -24,11 +24,12 @@ CRITICAL_KEYWORDS = [
     "severe bleeding", "heavy bleeding",
     "choking", "drowning",
     "stroke", "seizure",
-    "anaphylaxis", "allergic shock",
+    "anaphylaxis", "allergic shock", "හුස්ම ගන්න බැ", "සිහිසුන්",
+    "சுவாசிக்க முடிய", "மயக்கம்",
 ]
 
 SYSTEM_PROMPT = (
-    "You are a certified first-aid assistant for ResQAI Sri Lanka. "
+    "You provide general first-aid information for ResQAI Sri Lanka. "
     "Always respond in the same language the user writes in. "
     "Give numbered steps only. "
     "For critical or life-threatening cases always say to call 1990 "
@@ -58,6 +59,10 @@ FALLBACK_REPLIES = {
 
 def _detect_language(text: str, fallback: str = "en") -> str:
     """Detect language with langdetect, return ISO 639-1 code."""
+    if any("඀" <= character <= "෿" for character in text):
+        return "si"
+    if any("஀" <= character <= "௿" for character in text):
+        return "ta"
     try:
         lang = detect(text)
 
@@ -85,6 +90,15 @@ async def first_aid_chat(req: FirstAidRequest):
         detected = _detect_language(req.message)
     else:
         detected = req.language
+
+    if _is_critical(req.message):
+        replies = {
+            "en": "This may be a life-threatening emergency. Call 1990 now and follow the emergency dispatcher's instructions.",
+            "si": "මෙය ජීවිතයට තර්ජනයක් වන හදිසි අවස්ථාවක් විය හැක. දැන් 1990 අමතා හදිසි සේවා නිලධාරියාගේ උපදෙස් අනුගමනය කරන්න.",
+            "ta": "இது உயிருக்கு ஆபத்தான அவசரநிலையாக இருக்கலாம். உடனே 1990 அழைத்து அவசர உதவி அதிகாரியின் வழிமுறைகளைப் பின்பற்றவும்.",
+        }
+        return FirstAidResponse(reply=replies.get(detected, replies["en"]), language_detected=detected,
+                                show_1990=True, is_critical=True)
 
     try:
         reply = await llm_service.chat(

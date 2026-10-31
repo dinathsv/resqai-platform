@@ -9,7 +9,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 import langdetect
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..services.ai_service import call_llm
 from ..database import get_db
@@ -46,7 +46,7 @@ def detect_language(text: str) -> str:
         return "en"
 
 class FirstAidRequest(BaseModel):
-    message: str
+    message: str = Field(..., min_length=1, max_length=4000)
     language: str = "auto"
 
 class TranslateReportRequest(BaseModel):
@@ -85,8 +85,18 @@ async def first_aid_chat(req: FirstAidRequest):
     if lang == "auto":
         lang = detect_language(req.message)
 
+    from app.services.request_triage import initial_triage
+    if initial_triage(req.message, "help_rescue")["urgency_level"] == 5:
+        immediate = {
+            "en": "This may be a life-threatening emergency. Call 1990 now and follow the emergency dispatcher's instructions.",
+            "si": "මෙය ජීවිතයට තර්ජනයක් වන හදිසි අවස්ථාවක් විය හැක. දැන් 1990 අමතා හදිසි සේවා නිලධාරියාගේ උපදෙස් අනුගමනය කරන්න.",
+            "ta": "இது உயிருக்கு ஆபத்தான அவசரநிலையாக இருக்கலாம். உடனே 1990 அழைத்து அவசர உதவி அதிகாரியின் வழிமுறைகளைப் பின்பற்றவும்.",
+        }
+        return {"reply": immediate.get(lang, immediate["en"]), "language_detected": lang,
+                "show_1990": True, "is_critical": True}
+
     system_prompt = (
-        "You are a certified emergency first-aid assistant for ResQAI Sri Lanka.\n"
+        "You provide general emergency first-aid information for ResQAI Sri Lanka.\n"
         "Detect the language of the user message (Sinhala, Tamil, or English) and ALWAYS respond in that exact same language.\n"
         "- If the user writes in English (even with typos or slang like 'im darwning'), respond in English.\n"
         "- If the user writes in Sinhala (Sinhala script or Singlish phrases like 'mata una', 'watura'), respond in Sinhala.\n"

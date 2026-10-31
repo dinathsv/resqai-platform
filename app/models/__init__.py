@@ -13,6 +13,8 @@ from app.models.emergency_alert import EmergencyAlert
 from app.models.agency_chat_message import AgencyChatMessage
 from app.models.rating import Rating
 from app.models.audit_log import AuditLog
+from app.models.goods import MissionNeed, GoodsDelivery, GoodsEvent
+from app.models.request_history import RequestVerification, RequestStatusHistory
 
 __all__ = [
     "User",
@@ -28,4 +30,6 @@ __all__ = [
     "AgencyChatMessage",
     "Rating",
     "AuditLog",
+    "MissionNeed", "GoodsDelivery", "GoodsEvent",
+    "RequestVerification", "RequestStatusHistory",
 ]

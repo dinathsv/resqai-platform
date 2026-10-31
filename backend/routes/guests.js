@@ -1,5 +1,6 @@
 const express = require('express');
 const { requireAdmin } = require('../middleware/auth');
+const { revokeUserSockets } = require('../socket');
 
 const router = express.Router();
 
@@ -117,6 +118,7 @@ router.patch('/:id/status', async (req, res) => {
       UPDATE guest_sessions
       SET 
         admin_status = $1,
+        nic_verified = ($1 = 'approved'),
         admin_reviewed_at = NOW(),
         admin_notes = $2,
         updated_at = NOW()
@@ -140,6 +142,7 @@ router.patch('/:id/status', async (req, res) => {
       return res.status(404).json({ error: 'Guest session not found' });
     }
 
+    if (newStatus === 'rejected') revokeUserSockets(req.app.locals.io, id);
     return res.json({
       success: true,
       guest: rows[0],

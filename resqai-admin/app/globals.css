@@ -1,5 +1,29 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
+.opsGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin:16px 0; }
+.opsCard { border:1px solid var(--border-default); border-radius:8px; padding:20px; background:var(--bg-surface); }
+.opsCard strong.opsNumber { display:block; font-size:30px; font-variant-numeric:tabular-nums; }
+.opsForm { display:grid; gap:14px; margin:16px 0; max-width:780px; }
+.opsForm label { display:grid; gap:6px; }
+.opsForm button { justify-self:start; }
+.opsActions { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:16px 0; }
+.opsActions select, .opsActions input { width:auto; min-width:160px; flex:1; }
+.opsMuted { color:var(--text-secondary); font-size:14px; }
+.opsNotice { padding:14px; border:1px solid var(--status-warning-border); border-radius:8px; background:var(--status-warning-bg); margin:12px 0; }
+.opsError { color:var(--status-critical); }
+.opsChat { max-height:420px; overflow-y:auto; margin:12px 0; }
+.opsChatMessage { padding:12px 0; border-bottom:1px solid var(--border-default); overflow-wrap:anywhere; }
+.opsTimeline { padding-left:22px; }
+.opsTimeline li { margin:12px 0; }
+button:disabled { opacity:.55; cursor:not-allowed; }
+@media print {
+  aside, header, nav, button, .noPrint { display:none !important; }
+  main { margin:0 !important; padding:0 !important; }
+  body, .page, .section { background:#fff !important; color:#111 !important; }
+  .section, table { break-inside:avoid; }
+  .tableWrap { overflow:visible; }
+}
+
 /* ── Minimal Design System Tokens ── */
 :root {
   /* Surface & Canvas */

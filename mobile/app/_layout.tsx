@@ -14,7 +14,6 @@ import * as Location from 'expo-location';
 import { useNetworkSync } from '../hooks/useNetworkSync';
 import { initDB } from '../services/offlineStorage';
 import {
-  registerForPushNotifications,
   setupNotificationListeners,
 } from '../services/notificationService';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
@@ -66,9 +65,6 @@ function AppLayout() {
     } catch (error) {
       console.warn('Offline storage initialization failed:', error);
     }
-    registerForPushNotifications().catch((error) => {
-      console.warn('Push notifications unavailable:', error);
-    });
     const cleanup = setupNotificationListeners(router);
     return cleanup;
   }, []);

@@ -4,7 +4,7 @@
     "strict": true,
     "esModuleInterop": true,
     "jsx": "react-native",
-    "lib": ["es2017", "dom"],
+    "lib": ["es2020", "dom"],
     "types": ["google.maps"],
     "paths": {
       "@/*": ["./*"]
