@@ -9,7 +9,7 @@ FastAPI REST API for:
 - Sri Lanka's 25 administrative districts
 - Daily weather-based hazard analysis
 
-Version: 3.0.0
+Version: 3.1.0
 
 Local:
     uvicorn api:app --host 0.0.0.0 --port 5005 --reload
@@ -28,7 +28,8 @@ import uvicorn
 
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+from starlette.concurrency import run_in_threadpool
 
 # Local Module Resolution
 BASE_DIR = Path(__file__).resolve().parent
@@ -38,6 +39,7 @@ from predict import (
     predict_disaster_risk,
     get_supported_districts,
 )
+from weather import WeatherUnavailable, resolve_location, weather_service
 
 # Logging
 logging.basicConfig(
@@ -53,9 +55,9 @@ app = FastAPI(
     description=(
         "Machine learning prediction service for Sri Lankan "
         "riverine floods, flood risk scores, and "
-        "NBRO landslide risk alerts."
+        "rainfall-based landslide estimates. Model estimates are not official warnings."
     ),
-    version="3.0.0",
+    version="3.1.0",
 )
 
 # CORS Configuration
@@ -80,6 +82,7 @@ def root():
             "health": "/health",
             "districts": "/districts",
             "prediction": "/predict",
+            "automatic_prediction": "/predict/automatic",
             "documentation": "/docs",
             "openapi": "/openapi.json",
         },
@@ -135,11 +138,13 @@ class HazardPredictionRequest(BaseModel):
 
     precipitation_sum: float = Field(
         0.0,
+        ge=0,
         description="Total daily precipitation (mm)",
     )
 
     rain_sum: float = Field(
         0.0,
+        ge=0,
         description="Total daily rainfall (mm)",
     )
 
@@ -164,16 +169,19 @@ class HazardPredictionRequest(BaseModel):
 
     wind_speed_10m_max: float = Field(
         10.0,
+        ge=0,
         description="Maximum wind speed at 10m (km/h)",
     )
 
     rain_24h: float = Field(
         0.0,
+        ge=0,
         description="Accumulated rainfall during 24 hours (mm)",
     )
 
     rain_48h: Optional[float] = Field(
         None,
+        ge=0,
         description=(
             "Accumulated rainfall during 48 hours (mm). "
             "Defaults to rain_24h."
@@ -182,6 +190,7 @@ class HazardPredictionRequest(BaseModel):
 
     rain_72h: Optional[float] = Field(
         None,
+        ge=0,
         description=(
             "Accumulated rainfall during 72 hours (mm). "
             "Defaults to rain_48h."
@@ -199,20 +208,22 @@ class HazardPredictionRequest(BaseModel):
 
     peak_24h_rain_mm: Optional[float] = Field(
         None,
+        ge=0,
         description="Legacy 24-hour rainfall parameter",
     )
 
     monthly_rainfall: Optional[Dict[str, float]] = Field(
         None,
-        description="Legacy monthly rainfall values",
+        description="Legacy compatibility only; ignored by this daily-weather model",
     )
 
     annual_rainfall_mm: Optional[float] = Field(
         None,
-        description="Legacy annual rainfall parameter",
+        description="Legacy compatibility only; ignored by this daily-weather model",
     )
 
     model_config = {
+        "allow_inf_nan": False,
         "json_schema_extra": {
             "example": {
                 "district": "Ratnapura",
@@ -318,6 +329,11 @@ def predict_hazard(payload: HazardPredictionRequest):
                 detail=result,
             )
 
+        result["mode"] = "manual"
+        result["assessment"] = {
+            "kind": "manual_demonstration", "is_official_warning": False,
+            "description": "Demonstration using manually supplied weather and defaults for omitted fields.",
+        }
         return result
 
     except HTTPException:
@@ -338,6 +354,62 @@ def predict_hazard(payload: HazardPredictionRequest):
             status_code=500,
             detail="Hazard prediction failed",
         )
+
+
+class AutomaticPredictionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    district: str = Field(..., min_length=1, max_length=64)
+    latitude: float | None = Field(None, ge=5.8, le=9.9)
+    longitude: float | None = Field(None, ge=79.5, le=82)
+
+
+@app.post("/predict/automatic", tags=["Prediction"])
+async def predict_automatic(payload: AutomaticPredictionRequest):
+    """Assess recent complete-day modeled weather, without user rainfall entry.
+
+    GPS coordinates select weather inputs; the explicitly selected district
+    supplies the model's district profile. This is not a future forecast,
+    real-time observation, administrative boundary lookup, or official alert.
+    """
+    try:
+        location = resolve_location(payload.district, payload.latitude, payload.longitude)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
+    try:
+        weather = await weather_service.get_weather(location["latitude"], location["longitude"])
+    except WeatherUnavailable:
+        # Weather failure must never fall back to zero rainfall or default soil.
+        raise HTTPException(status_code=503, detail={
+            "code": "weather_unavailable",
+            "message": "Complete weather data is temporarily unavailable. Please try again later.",
+        }) from None
+    try:
+        result = await run_in_threadpool(
+            predict_disaster_risk, district=location["district"], **weather["features"],
+        )
+        if "error" in result:
+            raise HTTPException(status_code=422, detail=result["error"])
+        result.update({
+            "mode": "automatic", "location": location, "weather": weather,
+            "assessment": {
+                "kind": "recent_weather_estimate", "is_official_warning": False,
+                "description": (
+                    "AI estimate from the latest complete local weather day. "
+                    "Weather is a model grid estimate, not a rain-gauge observation or today's live conditions. "
+                    "The existing model was trained on a modeled dataset; this integration does not establish forecast accuracy. "
+                    "Follow current DMC/NBRO instructions and local conditions."
+                ),
+            },
+        })
+        return result
+    except HTTPException:
+        raise
+    except (FileNotFoundError, OSError):
+        logger.exception("ML artifacts unavailable")
+        raise HTTPException(status_code=503, detail="Prediction models are unavailable") from None
+    except Exception:
+        logger.exception("Automatic hazard assessment failed")
+        raise HTTPException(status_code=500, detail="Hazard assessment failed") from None
 
 # Application Entry Point
 if __name__ == "__main__":

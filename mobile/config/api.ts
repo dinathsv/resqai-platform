@@ -127,6 +127,13 @@ export const AI_BASE = resolveBaseUrl(
   'AI',
 );
 
+// ML weather/risk service — shares the API's local-browser and Metro host rules.
+export const ML_API_BASE = resolveBaseUrl(
+  process.env.EXPO_PUBLIC_ML_API_URL,
+  '5005',
+  'ML',
+);
+
 // Node.js Backend — real-time events & Socket.IO
 // The .env file uses EXPO_PUBLIC_NODE_API_URL; support both names for compatibility
 export const SOCKET_URL = resolveBaseUrl(

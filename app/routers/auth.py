@@ -120,6 +120,14 @@ async def check_otp(redis_client, key: str, code: str) -> None:
         raise HTTPException(status_code=400, detail="Invalid or expired OTP")
 
 
+def masked_phone_hint(phone_number: str | None) -> str | None:
+    """Identify the SMS destination without exposing the full stored number."""
+    phone = normalize_phone_number(phone_number) if phone_number else None
+    if not phone or len(phone) < 8:
+        return None
+    return f"{phone[:3]} {'•' * (len(phone) - 7)} {phone[-4:]}"
+
+
 def validate_identity_photo(value: str) -> str:
     """Validate an actual small image container; document authenticity still requires review."""
     match = re.fullmatch(r"data:image/(jpeg|png|webp);base64,([A-Za-z0-9+/=\r\n]+)", value)
@@ -200,6 +208,7 @@ async def register(
     return {
         "user_id": str(new_user.user_id),
         "message": "OTP sent to your mobile number",
+        "phone_hint": masked_phone_hint(phone_number),
         "delivery": delivery,
     }
 
@@ -248,7 +257,11 @@ async def resend_otp(
             detail="We could not send the OTP. Please check the SMS sender configuration and try again.",
         )
 
-    return {"message": "OTP resent successfully", "delivery": delivery}
+    return {
+        "message": "OTP resent successfully",
+        "phone_hint": masked_phone_hint(user.phone_number),
+        "delivery": delivery,
+    }
 
 @router.post("/verify-otp")
 async def verify_otp(
@@ -300,6 +313,7 @@ async def login(
     if not user.is_verified:
         raise HTTPException(status_code=403, detail={
             "code": "verification_required", "user_id": str(user.user_id),
+            "phone_hint": masked_phone_hint(user.phone_number),
             "message": "Complete the mobile OTP verification before signing in.",
         })
     await redis_client.delete(fail_key)

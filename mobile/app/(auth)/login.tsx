@@ -53,7 +53,10 @@ export default function LoginScreen() {
         if (res.status === 403) {
           const data = await res.json().catch(() => ({}));
           if (data.detail?.code === 'verification_required' && data.detail?.user_id) {
-            router.push({ pathname: '/(auth)/verify-otp', params: { userId: data.detail.user_id, email: trimmedEmail } });
+            router.push({
+              pathname: '/(auth)/verify-otp',
+              params: { userId: data.detail.user_id, phoneHint: data.detail.phone_hint || '' },
+            });
           } else setError(typeof data.detail === 'string' ? data.detail : data.detail?.message || t('common.error'));
         } else if (res.status === 401) setError(t('auth.invalidCredentials'));
         else if (res.status === 429) setError(t('auth.accountLocked'));

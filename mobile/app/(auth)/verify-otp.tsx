@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { apiFetch } from '../../config/api';
+import { apiFetch, parseErrorResponse } from '../../config/api';
 import { Fonts, makeGlass } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -19,7 +19,10 @@ export default function VerifyOtpScreen() {
   const { theme } = useTheme();
   const { t } = useLanguage();
   const glass = useMemo(() => makeGlass(theme), [theme]);
-  const { userId, email } = useLocalSearchParams() as { userId: string; email: string };
+  const params = useLocalSearchParams<{ userId?: string; phoneHint?: string; smsSent?: string }>();
+  const userId = typeof params.userId === 'string' ? params.userId : '';
+  const [phoneHint, setPhoneHint] = useState(typeof params.phoneHint === 'string' ? params.phoneHint : '');
+  const [smsSent, setSmsSent] = useState(params.smsSent === '1');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -28,6 +31,11 @@ export default function VerifyOtpScreen() {
   const inputRef = useRef<React.ElementRef<typeof TextInput>>(null);
 
   const handleVerify = async () => {
+    if (loading || resending) return;
+    if (!userId) {
+      setError(t('auth.otpSessionMissing'));
+      return;
+    }
     const trimmedOtp = otp.trim();
     if (!trimmedOtp || trimmedOtp.length !== 6) {
       setError(t('auth.enterCode'));
@@ -41,14 +49,16 @@ export default function VerifyOtpScreen() {
         method: 'POST',
         body: JSON.stringify({ user_id: userId, otp: trimmedOtp }),
       });
-      const data = await res.json();
       if (res.ok) {
+        const data = await res.json();
         await AsyncStorage.setItem('token', data.access_token);
         await AsyncStorage.multiRemove(['guest_token', 'guest_nic', 'guest_phone']);
         router.replace('/(people)/dashboard');
       } else {
         setOtp('');
-        setError(res.status === 400 ? t('auth.invalidCredentials') : (data.detail || t('common.error')));
+        setError(res.status === 400 ? t('auth.invalidOtp')
+          : res.status === 429 ? t('auth.otpRateLimited')
+            : await parseErrorResponse(res));
         inputRef.current?.focus();
       }
     } catch {
@@ -59,6 +69,11 @@ export default function VerifyOtpScreen() {
   };
 
   const handleResendOtp = async () => {
+    if (loading || resending) return;
+    if (!userId) {
+      setError(t('auth.otpSessionMissing'));
+      return;
+    }
     setError('');
     setSuccessMsg('');
     setResending(true);
@@ -67,13 +82,15 @@ export default function VerifyOtpScreen() {
         method: 'POST',
         body: JSON.stringify({ user_id: userId }),
       });
-      const data = await res.json();
       if (res.ok) {
-        setSuccessMsg(t('common.success'));
+        const data = await res.json();
+        if (typeof data.phone_hint === 'string') setPhoneHint(data.phone_hint);
+        setSmsSent(true);
+        setSuccessMsg(t('auth.otpResentSms'));
         setOtp('');
         inputRef.current?.focus();
       } else {
-        setError(res.status === 429 ? t('auth.accountLocked') : (data.detail || t('common.error')));
+        setError(res.status === 429 ? t('auth.otpRateLimited') : await parseErrorResponse(res));
       }
     } catch {
       setError(t('auth.connectionError'));
@@ -103,7 +120,8 @@ export default function VerifyOtpScreen() {
             {t('auth.verifyOtp')}
           </Text>
           <Text style={[styles.subtitle, { color: theme.textMuted }]}>
-            {t('auth.otpSentTo')} {email || ''}
+            {t(smsSent ? 'auth.otpSentTo' : 'auth.otpEnterSmsTo')} {phoneHint || t('auth.registeredMobileNumber')}
+            {'\n'}{t('auth.otpSmsHelp')}
           </Text>
 
           <View style={[styles.card, glass.card]}>
@@ -129,7 +147,10 @@ export default function VerifyOtpScreen() {
               keyboardType="number-pad"
               maxLength={6}
               textAlign="center"
-              editable={!loading}
+              editable={!loading && !resending}
+              accessibilityLabel={t('auth.enterCode')}
+              textContentType="oneTimeCode"
+              autoComplete="sms-otp"
               autoFocus
               onSubmitEditing={handleVerify}
             />
@@ -139,10 +160,10 @@ export default function VerifyOtpScreen() {
                 styles.verifyButton,
                 { backgroundColor: theme.brandActive },
                 Platform.OS === 'web' ? { boxShadow: `0 4px 8px ${theme.brandActive}40` } : { shadowColor: theme.brandActive },
-                loading && styles.buttonDisabled,
+                (loading || resending) && styles.buttonDisabled,
               ]}
               onPress={handleVerify}
-              disabled={loading}
+              disabled={loading || resending}
               activeOpacity={0.7}
             >
               {loading ? (
@@ -153,7 +174,7 @@ export default function VerifyOtpScreen() {
             </TouchableOpacity>
 
             <View style={styles.resendRow}>
-              <TouchableOpacity onPress={handleResendOtp} disabled={resending} activeOpacity={0.7}>
+              <TouchableOpacity onPress={handleResendOtp} disabled={loading || resending} activeOpacity={0.7}>
                 {resending ? (
                   <ActivityIndicator size="small" color={theme.brandActive} />
                 ) : (

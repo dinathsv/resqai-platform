@@ -3,23 +3,37 @@
  * Communicates with the FastAPI ML microservice (ml-models/api.py) on port 5005.
  */
 
-import { Platform } from 'react-native';
-import Constants from 'expo-constants';
-
-const LOCALHOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
-const DEVELOPMENT_HOST =
-  Constants.expoConfig?.hostUri?.split(':')[0] || LOCALHOST;
-export const ML_API_BASE =
-  process.env.EXPO_PUBLIC_ML_API_URL ||
-  `http://${Platform.OS === 'web' ? LOCALHOST : DEVELOPMENT_HOST}:5005`;
+import { ML_API_BASE } from '../config/api';
+export { ML_API_BASE } from '../config/api';
 
 // --------------- Types ---------------
 
 export interface PredictionRequest {
   district: string;
-  monthly_rainfall?: Record<string, number>;
   peak_24h_rain_mm?: number;
-  annual_rainfall_mm?: number;
+}
+
+export interface AutomaticPredictionRequest {
+  district: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface PredictionWeather {
+  provider: string;
+  model: string;
+  source_url: string;
+  timezone: string;
+  period_start: string;
+  period_end: string;
+  weather_date: string;
+  fetched_at: string;
+  expires_at: string;
+  cached: boolean;
+  grid_latitude?: number;
+  grid_longitude?: number;
+  data_kind?: string;
+  features: Record<string, number>;
 }
 
 export interface NBROLandslideAlert {
@@ -36,6 +50,19 @@ export interface PredictionResult {
   climatic_zone: string;
   river_basin: string;
   hazard_profile: string;
+  mode?: 'automatic' | 'manual';
+  assessment?: {
+    kind: string;
+    is_official_warning: boolean;
+    description: string;
+  };
+  location?: {
+    latitude: number;
+    longitude: number;
+    source: 'gps' | 'district_representative';
+    district: string;
+  };
+  weather?: PredictionWeather;
   prediction: {
     flood_status?: string;
     flood_category?: string;
@@ -48,7 +75,6 @@ export interface PredictionResult {
     rain_24h_mm?: number;
     rain_48h_mm?: number;
     rain_72h_mm?: number;
-    annual_rainfall_mm?: number;
     soil_saturation_index?: number;
   };
   nbro_landslide_alert: NBROLandslideAlert;
@@ -94,37 +120,90 @@ export const DISTRICT_COORDS: Record<string, { lat: number; lng: number }> = {
 
 // --------------- API Calls ---------------
 
+export class PredictionServiceError extends Error {
+  constructor(public readonly code: string, message: string) {
+    super(message);
+    this.name = 'PredictionServiceError';
+  }
+}
+
+async function requestPrediction(
+  path: string,
+  payload: PredictionRequest | AutomaticPredictionRequest,
+): Promise<PredictionResult> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
+  try {
+    const res = await fetch(`${ML_API_BASE}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const detail = err?.detail;
+      throw new PredictionServiceError(
+        detail?.code || (res.status === 422 || res.status === 400 ? 'invalid_location' : 'prediction_unavailable'),
+        typeof detail === 'string' ? detail : detail?.message || detail?.error || 'Prediction is unavailable. Please try again.',
+      );
+    }
+    const result: PredictionResult = await res.json();
+    if (!result?.district || !(result.prediction?.flood_status || result.prediction?.flood_category)) {
+      throw new PredictionServiceError('prediction_unavailable', 'The prediction service returned incomplete results.');
+    }
+    if (path === '/predict/automatic') {
+      const weather = result.weather;
+      if (result.mode !== 'automatic' || !weather?.provider ||
+          !Number.isFinite(Date.parse(weather.period_start)) || !Number.isFinite(Date.parse(weather.period_end)) ||
+          !Number.isFinite(Date.parse(weather.fetched_at)) ||
+          !Number.isFinite(Date.parse(weather.expires_at)) || Date.parse(weather.expires_at) <= Date.now() ||
+          !Number.isFinite(result.location?.latitude) || !Number.isFinite(result.location?.longitude)) {
+        throw new PredictionServiceError('weather_unavailable', 'Complete, recent weather data is unavailable.');
+      }
+    }
+    return result;
+  } catch (error) {
+    if (error instanceof PredictionServiceError) throw error;
+    throw new PredictionServiceError(
+      controller.signal.aborted ? 'prediction_timeout' : 'connection_error',
+      controller.signal.aborted ? 'The weather request timed out. Please try again.' : 'Could not connect to the prediction service. Please check your connection.',
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function fetchMLHealth(): Promise<HealthResponse> {
-  const res = await fetch(`${ML_API_BASE}/health`);
-  if (!res.ok) throw new Error(`ML API health check failed: ${res.status}`);
-  return res.json();
+  return fetchServiceInfo('/health');
 }
 
 export async function fetchDistricts(): Promise<string[]> {
-  const res = await fetch(`${ML_API_BASE}/districts`);
-  if (!res.ok) throw new Error(`Failed to fetch districts: ${res.status}`);
-  const data = await res.json();
+  const data = await fetchServiceInfo<{ districts: string[] }>('/districts');
+  if (!Array.isArray(data.districts) || !data.districts.length) throw new Error('Districts are unavailable');
   return data.districts;
+}
+
+async function fetchServiceInfo<T>(path: string): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(`${ML_API_BASE}${path}`, { signal: controller.signal });
+    if (!res.ok) throw new Error('Prediction service is unavailable');
+    return await res.json();
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function predictDisasterRisk(
   payload: PredictionRequest
 ): Promise<PredictionResult> {
-  let res: Response;
-  try {
-    res = await fetch(`${ML_API_BASE}/predict`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-  } catch {
-    throw new Error(
-      `Could not connect to the prediction service at ${ML_API_BASE}. Make sure your phone and computer are on the same network.`,
-    );
-  }
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.detail?.error || `Prediction failed: ${res.status}`);
-  }
-  return res.json();
+  return requestPrediction('/predict', payload);
+}
+
+export async function predictAutomaticRisk(
+  payload: AutomaticPredictionRequest,
+): Promise<PredictionResult> {
+  return requestPrediction('/predict/automatic', payload);
 }

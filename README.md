@@ -15,6 +15,7 @@ ResQAI coordinates emergency assistance and relief goods in Sri Lanka through an
 - English, Sinhala and Tamil interfaces, multilingual first-aid information and assisted incident triage.
 - SMSlenz OTP and alert delivery, Socket.IO updates, a persisted agency coordination room.
 - Hospital lookup, an experimental flood-risk model, preparedness questions, operational reports, CSV export and browser printing.
+- Automatic weather inputs for risk assessment: choose a district or optionally use GPS, with the weather period and source displayed.
 
 Account verification, incident verification and delivery confirmation are separate. New claims are unverified and private to coordinators until reviewed. Anonymous urgent SOS remains accessible.
 
@@ -42,6 +43,8 @@ python -m database.run_migrations
 The runner uses the explicitly configured `DATABASE_URL`. APIs validate schema compatibility at startup and do not migrate production automatically.
 
 See [the goods relief upgrade guide](docs/GOODS_RELIEF_UPGRADE.md) for Render/Vercel/Expo configuration, database upgrade instructions, validation commands, practical limits and a complete viva demonstration.
+
+See [automatic risk assessment](docs/AUTOMATIC_RISK_ASSESSMENT.md) for the weather input flow, deployment and model limitations. This feature does not require a database migration.
 
 ## Local development
 
@@ -72,6 +75,7 @@ From the repository root:
 
 ```sh
 python -m pytest tests -q
+python -m pytest ml-models/tests -q
 npm --prefix backend test
 node mobile/tests/requestQueue.test.cjs
 mobile/node_modules/.bin/tsc --noEmit -p mobile/tsconfig.json

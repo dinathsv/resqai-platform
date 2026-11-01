@@ -58,7 +58,10 @@ export default function RegisterScreen() {
 
       if (res.ok) {
         const data = await res.json();
-        router.push({ pathname: '/(auth)/verify-otp', params: { userId: data.user_id, email: email.trim() } });
+        router.push({
+          pathname: '/(auth)/verify-otp',
+          params: { userId: data.user_id, phoneHint: data.phone_hint || '', smsSent: '1' },
+        });
       } else {
         // Map known HTTP statuses to translated messages
         if (res.status === 409) {

@@ -64,44 +64,44 @@ def get_supported_districts() -> List[str]:
 
 def evaluate_nbro_landslide_alert(is_landslide_zone: bool, rain_24h: float) -> Dict[str, Any]:
     """
-    Evaluates official NBRO (National Building Research Organisation)
-    24-hour rainfall threshold rules for Sri Lanka hill slopes.
+    Project rainfall-threshold screening, retained under its legacy function
+    name for compatibility. This does not fetch or issue an NBRO warning.
     """
     if not is_landslide_zone:
         return {
             "level": 0,
             "color": "Green",
-            "status": "Safe / No Alert",
-            "message": "Region is not designated as a high-risk slope failure area by NBRO."
+            "status": "Outside mapped slope-risk profile",
+            "message": "The project district profile does not flag a high-risk slope area. Local landslides can still occur. Check current official guidance."
         }
 
     if rain_24h >= 150.0:
         return {
             "level": 3,
             "color": "Red",
-            "status": "Level 3 - Evacuation",
-            "message": "Rainfall exceeds 150mm within 24h. High risk of landslides, rock falls, and cut-slope failures. Evacuate designated slopes immediately to safe shelters."
+            "status": "Level 3 - High rainfall threshold",
+            "message": "At least 150mm of rainfall in the assessment day. Avoid vulnerable slopes and follow current NBRO/DMC evacuation instructions. This is a project estimate."
         }
     elif rain_24h >= 100.0:
         return {
             "level": 2,
             "color": "Amber",
-            "status": "Level 2 - Warning",
-            "message": "Rainfall exceeds 100mm within 24h. Be ready to evacuate immediately if continuous rains or slope ground cracks appear."
+            "status": "Level 2 - Elevated rainfall threshold",
+            "message": "At least 100mm of rainfall in the assessment day. Stay alert around vulnerable slopes and check current official warnings. This is a project estimate."
         }
     elif rain_24h >= 75.0:
         return {
             "level": 1,
             "color": "Yellow",
-            "status": "Level 1 - Watch / Alert",
-            "message": "Rainfall exceeds 75mm within 24h. Stay vigilant for signs of slope failures, leaning trees, or suddenly muddied springs."
+            "status": "Level 1 - Rainfall watch threshold",
+            "message": "At least 75mm of rainfall in the assessment day. Watch for slope cracks, leaning trees, and unusual water flow. This is a project estimate."
         }
     else:
         return {
             "level": 0,
             "color": "Green",
-            "status": "Safe / Normal",
-            "message": "Rainfall is below NBRO advisory threshold (<75mm/24h)."
+            "status": "Below project rainfall threshold",
+            "message": "Rainfall is below the project's 75mm threshold. This does not establish safety; check local conditions and current official warnings."
         }
 
 
@@ -156,13 +156,18 @@ def predict_disaster_risk(
 
     # Auto-detect climatic zone from district metadata if not supplied
     if climatic_zone is None:
-        climatic_zone = meta.get("zone", "Dry")
+        # Metadata describes mixed regional zones; the training CSV encodes
+        # these districts as Intermediate. Preserve the trained category.
+        climatic_zone = {
+            "Badulla": "Intermediate", "Matale": "Intermediate",
+            "Monaragala": "Intermediate",
+        }.get(official_district_name, meta.get("zone"))
     # Encode climatic zone
     try:
         encoded_zone = _zone_encoder.transform([climatic_zone])[0]
     except ValueError:
-        # Fallback if zone not seen during training
-        encoded_zone = 0
+        return {"error": "Unsupported climatic zone.",
+                "supported_climatic_zones": list(_zone_encoder.classes_)}
 
     # Default accumulated rain values
     if rain_48h is None:
@@ -172,7 +177,7 @@ def predict_disaster_risk(
 
     # Auto-calculate soil saturation index if not provided
     if soil_saturation_index is None:
-        soil_saturation_index = (soil_moisture_0_to_7cm + soil_moisture_7_to_28cm) / 2.0
+        soil_saturation_index = 0.6 * soil_moisture_0_to_7cm + 0.4 * soil_moisture_7_to_28cm
 
     # Prepare DataFrame for model inference
     input_row = {
@@ -205,32 +210,36 @@ def predict_disaster_risk(
     # NBRO Landslide Analysis
     is_landslide_zone = meta["landslide_prone_zone"] in ["High", "Medium"]
     landslide_alert = evaluate_nbro_landslide_alert(is_landslide_zone, rain_24h)
+    landslide_alert["is_official_warning"] = False
+    landslide_alert["source"] = "project_rainfall_thresholds"
 
     # --- Actionable guidance tailored to Sri Lankan emergency response ---
     guidance = []
     if flood_category == "Critical Emergency (Catastrophic Overflow)":
         guidance.append(
-            f"CRITICAL: Catastrophic flooding predicted for {official_district_name} "
-            f"along the {meta['primary_river_basin']} basin. Evacuate immediately to higher ground."
+            f"The model estimates very high flood risk for the selected {official_district_name} profile. "
+            "Check current official alerts, avoid floodwater, and follow local evacuation instructions."
         )
     elif flood_category == "High Warning (Inundation)":
         guidance.append(
-            f"URGENT: Significant inundation expected in {official_district_name}. "
-            f"Move to elevated areas and avoid river crossings."
+            f"The model estimates elevated flood risk for the selected {official_district_name} profile. "
+            "Avoid flooded river crossings and check current official alerts."
         )
     elif flood_category == "Advisory (Waterlogging)":
         guidance.append(
-            f"ADVISORY: Waterlogging and localized flooding anticipated in low-lying areas of {official_district_name}."
+            f"The model indicates possible waterlogging for the selected {official_district_name} profile. "
+            "Monitor local conditions and avoid flooded roads."
         )
     else:
         guidance.append(
-            f"Normal conditions. No widespread riverine flooding anticipated for {official_district_name}."
+            f"The model estimates lower flood risk for the selected {official_district_name} profile. "
+            "This does not establish safety. Check current official alerts and local conditions."
         )
 
     if landslide_alert["level"] >= 2:
         guidance.append(
-            f"NBRO WARNING: {landslide_alert['status']} active. "
-            f"Evacuate steep slopes in {official_district_name} immediately."
+            f"The project's landslide rainfall threshold is elevated for the {official_district_name} profile. "
+            "Avoid vulnerable slopes and follow current NBRO/DMC instructions."
         )
 
     return {
@@ -252,7 +261,6 @@ def predict_disaster_risk(
             "peak_24h_rain_mm": rain_24h,
             "rain_48h_mm": rain_48h,
             "rain_72h_mm": rain_72h,
-            "annual_rainfall_mm": round(rain_24h * 15, 1),
             "soil_saturation_index": round(soil_saturation_index, 4),
         },
         "nbro_landslide_alert": landslide_alert,

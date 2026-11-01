@@ -24,12 +24,11 @@ import {
   fetchDistricts,
   fetchMLHealth,
   predictDisasterRisk,
+  predictAutomaticRisk,
+  PredictionServiceError,
   DISTRICT_COORDS,
   type PredictionResult,
 } from '../../services/mlService';
-
-const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
@@ -62,7 +61,7 @@ const C = {
 
 export default function PredictionScreen() {
   const { theme } = useTheme();
-  const { t } = useLanguage();
+  const { t, formatDate } = useLanguage();
   const router = useRouter();
   const cardTheme = { backgroundColor: theme.surface, borderColor: theme.border };
 
@@ -70,17 +69,19 @@ export default function PredictionScreen() {
   const [districts, setDistricts] = useState<string[]>([]);
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [showDistrictPicker, setShowDistrictPicker] = useState(false);
-  const [monthlyRainfall, setMonthlyRainfall] = useState<Record<string, string>>({});
   const [peak24h, setPeak24h] = useState('');
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [apiHealthy, setApiHealthy] = useState<boolean | null>(null);
   const [result, setResult] = useState<PredictionResult | null>(null);
   const [error, setError] = useState('');
+  const [locationError, setLocationError] = useState('');
+  const [now, setNow] = useState(Date.now());
 
   // Live location
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
+  const locationRequest = useRef(0);
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -90,7 +91,7 @@ export default function PredictionScreen() {
   // Hardcoded fallback so the picker always works, even if the ML API is offline
   const FALLBACK_DISTRICTS = Object.keys(DISTRICT_COORDS).sort();
 
-  // Load districts + health check + live location
+  // GPS is requested only after the person chooses to use their location.
   useEffect(() => {
     (async () => {
       try {
@@ -104,55 +105,70 @@ export default function PredictionScreen() {
         setDistricts(FALLBACK_DISTRICTS);
       }
     })();
-    fetchUserLocation();
+    return () => { locationRequest.current += 1; };
   }, []);
 
   const fetchUserLocation = async () => {
+    if (loading || loadingLocation) return;
+    if (!selectedDistrict) {
+      setError(t('prediction.selectDistrictPrompt'));
+      return;
+    }
+    const requestId = ++locationRequest.current;
     setLoadingLocation(true);
+    setLocationError('');
+    setError('');
+    setUserLocation(null);
+    setResult(null);
     try {
+      let coords: { latitude: number; longitude: number };
       if (Platform.OS === 'web') {
-        if (!navigator.geolocation) {
-          console.warn('Browser geolocation is not available.');
-          return;
-        }
-
-        await new Promise<void>((resolve) => {
+        if (!navigator.geolocation) throw new Error('Location unavailable');
+        coords = await new Promise((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(
-            ({ coords }) => {
-              setUserLocation({
-                lat: coords.latitude,
-                lng: coords.longitude,
-              });
-              resolve();
-            },
-            (locationError) => {
-              console.warn('Browser location unavailable:', locationError.message);
-              resolve();
-            },
+            ({ coords: position }) => resolve(position),
+            reject,
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
           );
         });
+      } else {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') throw new Error('Location permission denied');
+        const location = await new Promise<Location.LocationObject>((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error('Location request timed out')), 12000);
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }).then(
+            (position) => { clearTimeout(timer); resolve(position); },
+            (err) => { clearTimeout(timer); reject(err); },
+          );
+        });
+        coords = location.coords;
+      }
+      if (requestId !== locationRequest.current) return;
+      // Keep the scope of this Sri Lankan district model explicit.
+      if (coords.latitude < 5.8 || coords.latitude > 9.9 || coords.longitude < 79.5 || coords.longitude > 82.0) {
+        setLocationError(t('prediction.locationOutsideSriLanka'));
         return;
       }
-
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setLoadingLocation(false);
-        return;
-      }
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-      setUserLocation({
-        lat: location.coords.latitude,
-        lng: location.coords.longitude,
-      });
-    } catch (err) {
-      console.warn('Location error:', err);
+      setUserLocation({ lat: coords.latitude, lng: coords.longitude });
+      setResult(null);
+    } catch {
+      if (requestId === locationRequest.current) setLocationError(t('prediction.locationUnavailable'));
     } finally {
-      setLoadingLocation(false);
+      if (requestId === locationRequest.current) setLoadingLocation(false);
     }
   };
+
+  useEffect(() => {
+    if (!result?.weather) return;
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, [result]);
+
+  const weatherExpired = Boolean(result?.weather && Date.parse(result.weather.expires_at) <= now);
+  const weatherTime = (value: string) => formatDate(value, {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Colombo',
+  });
 
   // Pulse animation for alert levels
   useEffect(() => {
@@ -161,14 +177,16 @@ export default function PredictionScreen() {
       result?.prediction?.flood_category?.includes('Critical') ||
       result?.prediction?.flood_category?.includes('High');
     if (result && ((result.nbro_landslide_alert?.level ?? 0) >= 2 || isMajor)) {
-      Animated.loop(
+      const pulse = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, { toValue: 1.04, duration: 900, useNativeDriver: USE_NATIVE_DRIVER }),
           Animated.timing(pulseAnim, { toValue: 1, duration: 900, useNativeDriver: USE_NATIVE_DRIVER }),
         ])
-      ).start();
+      );
+      pulse.start();
+      return () => { pulse.stop(); pulseAnim.setValue(1); };
     }
-  }, [result]);
+  }, [result, pulseAnim]);
 
   const animateResultsIn = useCallback(() => {
     fadeAnim.setValue(0);
@@ -180,8 +198,14 @@ export default function PredictionScreen() {
   }, []);
 
   const handlePredict = async () => {
+    if (loading || loadingLocation) return;
     if (!selectedDistrict) {
       setError(t('prediction.selectDistrictPrompt'));
+      return;
+    }
+    const rainfall = Number(peak24h);
+    if (manualMode && (!peak24h.trim() || !Number.isFinite(rainfall) || rainfall < 0)) {
+      setError(t('prediction.invalidManualRainfall'));
       return;
     }
     setLoading(true);
@@ -189,21 +213,23 @@ export default function PredictionScreen() {
     setResult(null);
 
     try {
-      const monthly: Record<string, number> = {};
-      for (const m of MONTHS) {
-        const val = monthlyRainfall[m];
-        if (val && parseFloat(val) > 0) monthly[m] = parseFloat(val);
-      }
-
-      const res = await predictDisasterRisk({
-        district: selectedDistrict,
-        monthly_rainfall: Object.keys(monthly).length > 0 ? monthly : undefined,
-        peak_24h_rain_mm: peak24h ? parseFloat(peak24h) : undefined,
-      });
-      setResult(res);
+      const res = manualMode
+        ? await predictDisasterRisk({ district: selectedDistrict, peak_24h_rain_mm: rainfall })
+        : await predictAutomaticRisk({
+          district: selectedDistrict,
+          ...(userLocation ? { latitude: userLocation.lat, longitude: userLocation.lng } : {}),
+        });
+      setResult(manualMode ? { ...res, mode: 'manual' } : res);
+      setNow(Date.now());
+      setApiHealthy(true);
       animateResultsIn();
-    } catch (e: any) {
-      setError(e.message || 'Prediction failed. Ensure the ML API is running on port 5005.');
+    } catch (e) {
+      const code = e instanceof PredictionServiceError ? e.code : '';
+      setError(t(code === 'weather_unavailable' ? 'prediction.weatherUnavailable'
+        : code === 'invalid_location' ? 'prediction.invalidLocation'
+          : code === 'connection_error' ? 'prediction.connectionError'
+            : code === 'prediction_timeout' ? 'prediction.requestTimeout'
+              : 'prediction.predictionUnavailable'));
     } finally {
       setLoading(false);
     }
@@ -212,9 +238,6 @@ export default function PredictionScreen() {
   const handleReset = () => {
     setResult(null);
     setError('');
-    setSelectedDistrict('');
-    setMonthlyRainfall({});
-    setPeak24h('');
   };
 
   const handleBack = () => {
@@ -225,10 +248,12 @@ export default function PredictionScreen() {
   // --- Map helpers ---
   const getMapCenter = () => {
     if (result) {
+      if (result.location) return { lat: result.location.latitude, lng: result.location.longitude };
       const coords = DISTRICT_COORDS[result.district];
       if (coords) return coords;
     }
     if (userLocation) return userLocation;
+    if (selectedDistrict && DISTRICT_COORDS[selectedDistrict]) return DISTRICT_COORDS[selectedDistrict];
     return { lat: 7.8731, lng: 80.7718 }; // Sri Lanka center
   };
 
@@ -303,6 +328,7 @@ export default function PredictionScreen() {
       <TouchableOpacity
         style={[s.pickerButton, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder }]}
         onPress={() => setShowDistrictPicker(!showDistrictPicker)}
+        disabled={loading}
         activeOpacity={0.7}
       >
         <Text style={[s.pickerText, !selectedDistrict ? { color: theme.textMuted } : { color: theme.textPrimary }]}>
@@ -322,7 +348,17 @@ export default function PredictionScreen() {
                   { borderBottomColor: theme.border },
                   selectedDistrict === d && { backgroundColor: theme.successLight },
                 ]}
-                onPress={() => { setSelectedDistrict(d); setShowDistrictPicker(false); }}
+                onPress={() => {
+                  locationRequest.current += 1;
+                  setLoadingLocation(false);
+                  setSelectedDistrict(d);
+                  setUserLocation(null);
+                  setLocationError('');
+                  setError('');
+                  setResult(null);
+                  setShowDistrictPicker(false);
+                }}
+                disabled={loading}
                 activeOpacity={0.7}
               >
                 <Text style={[
@@ -351,51 +387,58 @@ export default function PredictionScreen() {
           placeholder="e.g. 125"
           placeholderTextColor={theme.textMuted}
           keyboardType="numeric"
+          accessibilityLabel={t('prediction.peakRainfallInput')}
         />
-        <View style={s.peakLegend}>
-          {[
-            { label: '<75 Safe', color: C.green },
-            { label: '75 Watch', color: C.yellow },
-            { label: '100 Warn', color: C.amber },
-            { label: '150+ Evac', color: C.red },
-          ].map((item, i) => (
-            <View key={i} style={s.legendRow}>
-              <View style={[s.legendDot, { backgroundColor: item.color }]} />
-              <Text style={[s.legendText, { color: theme.textMuted }]}>{item.label}</Text>
-            </View>
-          ))}
-        </View>
       </View>
     </View>
   );
 
-  const renderMonthlyInputs = () => (
+  const renderWeatherControls = () => (
+    <View style={s.weatherControls}>
+      <Text style={[s.explanation, { color: theme.textSecondary }]}>{t('prediction.automaticHelp')}</Text>
+      <View style={[s.locationChoice, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}>
+        <Text style={[s.locationChoiceTitle, { color: theme.textPrimary }]}>
+          📍 {t(userLocation ? 'prediction.gpsLocation' : 'prediction.districtLocation')}
+        </Text>
+        <Text style={[s.explanation, { color: theme.textMuted }]}>
+          {t(userLocation ? 'prediction.gpsHelp' : 'prediction.districtLocationHelp')}
+        </Text>
+        <TouchableOpacity
+          style={[s.locationButton, { borderColor: theme.brandActive }, (loading || loadingLocation) && { opacity: 0.6 }]}
+          onPress={fetchUserLocation}
+          disabled={loading || loadingLocation}
+          activeOpacity={0.7}
+        >
+          {loadingLocation ? <ActivityIndicator color={theme.brandActive} size="small" />
+            : <Text style={[s.locationButtonText, { color: theme.brandActive }]}>{t('prediction.useMyLocation')}</Text>}
+        </TouchableOpacity>
+        {userLocation && (
+          <TouchableOpacity onPress={() => { setUserLocation(null); setResult(null); setLocationError(''); }} disabled={loading}>
+            <Text style={[s.referenceLink, { color: theme.textSecondary }]}>{t('prediction.useDistrictLocation')}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      {locationError ? <Text style={[s.explanation, { color: C.amber }]}>{locationError}</Text> : null}
+      <Text style={[s.explanation, { color: theme.textMuted }]}>{t('prediction.completeDayNotice')}</Text>
+    </View>
+  );
+
+  const renderManualControls = () => (
     <View>
       <TouchableOpacity
         style={s.advancedToggle}
-        onPress={() => setShowAdvanced(!showAdvanced)}
+        onPress={() => { setManualMode(!manualMode); setError(''); setLocationError(''); }}
+        disabled={loading || loadingLocation}
         activeOpacity={0.7}
       >
         <Text style={[s.advancedToggleText, { color: theme.textMuted }]}>
-          {showAdvanced ? '▲' : '▼'} {t('prediction.monthlyRainfallHeader')}
+          {manualMode ? '▲' : '▼'} {t('prediction.manualMode')}
         </Text>
       </TouchableOpacity>
-
-      {showAdvanced && (
-        <View style={s.monthGrid}>
-          {MONTHS.map((m, i) => (
-            <View key={m} style={s.monthCell}>
-              <Text style={[s.monthLabel, { color: theme.textMuted }]}>{MONTH_LABELS[i]}</Text>
-              <TextInput
-                style={[s.monthInput, { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary }]}
-                value={monthlyRainfall[m] || ''}
-                onChangeText={(val) => setMonthlyRainfall((prev) => ({ ...prev, [m]: val }))}
-                placeholder="mm"
-                placeholderTextColor={theme.textMuted}
-                keyboardType="numeric"
-              />
-            </View>
-          ))}
+      {manualMode && (
+        <View style={[s.noticeBox, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}>
+          <Text style={[s.explanation, { color: theme.textSecondary }]}>{t('prediction.manualHelp')}</Text>
+          {renderPeakRainInput()}
         </View>
       )}
     </View>
@@ -410,24 +453,12 @@ export default function PredictionScreen() {
         <View style={s.mapHeader}>
           <View style={{ flex: 1 }}>
             <Text style={[s.cardTitle, { color: theme.textPrimary }]}>
-              📍 {result ? `${result.district} Map` : 'Live Map'}
+              📍 {t('prediction.assessmentLocation')}
             </Text>
             <Text style={[s.mapCoords, { color: theme.textMuted }]}>
               {center.lat.toFixed(4)}, {center.lng.toFixed(4)}
             </Text>
           </View>
-          <TouchableOpacity
-            style={[s.refreshGpsBtn, { backgroundColor: theme.surfaceSubtle }]}
-            onPress={fetchUserLocation}
-            disabled={loadingLocation}
-            activeOpacity={0.7}
-          >
-            {loadingLocation ? (
-              <ActivityIndicator size="small" color={C.brandActive} />
-            ) : (
-              <Text style={[s.refreshGpsText, { color: theme.textSecondary }]}>🔄 {t('common.retry')}</Text>
-            )}
-          </TouchableOpacity>
         </View>
 
         <View style={s.mapIframeWrap}>
@@ -449,7 +480,7 @@ export default function PredictionScreen() {
   const renderFloodCard = () => {
     if (!result) return null;
     const pred = result.prediction || {};
-    const flood_status = pred.flood_status || pred.flood_category || 'Low Risk (Normal)';
+    const flood_status = pred.flood_status || pred.flood_category || t('prediction.assessmentUnavailable');
     const flood_probabilities: Record<string, number> =
       pred.flood_probabilities || pred.flood_category_probabilities || {};
     const statusColor = getFloodColor(flood_status);
@@ -488,7 +519,7 @@ export default function PredictionScreen() {
   const renderHazardCard = () => {
     if (!result) return null;
     const pred = result.prediction || {};
-    const overall_hazard_level = pred.overall_hazard_level || pred.flood_category || 'Low Risk (Normal)';
+    const overall_hazard_level = pred.overall_hazard_level || pred.flood_category || t('prediction.assessmentUnavailable');
     const hazard_index = typeof pred.hazard_index === 'number'
       ? pred.hazard_index
       : (typeof pred.flood_risk_score === 'number' ? pred.flood_risk_score : 0);
@@ -517,10 +548,9 @@ export default function PredictionScreen() {
 
   // ── NBRO Card ──
   const renderNBROCard = () => {
-    if (!result) return null;
+    if (!result?.nbro_landslide_alert) return null;
     const alert = result.nbro_landslide_alert;
     const alertColor = getNBROColor(alert.level);
-    const alertBg = getNBROBg(alert.level);
     const isUrgent = alert.level >= 2;
 
     const CardWrapper = isUrgent ? Animated.View : View;
@@ -531,7 +561,7 @@ export default function PredictionScreen() {
     return (
       <CardWrapper style={urgentStyle as any}>
         <Text style={[s.cardTitle, { color: isUrgent ? C.white : theme.textPrimary }]}>
-          {getNBROEmoji(alert.level)} NBRO Landslide Alert
+          {getNBROEmoji(alert.level)} {t('prediction.rainfallIndicator')}
         </Text>
 
         <View style={s.nbroLevelRow}>
@@ -541,6 +571,9 @@ export default function PredictionScreen() {
 
         <Text style={[s.nbroMessage, { color: isUrgent ? 'rgba(255,255,255,0.85)' : theme.textSecondary }]}>
           {alert.message}
+        </Text>
+        <Text style={[s.nbroMessage, { color: isUrgent ? 'rgba(255,255,255,0.85)' : theme.textMuted }]}>
+          {t('prediction.rainfallIndicatorHelp')}
         </Text>
 
         <View style={s.nbroThresholds}>
@@ -564,25 +597,22 @@ export default function PredictionScreen() {
   const renderDistrictProfileCard = () => {
     if (!result) return null;
     const pred = result.prediction || {};
-    const peak24h = pred.peak_24h_rain_mm ?? pred.rain_24h_mm ?? 0;
+    const peak24h = pred.rain_24h_mm ?? pred.peak_24h_rain_mm;
     const rain48h = pred.rain_48h_mm;
     const rain72h = pred.rain_72h_mm;
-    const annual = pred.annual_rainfall_mm ?? (peak24h > 0 ? (peak24h * 15).toFixed(1) : 'N/A');
 
     const profileItems = [
       { label: 'Province', value: result.province },
       { label: 'Climatic Zone', value: result.climatic_zone },
       { label: 'River Basin', value: result.river_basin },
       { label: 'Hazard Profile', value: result.hazard_profile },
-      { label: 'Peak 24h Rain', value: `${peak24h} mm` },
     ];
+    if (peak24h !== undefined) profileItems.push({ label: t('prediction.rain24h'), value: `${peak24h} mm` });
     if (rain48h !== undefined) {
-      profileItems.push({ label: '48h Rain', value: `${rain48h} mm` });
+      profileItems.push({ label: t('prediction.rain48h'), value: `${rain48h} mm` });
     }
     if (rain72h !== undefined) {
-      profileItems.push({ label: '72h Rain', value: `${rain72h} mm` });
-    } else {
-      profileItems.push({ label: 'Annual Rainfall', value: `${annual} mm` });
+      profileItems.push({ label: t('prediction.rain72h'), value: `${rain72h} mm` });
     }
 
     return (
@@ -594,6 +624,55 @@ export default function PredictionScreen() {
             <Text style={[s.profileValue, { color: theme.textPrimary }]}>{value}</Text>
           </View>
         ))}
+      </View>
+    );
+  };
+
+  const renderWeatherSource = () => {
+    if (!result) return null;
+    if (result.mode === 'manual') {
+      return (
+        <View style={[s.noticeBox, { borderColor: C.amberBorder, backgroundColor: theme.surfaceSubtle, marginBottom: 14 }]}>
+          <Text style={[s.locationChoiceTitle, { color: theme.textPrimary }]}>{t('prediction.manualResult')}</Text>
+          <Text style={[s.explanation, { color: theme.textSecondary }]}>{t('prediction.manualHelp')}</Text>
+        </View>
+      );
+    }
+    const weather = result.weather;
+    if (!weather) return null;
+    return (
+      <View style={[s.card, cardTheme]}>
+        <Text style={[s.cardTitle, { color: theme.textPrimary }]}>{t('prediction.weatherSource')}</Text>
+        <TouchableOpacity accessibilityRole="link" onPress={() => Linking.openURL(weather.source_url)}>
+          <Text style={[s.locationChoiceTitle, { color: theme.brandActive, textDecorationLine: 'underline' }]}>{weather.provider} · {weather.model}</Text>
+        </TouchableOpacity>
+        <Text style={[s.explanation, { color: theme.textSecondary }]}>{t('prediction.modelWeatherHelp')}</Text>
+        <Text style={[s.sourceLine, { color: theme.textSecondary }]}>
+          {t('prediction.latestCompleteDay')}: {weather.weather_date}
+        </Text>
+        <Text style={[s.sourceLine, { color: theme.textMuted }]}>
+          {t('prediction.weatherWindow')}: {weatherTime(weather.period_start)} – {weatherTime(weather.period_end)} ({weather.timezone})
+        </Text>
+        <Text style={[s.sourceLine, { color: theme.textMuted }]}>
+          {t('prediction.weatherFetched')}: {weatherTime(weather.fetched_at)}{weather.cached ? ` · ${t('prediction.cachedWeather')}` : ''}
+        </Text>
+        <Text style={[s.sourceLine, { color: theme.textSecondary }]}>
+          {t(result.location?.source === 'gps' ? 'prediction.gpsLocation' : 'prediction.districtLocation')}
+        </Text>
+        {Number.isFinite(weather.grid_latitude) && Number.isFinite(weather.grid_longitude) && (
+          <Text style={[s.sourceLine, { color: theme.textMuted }]}>
+            {t('prediction.weatherGridPoint')}: {weather.grid_latitude!.toFixed(3)}, {weather.grid_longitude!.toFixed(3)}
+          </Text>
+        )}
+        <Text style={[s.explanation, { color: theme.textMuted }]}>{t('prediction.aiEstimateHelp')}</Text>
+        {weatherExpired && <Text style={[s.explanation, { color: C.red }]}>{t('prediction.weatherExpired')}</Text>}
+        <TouchableOpacity
+          style={[s.locationButton, { borderColor: theme.brandActive }]}
+          onPress={handlePredict}
+          disabled={loading}
+        >
+          <Text style={[s.locationButtonText, { color: theme.brandActive }]}>{t('prediction.refreshWeather')}</Text>
+        </TouchableOpacity>
       </View>
     );
   };
@@ -674,17 +753,15 @@ export default function PredictionScreen() {
           </Text>
         </View>
 
-        {/* Live Map (always visible) */}
-        {renderLiveMap()}
-
         {/* Form */}
         {!result && (
           <View style={[s.card, cardTheme]}>
             <Text style={[s.formTitle, { color: theme.textPrimary }]}>{t('prediction.title')}</Text>
+            <Text style={[s.formSubtitle, { color: theme.textSecondary }]}>{t('prediction.subtitle')}</Text>
 
             {renderDistrictPicker()}
-            {renderPeakRainInput()}
-            {renderMonthlyInputs()}
+            {!manualMode && renderWeatherControls()}
+            {renderManualControls()}
 
             {error ? (
               <View style={s.errorBox}>
@@ -693,19 +770,21 @@ export default function PredictionScreen() {
             ) : null}
 
             <TouchableOpacity
-              style={[s.predictButton, loading && { opacity: 0.7 }]}
+              style={[s.predictButton, (loading || loadingLocation) && { opacity: 0.7 }]}
               onPress={handlePredict}
-              disabled={loading}
+              disabled={loading || loadingLocation}
               activeOpacity={0.8}
             >
               {loading ? (
                 <ActivityIndicator color={C.white} size="small" />
               ) : (
-                <Text style={s.predictButtonText}>🔍 {t('prediction.predictButton')}</Text>
+                <Text style={s.predictButtonText}>🔍 {t(manualMode ? 'prediction.runDemonstration' : 'prediction.predictButton')}</Text>
               )}
             </TouchableOpacity>
           </View>
         )}
+
+        {!result && selectedDistrict && renderLiveMap()}
 
         {/* Results */}
         {result && (
@@ -715,13 +794,21 @@ export default function PredictionScreen() {
               <Text style={[s.resultProvince, { color: theme.textMuted }]}>
                 {result.province} Province • {result.climatic_zone} Zone
               </Text>
+              {result.weather && result.mode !== 'manual' && (
+                <Text style={[s.sourceLine, { color: theme.textSecondary }]}>
+                  {t('prediction.latestCompleteDay')}: {result.weather.weather_date}
+                </Text>
+              )}
             </View>
 
-            {renderFloodCard()}
-            {renderNBROCard()}
-            {renderHazardCard()}
-            {renderGuidanceCard()}
+            {result.mode === 'manual' && renderWeatherSource()}
+            {!weatherExpired && renderFloodCard()}
+            {result.mode !== 'manual' && renderWeatherSource()}
+            {!weatherExpired && renderNBROCard()}
+            {!weatherExpired && renderHazardCard()}
+            {!weatherExpired && renderGuidanceCard()}
             {renderDistrictProfileCard()}
+            {renderLiveMap()}
             {renderEmergencyContactsCard()}
 
             <TouchableOpacity style={[s.resetButton, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={handleReset} activeOpacity={0.7}>
@@ -759,6 +846,16 @@ const s = StyleSheet.create({
 
   // Form
   formTitle: { fontSize: 17, fontFamily: Fonts.bold, fontWeight: '700', marginBottom: 16, color: C.textDark },
+  formSubtitle: { fontSize: 13, fontFamily: Fonts.medium, lineHeight: 19, marginBottom: 16 },
+  weatherControls: { marginTop: 14, gap: 10 },
+  explanation: { fontSize: 12, fontFamily: Fonts.medium, lineHeight: 18 },
+  locationChoice: { borderWidth: 1, padding: 12, borderRadius: 12, gap: 8 },
+  locationChoiceTitle: { fontSize: 13, fontFamily: Fonts.bold, lineHeight: 19 },
+  locationButton: { borderWidth: 1, borderRadius: 10, padding: 11, alignItems: 'center', marginTop: 4 },
+  locationButtonText: { fontFamily: Fonts.semiBold, fontSize: 13 },
+  referenceLink: { fontFamily: Fonts.medium, fontSize: 12, textAlign: 'center', paddingTop: 6 },
+  noticeBox: { borderWidth: 1, padding: 12, borderRadius: 12, gap: 8 },
+  sourceLine: { fontSize: 12, fontFamily: Fonts.medium, lineHeight: 18, marginTop: 8, marginBottom: 4 },
 
   // Picker
   inputLabel: { fontSize: 13, fontFamily: Fonts.semiBold, marginBottom: 6, marginLeft: 4, color: C.textMid },

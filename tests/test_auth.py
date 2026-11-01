@@ -2,7 +2,7 @@ import pytest
 from httpx import AsyncClient
 
 @pytest.mark.asyncio
-async def test_register_success(client: AsyncClient):
+async def test_register_success(client: AsyncClient, isolate_otp_delivery):
     r = await client.post('/api/auth/register', json={
         "full_name": "Test User",
         "email": "test@example.com",
@@ -13,6 +13,30 @@ async def test_register_success(client: AsyncClient):
     data = r.json()
     assert "user_id" in data
     assert data["message"] == "OTP sent to your mobile number"
+    assert data["phone_hint"] == "+94 ••••• 4567"
+    assert "0771234567" not in r.text and "+94771234567" not in r.text
+    assert isolate_otp_delivery.await_args.kwargs["phone"] == "+94771234567"
+
+
+@pytest.mark.asyncio
+async def test_resend_otp_returns_masked_sms_destination(client: AsyncClient, isolate_otp_delivery):
+    registration = await client.post('/api/auth/register', json={
+        "full_name": "Resend User",
+        "email": "resend@example.com",
+        "password": "password123",
+        "phone_number": "0771234567",
+    })
+    assert registration.status_code == 201
+
+    response = await client.post('/api/auth/resend-otp', json={
+        "user_id": registration.json()["user_id"],
+    })
+    assert response.status_code == 200
+    assert response.json()["phone_hint"] == registration.json()["phone_hint"]
+    assert response.json()["delivery"]["sms"] is True
+    assert "+94771234567" not in response.text
+    assert isolate_otp_delivery.await_count == 2
+    assert isolate_otp_delivery.await_args.kwargs["phone"] == "+94771234567"
 
 @pytest.mark.asyncio
 async def test_register_duplicate_email(client: AsyncClient):
@@ -216,7 +240,7 @@ async def test_sms_failure_rolls_back_registration(client, isolate_otp_delivery)
 
 
 @pytest.mark.asyncio
-async def test_password_login_requires_completed_registration_otp(client: AsyncClient):
+async def test_password_login_requires_completed_registration_otp(client: AsyncClient, isolate_otp_delivery):
     registration = await client.post('/api/auth/register', json={
         "full_name": "Password Login User",
         "email": "password-only@example.com",
@@ -230,12 +254,17 @@ async def test_password_login_requires_completed_registration_otp(client: AsyncC
     })
     assert response.status_code == 403
     assert response.json()["detail"]["code"] == "verification_required"
+    assert response.json()["detail"]["phone_hint"] == "+94 ••••• 4572"
+    assert "+94771234572" not in response.text
+    # Recovery directs the citizen to the existing code; login does not send a new SMS.
+    assert isolate_otp_delivery.await_count == 1
 
     # Password authentication must still reject an incorrect password.
     response = await client.post('/api/auth/login', json={
         "email": "password-only@example.com", "password": "incorrect",
     })
     assert response.status_code == 401
+    assert "phone_hint" not in response.text
 
 
 @pytest.mark.asyncio
