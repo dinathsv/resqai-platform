@@ -10,7 +10,9 @@ export interface HelpPayload {
   lng?: number | null;
   location_label: string;
   location_source: 'gps' | 'manual' | 'unknown';
+  // Zero means the reporter selected "No"; positive counts mean people are affected.
   affected_people: number;
+  // Retained for requests already saved by older app versions. New forms omit it.
   urgency_level?: number;
   requested_items: RequestedItem[];
   evidence_note: string;

@@ -4,7 +4,7 @@ ResQAI — Main FastAPI Application
 
 import asyncio
 import logging
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +15,7 @@ from .config import settings
 from .database import engine
 from .schema_check import check_schema
 from .routers import ai, alerts, auth, donations, missions, requests, quiz, volunteer_assignments
+from .routers import request_evidence
 from .routers import auth as auth_router
 
 logging.basicConfig(
@@ -63,8 +64,13 @@ async def lifespan(app: FastAPI):
     if not settings.SECRET_KEY or len(settings.SECRET_KEY) < 32:
         raise RuntimeError("SECRET_KEY must contain at least 32 characters")
     await check_startup_dependencies()
-
-    yield
+    evidence_cleanup = asyncio.create_task(request_evidence.purge_expired_evidence())
+    try:
+        yield
+    finally:
+        evidence_cleanup.cancel()
+        with suppress(asyncio.CancelledError):
+            await evidence_cleanup
 
     logger.info("🛑 Shutting down")
     await engine.dispose()
@@ -99,6 +105,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 app.include_router(auth.router, prefix="/api/auth")
 app.include_router(requests.router, prefix="/api/requests")
+app.include_router(request_evidence.router, prefix="/api/requests")
 app.include_router(ai.router, prefix="/api/ai")
 app.include_router(alerts.router, prefix="/api/alerts")
 app.include_router(donations.router, prefix="/api/donations")

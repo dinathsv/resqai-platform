@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import api from '@/lib/api';
 import { apiError, readable } from '@/lib/operations';
 import VerificationBadge from '@/components/VerificationBadge';
+import RequestEvidence from '@/components/RequestEvidence';
 
 interface Participant {
   assignment_id?: string; donation_id?: string; user_id?: string; full_name?: string;
@@ -86,9 +87,10 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
       <p className="opsMuted">Phone: {request.phone_verified ? 'OTP verified' : 'Not verified'}. Phone ownership is separate from confirmation of the need.</p>
       <p className="opsMuted">Submitted {new Date(request.created_at).toLocaleString()}</p>
     </section>
+    <RequestEvidence key={id} requestId={id} />
     <section className="section">
       <h2>Review the need</h2>
-      <p>Record the checks you actually completed and the evidence supporting your decision. Goods requests become available to donors after approval.</p>
+      <p>Record the checks you actually completed and the evidence supporting your decision. Open requests appear in the community feed with their review status; confirming the need updates that status.</p>
       {closed ? <p>This request is closed.</p> : <form className="opsForm" onSubmit={review}>
         <label>Decision<select value={decision} onChange={event => setDecision(event.target.value)}><option value="needs_information">Request more information</option><option value="verified">Confirm need</option><option value="rejected">Reject request</option></select></label>
         <label>Verification method<select value={method} onChange={event => setMethod(event.target.value)}><option value="phone_callback">Phone callback</option><option value="field_visit">Field visit</option><option value="agency_confirmation">Agency confirmation</option><option value="document_review">Document review</option></select></label>

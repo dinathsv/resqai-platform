@@ -28,7 +28,7 @@ def no_broadcast(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_anonymous_urgent_request_is_private_and_idempotent(client):
+async def test_anonymous_urgent_request_is_redacted_public_and_idempotent(client):
     payload = {'message': 'Family trapped by flood water', 'client_request_id': str(uuid.uuid4())}
     first = await client.post('/api/requests', json=payload)
     assert first.status_code == 201, first.text
@@ -36,10 +36,43 @@ async def test_anonymous_urgent_request_is_private_and_idempotent(client):
     assert first.json()['verification_status'] == 'unverified'
     repeat = await client.post('/api/requests', json=payload)
     assert first.json()['request_id'] == repeat.json()['request_id']
-    assert (await client.get('/api/requests/public')).json() == []
-    assert (await client.get('/api/alerts?status=all')).json()['alerts'] == []
+    public = (await client.get('/api/requests/public')).json()
+    assert len(public) == 1 and public[0]['message'] == 'Unverified help request'
+    assert 'Family' not in str(public)
+    alerts = (await client.get('/api/alerts?status=all')).json()['alerts']
+    assert len(alerts) == 1 and alerts[0]['verification_status'] == 'unverified'
     changed = await client.post('/api/requests', json={**payload, 'message': 'Different goods needed'})
     assert changed.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_no_people_affected_is_saved_idempotently_and_awaits_verification(client):
+    payload = {
+        'message': 'Please check flood water near an empty road',
+        'affected_people': 0, 'client_request_id': str(uuid.uuid4()),
+    }
+    first = await client.post('/api/requests', json=payload)
+    assert first.status_code == 201, first.text
+    assert first.json()['affected_people'] == 0
+    assert first.json()['urgency_level'] == 2
+    assert first.json()['verification_status'] == 'unverified'
+    repeat = await client.post('/api/requests', json=payload)
+    assert repeat.status_code == 201, repeat.text
+    assert repeat.json()['request_id'] == first.json()['request_id']
+    assert repeat.json()['affected_people'] == 0
+    assert (await client.get('/api/requests/community')).json()[0]['verification_status'] == 'unverified'
+    assert (await client.get('/api/alerts')).json()['alerts'][0]['verification_status'] == 'unverified'
+    changed = await client.post('/api/requests', json={**payload, 'affected_people': 2})
+    assert changed.status_code == 409
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('affected_people', [-1, 100001])
+async def test_affected_people_outside_supported_range_is_rejected(client, affected_people):
+    response = await client.post('/api/requests', json={
+        'message': 'Please check the road', 'affected_people': affected_people,
+    })
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio
@@ -135,7 +168,7 @@ async def test_alert_and_mission_feeds_never_leak_private_claims(client):
 
 
 @pytest.mark.asyncio
-async def test_requester_evidence_update_preserves_location_and_returns_to_review(client):
+async def test_requester_evidence_update_preserves_location_and_returns_to_review(client, monkeypatch):
     headers, _ = await register_verified(client)
     response = await client.post('/api/requests', headers=headers, json={
         'message': 'Need clean water for our household', 'request_type': 'donation',
@@ -148,11 +181,14 @@ async def test_requester_evidence_update_preserves_location_and_returns_to_revie
         record.verification_status = 'needs_information'
         original_location = record.gps_location
         await db.commit()
+    triage = AsyncMock()
+    monkeypatch.setattr('app.routers.requests.triage_request', triage)
     update = await client.patch(f'/api/requests/{request_id}/information', headers=headers,
                                json={'evidence_note':'Confirmed collection point with local coordinator'})
     assert update.status_code == 200, update.text
     assert update.json()['verification_status'] == 'unverified'
     assert update.json()['requested_items'][0]['quantity'] == 10
+    triage.assert_not_awaited()
     async for db in app.dependency_overrides[get_db]():
         record = await db.get(HelpRequest, request_id)
         assert record.gps_location == original_location
@@ -160,3 +196,24 @@ async def test_requester_evidence_update_preserves_location_and_returns_to_revie
         await db.commit()
     assert (await client.patch(f'/api/requests/{request_id}/information', headers=headers,
                               json={'message':'Edited while the response has started'})).status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_people_count_and_description_updates_recalculate_priority(client):
+    headers, _ = await register_verified(client)
+    created = await client.post('/api/requests', headers=headers, json={
+        'message': 'Please check flood water near the road', 'affected_people': 2,
+    })
+    assert created.status_code == 201, created.text
+    request_id = created.json()['request_id']
+    assert created.json()['urgency_level'] == 3
+    count_update = await client.patch(f'/api/requests/{request_id}/information', headers=headers,
+                                      json={'affected_people': 0})
+    assert count_update.status_code == 200, count_update.text
+    assert count_update.json()['affected_people'] == 0
+    assert count_update.json()['urgency_level'] == 2
+    danger_update = await client.patch(f'/api/requests/{request_id}/information', headers=headers,
+                                       json={'message': 'Someone is trapped by the flood water'})
+    assert danger_update.status_code == 200, danger_update.text
+    assert danger_update.json()['urgency_level'] == 5
+    assert danger_update.json()['verification_status'] == 'unverified'

@@ -44,7 +44,7 @@ class SubmitRequest(BaseModel):
     request_type: Literal["donation", "help_rescue"] = "help_rescue"
     location_source: Literal["gps", "manual", "unknown"] = "unknown"
     location_label: str | None = Field(None, max_length=255)
-    affected_people: int = Field(1, ge=1, le=100000)
+    affected_people: int = Field(1, ge=0, le=100000)
     requested_items: list[RequestedItem] = Field(default_factory=list, max_length=30)
     evidence_note: str | None = Field(None, max_length=2000)
     urgency_level: int | None = Field(None, ge=1, le=5)
@@ -62,19 +62,21 @@ class SubmitRequest(BaseModel):
 
 
 def request_response(record: HelpRequest, private: bool = False) -> dict:
+    review_label = {"verified": "Verified", "unverified": "Unverified", "needs_information": "Needs information:", "rejected": "Rejected"}.get(record.verification_status, "Unverified")
+    request_label = "goods assistance request" if record.emergency_type == "donation" else "help request"
     data = {
         "request_id": str(record.request_id), "emergency_type": record.emergency_type,
         "request_type": record.emergency_type, "urgency_level": record.urgency_level,
         "status": record.status, "admin_status": record.admin_status,
         "verification_status": record.verification_status,
         "location_source": record.location_source,
-        "affected_people": record.affected_people, "requested_items": record.requested_items,
+        "affected_people": record.affected_people,
         "triage_source": record.triage_source, "incident_type": record.incident_type,
         "created_at": record.created_at.isoformat() if record.created_at else None,
-        "message": "Verified goods assistance request" if record.emergency_type == "donation" else "Verified help request",
+        "message": f"{review_label} {request_label}",
     }
     if private:
-        data.update(message=record.original_message, ai_summary=record.ai_summary, location_label=record.location_label,
+        data.update(message=record.original_message, requested_items=record.requested_items, ai_summary=record.ai_summary, location_label=record.location_label,
                     verification_notes=record.verification_notes, evidence_note=record.evidence_note)
     return data
 
@@ -87,7 +89,7 @@ class RequestInformationUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     message: str | None = Field(None, min_length=5, max_length=5000)
     evidence_note: str | None = Field(None, max_length=2000)
-    affected_people: int | None = Field(None, ge=1, le=100000)
+    affected_people: int | None = Field(None, ge=0, le=100000)
     requested_items: list[RequestedItem] | None = Field(None, min_length=1, max_length=30)
     location_label: str | None = Field(None, max_length=255)
 
@@ -101,8 +103,8 @@ async def notify_new_request(
     ai_summary: str | None = None,
 ):
     """
-    Alert admins and community users about new help and donation requests.
-    Sends a real-time WebSocket event to the Node.js backend.
+    Notify coordinators about a saved, unverified request.
+    Community listeners receive a refresh hint; private details stay coordinator-only.
     """
     node_backend_url = (getattr(settings, "NODE_BACKEND_URL", None) or os.getenv("NODE_BACKEND_URL") or "http://localhost:5000").rstrip("/")
     payload = {
@@ -133,9 +135,17 @@ async def notify_new_request(
             if resp.status_code == 200:
                 logger.info("New request alert delivered to Node backend at %s", node_backend_url)
             else:
-                logger.error("New request alert delivery failed (%d): %s", resp.status_code, resp.text)
+                logger.error(
+                    "Coordinator notification failed (HTTP %d). Check NODE_BACKEND_URL and matching "
+                    "INTERNAL_API_KEY values on FastAPI and Node. Request %s remains saved for review.",
+                    resp.status_code, request_id,
+                )
     except Exception as exc:
-        logger.error("Failed to send new request alert to Node backend at %s: %s", node_backend_url, exc)
+        logger.error(
+            "Failed to send coordinator notification to Node backend at %s: %s. "
+            "Set NODE_BACKEND_URL to the reachable Node service URL (localhost works only on the same host). "
+            "Request %s remains saved for review.", node_backend_url, exc, request_id,
+        )
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_request(
@@ -145,7 +155,7 @@ async def create_request(
     db: AsyncSession = Depends(get_db),
     redis_client=Depends(get_redis),
 ):
-    """Save an unverified incident; notify coordinators without publicly exposing a claim."""
+    """Save an incident and immediately publish its redacted, unverified listing."""
     role = current_user.get("role") if current_user else "guest"
     subject = current_user.get("sub") if current_user else None
     if req.request_type == "donation" and role != "people":
@@ -174,7 +184,7 @@ async def create_request(
         # A cache outage must not discard a life-threatening SOS.
         logger.warning("Request rate limiter temporarily unavailable")
 
-    triage = await triage_request(req.message, req.request_type, req.urgency_level)
+    triage = await triage_request(req.message, req.request_type, req.urgency_level, req.affected_people)
     flags = []
     if req.lat is None:
         flags.append("location_not_confirmed")
@@ -322,9 +332,9 @@ async def list_public_requests(
     limit: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ):
-    """Approved community cases only; identity, private evidence and exact GPS are never public."""
+    """Open cases with explicit review status; identity, text and exact GPS remain private."""
     records = (await db.execute(select(HelpRequest).where(
-        HelpRequest.verification_status == "verified",
+        HelpRequest.verification_status.in_(["unverified", "needs_information", "verified"]),
         HelpRequest.status.notin_(["resolved", "cancelled"]),
         HelpRequest.admin_status != "finished",
     ).order_by(desc(HelpRequest.created_at)).limit(limit))).scalars().all()
@@ -345,7 +355,9 @@ async def list_my_requests(
 
 async def owned_request(request_id: uuid.UUID, user: dict, db: AsyncSession, lock: bool = False) -> HelpRequest:
     query = select(HelpRequest).where(HelpRequest.request_id == request_id)
-    record = (await db.execute(query.with_for_update() if lock else query)).scalar_one_or_none()
+    if lock:
+        query = query.with_for_update().execution_options(populate_existing=True)
+    record = (await db.execute(query)).scalar_one_or_none()
     if not record:
         raise HTTPException(status_code=404, detail="Request not found")
     owner = record.guest_session_id if user["role"] == "guest" else record.user_id
@@ -390,6 +402,12 @@ async def update_request_information(
         record.affected_people = body.affected_people
     if "location_label" in body.model_fields_set:
         record.location_label = body.location_label
+    if body.message is not None or body.affected_people is not None:
+        triage = await triage_request(
+            record.original_message, record.emergency_type, affected_people=record.affected_people,
+        )
+        for field, value in triage.items():
+            setattr(record, field, value)
     record.verification_status = "unverified"
     record.updated_at = datetime.now(timezone.utc)
     await db.commit()

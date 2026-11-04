@@ -91,7 +91,9 @@ function broadcastAlert(io, alert, userIds) {
 }
 
 async function notifyNewRequest(io, request, pool) {
-  // A new claim is unverified. Precise location and free text are coordinator-only.
+  // Public listeners fetch the saved, redacted feed and its review status. The
+  // private notification body must never become a community socket payload.
+  io?.to('public:alerts').emit('community_requests_updated', {});
   return emitToActiveAdmins(io, 'new_request', { ...request, verification_status: 'unverified' }, pool || socketPools.get(io));
 }
 

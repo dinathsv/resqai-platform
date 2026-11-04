@@ -73,7 +73,7 @@ router.get('/', requireAdmin, async (req, res) => {
 /**
  * POST /new
  * Called by the Python API when a new help request is created.
- * Broadcasts a real-time alert to all connected sockets.
+ * Notifies coordinators privately and asks community clients to refresh the feed.
  */
 router.post('/new', requireInternal, async (req, res) => {
   try {
@@ -289,6 +289,7 @@ router.patch('/:id/status', requireAdmin, async (req, res) => {
     await client.query(`INSERT INTO audit_logs(admin_id,action,entity_type,entity_id) VALUES($1,$2,'help_request',$3)`, [req.user.user_id, `request_status:${oldStatus}:${status}`, req.params.id]);
     await client.query('COMMIT');
     await emitToActiveAdmins(req.app.locals.io, 'request_updated', { request_id: req.params.id, status }, client);
+    req.app.locals.io?.to('public:alerts').emit('community_requests_updated', {});
     return res.json({ success: true, request_id: req.params.id, status });
   } catch (err) {
     if (client) await client.query('ROLLBACK').catch(() => {});
@@ -326,7 +327,7 @@ router.patch('/:id/verification', requireAdmin, async (req, res) => {
     }
     await client.query('COMMIT');
     await emitToActiveAdmins(req.app.locals.io, 'request_updated', { request_id: req.params.id, verification_status: decision }, client);
-    req.app.locals.io?.to('role:people').emit('community_requests_updated', {});
+    req.app.locals.io?.to('public:alerts').emit('community_requests_updated', {});
     return res.json({ success: true, verification_status: decision, goods });
   } catch (err) {
     if (client) await client.query('ROLLBACK').catch(() => {});

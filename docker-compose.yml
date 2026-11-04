@@ -72,6 +72,7 @@ services:
       SMSLENZ_SENDER_ID: ${SMSLENZ_SENDER_ID:-}
       SMSLENZ_BASE_URL: ${SMSLENZ_BASE_URL:-https://smslenz.lk/api}
       NODE_BACKEND_URL: http://node-backend:5000
+      EVIDENCE_ENCRYPTION_KEY: ${EVIDENCE_ENCRYPTION_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy

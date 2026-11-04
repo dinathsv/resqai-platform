@@ -38,6 +38,14 @@
       "expo-sqlite",
       "expo-router",
       "expo-location",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow ResQAI to take an optional NIC photo and a new selfie for private reviewer verification.",
+          "photosPermission": "Allow ResQAI to select an optional NIC photo for private reviewer verification.",
+          "microphonePermission": false
+        }
+      ],
       "expo-speech-recognition",
       [
         "expo-splash-screen",

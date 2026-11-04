@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 process.env.JWT_SECRET = 'socket-test-secret-at-least-32-characters';
 const jwt = require('jsonwebtoken');
-const { initSocket, emitToActiveAdmins, revokeUserSockets } = require('../socket');
+const { initSocket, emitToActiveAdmins, notifyNewRequest, revokeUserSockets } = require('../socket');
 
 function fakeSocket(id, role = 'admin', expired = false) {
   return { data: { user: { user_id: id, role, exp: Date.now()/1000 + (expired ? -60 : 60) } },
@@ -44,4 +44,31 @@ test('unknown roles and disabled accounts cannot enter authenticated socket room
     await authenticate({ handshake: { auth: { token } }, data: {} }, value => { error = value; });
     assert.ok(error instanceof Error, role);
   }
+});
+
+test('new requests prompt a public feed refresh while their details stay with active coordinators', async () => {
+  const admin = fakeSocket('admin');
+  const broadcasts = [];
+  const io = {
+    to(room) { return { emit(event, payload) { broadcasts.push({ room, event, payload }); } }; },
+    in(room) { assert.equal(room, 'role:admin'); return { fetchSockets: async () => [admin] }; },
+  };
+  const pool = { query: async () => ({ rows: [{ admin_id: 'admin' }] }) };
+  const claim = { request_id: 'request-id', message: 'Private household details', lat: 7.1, lng: 80.1, ai_summary: 'Private summary' };
+  assert.equal(await notifyNewRequest(io, claim, pool), 1);
+  assert.deepEqual(broadcasts, [{ room: 'public:alerts', event: 'community_requests_updated', payload: {} }]);
+  assert.equal(admin.messages[0].event, 'new_request');
+  assert.equal(admin.messages[0].payload.message, claim.message);
+  assert.equal(admin.messages[0].payload.verification_status, 'unverified');
+});
+
+test('a public refresh hint exposes no claim details when coordinator authentication is unavailable', async () => {
+  const broadcasts = [];
+  const io = {
+    to(room) { return { emit(event, payload) { broadcasts.push({ room, event, payload }); } }; },
+    in() { return { fetchSockets: async () => [fakeSocket('admin')] }; },
+  };
+  const pool = { query: async () => { throw Error('Database unavailable'); } };
+  assert.equal(await notifyNewRequest(io, { message: 'Sensitive callback details' }, pool), 0);
+  assert.deepEqual(broadcasts, [{ room: 'public:alerts', event: 'community_requests_updated', payload: {} }]);
 });

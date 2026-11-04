@@ -207,7 +207,7 @@ async def list_alerts(
     # Also include community help and donation requests so citizens see them in alerts feed
     try:
         req_query = select(HelpRequest).where(
-            HelpRequest.verification_status == "verified",
+            HelpRequest.verification_status.in_(["unverified", "needs_information", "verified"]),
             HelpRequest.status.notin_(["resolved", "cancelled"]),
             HelpRequest.admin_status != "finished",
         ).order_by(desc(HelpRequest.created_at))
@@ -236,14 +236,19 @@ async def list_alerts(
 
         for r in community_requests:
             is_active = r.status in ["pending", "verified", "in_progress", "dispatched"]
-            req_title = "Donation Request" if r.emergency_type == "donation" else "Help & Rescue Request"
+            review_label = {
+                "verified": "Verified",
+                "needs_information": "Needs information:",
+                "unverified": "Unverified",
+            }[r.verification_status]
+            request_label = "goods assistance request" if r.emergency_type == "donation" else "help request"
             alert_items.append({
                 "alert_id": str(r.request_id),
                 "acknowledged": str(r.request_id) in accepted_request_ids,
                 "disaster_type": r.emergency_type or "help_rescue",
                 "severity": r.urgency_level or 3,
-                "work_plan": "Verified goods assistance request" if r.emergency_type == "donation" else "Verified help request",
-                "verification_status": "verified",
+                "work_plan": f"{review_label} {request_label}",
+                "verification_status": r.verification_status,
                 "status": "active" if is_active else r.status,
                 "delivered_count": 0,
                 "created_at": r.created_at.isoformat() if r.created_at else None,

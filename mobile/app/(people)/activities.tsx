@@ -5,6 +5,7 @@ import { apiFetch, getToken, parseErrorResponse } from '../../config/api';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import MinimalButton from '../../components/MinimalButton';
+import RequestEvidence from '../../components/RequestEvidence';
 import { ReliefPage, ReliefCard, ReliefText, ReliefField, ReliefBadge, reliefStyles } from '../../components/ReliefUI';
 import { getMyQueuedRequests, getMyRequestReceipts, syncMyRequests, subscribeQueue, QueuedRequest } from '../../services/requestQueue';
 
@@ -91,7 +92,7 @@ export default function ActivitiesScreen() {
         {request.requested_items?.map((item, i) => <ReliefText key={i}>{item.quantity} {item.unit} · {item.item_name}</ReliefText>)}
         {['unverified', 'needs_information'].includes(request.verification_status || '') && (!request.admin_status || request.admin_status === 'pending') && <MinimalButton title={t('relief.updateInformation')} onPress={() => { setEditing(request); setInfoMessage(request.message); setInfoNote(request.evidence_note || ''); setInfoError(''); }} />}
         <MinimalButton title={t('relief.requestHistory')} variant="outline" onPress={() => { void openDetails(request); }} />
-        {expanded === request.request_id && <View style={{ gap: 10 }}><ReliefText muted>{t('relief.reference')}: {request.request_id}</ReliefText>{detail.history?.length ? detail.history.map((event, i) => <View key={i} style={{ borderLeftWidth: 2, borderColor: theme.brandActive, paddingLeft: 12 }}><ReliefText>{event.new_status || event.status}</ReliefText>{event.note || event.reason ? <ReliefText muted>{event.note || event.reason}</ReliefText> : null}{event.changed_at ? <ReliefText muted>{new Date(event.changed_at).toLocaleString()}</ReliefText> : null}</View>) : <ReliefText muted>{t('relief.noHistory')}</ReliefText>}</View>}
+        {expanded === request.request_id && <View style={{ gap: 10 }}><ReliefText muted>{t('relief.reference')}: {request.request_id}</ReliefText>{detail.history?.length ? detail.history.map((event, i) => <View key={i} style={{ borderLeftWidth: 2, borderColor: theme.brandActive, paddingLeft: 12 }}><ReliefText>{event.new_status || event.status}</ReliefText>{event.note || event.reason ? <ReliefText muted>{event.note || event.reason}</ReliefText> : null}{event.changed_at ? <ReliefText muted>{new Date(event.changed_at).toLocaleString()}</ReliefText> : null}</View>) : <ReliefText muted>{t('relief.noHistory')}</ReliefText>}<RequestEvidence key={request.request_id} requestId={request.request_id} /></View>}
       </ReliefCard>;
     })}
     <Modal visible={!!editing} transparent animationType="slide" onRequestClose={() => { if (!saving) setEditing(null); }}>

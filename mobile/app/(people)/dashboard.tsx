@@ -16,7 +16,7 @@ import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
-import { connectSocket, disconnectSocket } from '../../config/socket';
+import { useAlertFeedRefresh } from '../../hooks/useAlertFeedRefresh';
 import { Colors, Fonts } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -167,13 +167,6 @@ export default function DashboardScreen() {
           if (mounted) setUserName(meData.full_name || 'Citizen');
         }
 
-        const alertsRes = await apiFetch('/api/alerts');
-        if (alertsRes.ok) {
-          const alertsData = await alertsRes.json();
-          if (mounted && alertsData.alerts && alertsData.alerts.length > 0) {
-            setAlerts(alertsData.alerts);
-          }
-        }
       } catch (err) {
         console.error('Dashboard init error:', err);
       }
@@ -192,42 +185,20 @@ export default function DashboardScreen() {
     }
   }, [userLocation, fetchWeather]);
 
-  useEffect(() => {
-    let mounted = true;
-
-    async function setupSocket() {
-      try {
-        const socket = await connectSocket();
-        if (!socket) return;
-
-        const onAlertReceived = (alert: any) => {
-          if (!mounted) return;
-          const formatted = {
-            alert_id: alert.alert_id || alert.request_id || String(Date.now()),
-            disaster_type: alert.disaster_type || alert.emergency_type || 'emergency',
-            severity: Number(alert.severity || alert.urgency_level) || 3,
-            district: alert.district || 'Community',
-            created_at: alert.created_at || alert.alerted_at || new Date().toISOString(),
-            description: alert.description || alert.work_plan || alert.message || 'Assistance requested.',
-          };
-          setAlerts((prev) => [formatted, ...prev.filter((a) => a.alert_id !== formatted.alert_id)]);
-        };
-
-        socket.on('alert_received', onAlertReceived);
-        socket.on('emergency_alert', onAlertReceived);
-        socket.on('new_request', onAlertReceived);
-        socket.on('community_request', onAlertReceived);
-      } catch (err) {
-        console.error('Socket setup error:', err);
-      }
+  const fetchAlerts = useCallback(async (isCurrent: () => boolean, fromSocket: boolean, signal: AbortSignal) => {
+    const response = await apiFetch('/api/alerts', { signal });
+    if (!response.ok || signal.aborted) return;
+    const data = await response.json();
+    if (isCurrent() && !signal.aborted && Array.isArray(data.alerts)) {
+      setAlerts(data.alerts.map((alert: AlertItem & { work_plan?: string }) => ({
+        ...alert,
+        district: alert.district || 'Community',
+        description: alert.work_plan || alert.description,
+      })));
     }
-
-    setupSocket();
-    return () => {
-      mounted = false;
-      disconnectSocket();
-    };
   }, []);
+
+  useAlertFeedRefresh(fetchAlerts);
 
   const handleCall = (number: string) => {
     Linking.openURL(`tel:${number}`);

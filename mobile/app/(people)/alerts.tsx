@@ -1,5 +1,5 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -23,7 +23,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Fonts } from '../../constants/theme';
 import { apiFetch } from '../../config/api';
-import { connectSocket } from '../../config/socket';
+import { useAlertFeedRefresh } from '../../hooks/useAlertFeedRefresh';
 import { cacheAlerts, getCachedAlerts } from '../../services/offlineStorage';
 
 export interface AlertNotification {
@@ -37,6 +37,7 @@ export interface AlertNotification {
   district?: string;
   zone_description?: string;
   acknowledged?: boolean;
+  verification_status?: 'unverified' | 'needs_information' | 'verified' | 'rejected';
 }
 
 const ACK_STORAGE_KEY = '@resqai_acknowledged_alerts';
@@ -65,6 +66,14 @@ function getSeverityBadge(severity: number, t?: (k: string) => string) {
   if (severity >= 4) return { label: tr('alerts.severityHigh'), color: '#E65100', bg: 'rgba(230, 81, 0, 0.15)' };
   if (severity >= 3) return { label: tr('alerts.severityModerate'), color: '#F57C00', bg: 'rgba(245, 124, 0, 0.12)' };
   return { label: tr('alerts.severityLow'), color: '#2E7D32', bg: 'rgba(46, 125, 50, 0.12)' };
+}
+
+function requestVerification(alert: AlertNotification, t?: (key: string) => string) {
+  const isCommunity = !!alert.verification_status || ['help_rescue', 'donation'].includes(alert.disaster_type);
+  if (!isCommunity) return null;
+  if (alert.verification_status === 'verified') return { label: t ? t('relief.verified') : 'Verified', color: '#059669', pending: false };
+  if (alert.verification_status === 'needs_information') return { label: t ? t('relief.needs_information') : 'Needs information', color: '#D97706', pending: true };
+  return { label: t ? t('relief.unverified') : 'Unverified', color: '#D97706', pending: true };
 }
 
 function formatRelativeTime(dateStr: string) {
@@ -101,6 +110,13 @@ export default function AlertsScreen() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [liveBanner, setLiveBanner] = useState<string | null>(null);
+  const lastFeedIds = useRef<Set<string> | null>(null);
+
+  useEffect(() => {
+    if (!liveBanner) return;
+    const timeout = setTimeout(() => setLiveBanner(null), 6000);
+    return () => clearTimeout(timeout);
+  }, [liveBanner]);
 
   // Pulse animation for live alerts
   const pulseAnim = useMemo(() => new Animated.Value(1), []);
@@ -134,13 +150,23 @@ export default function AlertsScreen() {
   }, []);
 
   // Fetch all alerts (present and past)
-  const fetchAllAlerts = async () => {
+  const fetchAllAlerts = useCallback(async (isCurrent: () => boolean, fromSocket: boolean, signal: AbortSignal) => {
     try {
       // Pass status=all to fetch both present (active) and past (expired/cancelled/resolved) alerts
-      const res = await apiFetch('/api/alerts?status=all');
+      const res = await apiFetch('/api/alerts?status=all', { signal });
+      if (!isCurrent() || signal.aborted) return;
       if (res.ok) {
         const data = await res.json();
+        if (!isCurrent() || signal.aborted) return;
         if (data && Array.isArray(data.alerts)) {
+          if (fromSocket && lastFeedIds.current) {
+            const added = data.alerts.find((alert: AlertNotification) => !lastFeedIds.current!.has(alert.alert_id));
+            if (added) {
+              const meta = getDisasterMeta(added.disaster_type, t);
+              setLiveBanner(t('alerts.newBroadcastToast', { name: meta.name }));
+            }
+          }
+          lastFeedIds.current = new Set(data.alerts.map((alert: AlertNotification) => alert.alert_id));
           setAlerts(data.alerts);
           setAcknowledgedIds((previous) => {
             const next = new Set(previous);
@@ -160,6 +186,7 @@ export default function AlertsScreen() {
           return;
         }
       }
+      if (!isCurrent() || signal.aborted) return;
       // Fallback to offline cached alerts if offline
       const cached = getCachedAlerts();
       if (cached && cached.length > 0) {
@@ -175,6 +202,7 @@ export default function AlertsScreen() {
         );
       }
     } catch (err) {
+      if (!isCurrent() || signal.aborted) return;
       console.error('Fetch alerts error:', err);
       const cached = getCachedAlerts();
       if (cached && cached.length > 0) {
@@ -190,97 +218,27 @@ export default function AlertsScreen() {
         );
       }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAllAlerts();
-  }, []);
-
-  // Socket listener for real-time broadcasts
-  useEffect(() => {
-    let mounted = true;
-
-    async function initSocket() {
-      try {
-        const socket = await connectSocket();
-        if (!socket) return;
-
-        const onNewAlert = (alert: any) => {
-          if (!mounted) return;
-          const formattedAlert: AlertNotification = {
-            alert_id: alert.alert_id || String(Date.now()),
-            disaster_type: alert.disaster_type || 'emergency',
-            severity: Number(alert.severity) || 3,
-            work_plan: alert.work_plan || alert.description,
-            status: 'active',
-            created_at: alert.created_at || new Date().toISOString(),
-            district: alert.district,
-          };
-
-          setAlerts((prev) => [
-            formattedAlert,
-            ...prev.filter((a) => a.alert_id !== formattedAlert.alert_id),
-          ]);
-
-          const meta = getDisasterMeta(formattedAlert.disaster_type, t);
-          setLiveBanner(t('alerts.newBroadcastToast', { name: meta.name }));
-          setTimeout(() => {
-            if (mounted) setLiveBanner(null);
-          }, 6000);
-        };
-
-        const onNewRequest = (req: any) => {
-          if (!mounted) return;
-          const isDonation = req.emergency_type === 'donation';
-          const title = isDonation ? 'Donation Request' : 'Help & Rescue Request';
-          const formattedAlert: AlertNotification = {
-            alert_id: req.request_id || String(Date.now()),
-            disaster_type: req.emergency_type || (isDonation ? 'donation' : 'help_rescue'),
-            severity: Number(req.urgency_level) || 3,
-            work_plan: req.message || req.ai_summary || title,
-            status: 'active',
-            created_at: req.alerted_at || new Date().toISOString(),
-          };
-
-          setAlerts((prev) => [
-            formattedAlert,
-            ...prev.filter((a) => a.alert_id !== formattedAlert.alert_id),
-          ]);
-
-          const bannerMsg = isDonation
-            ? `🤝 New Donation Request: ${formattedAlert.work_plan?.slice(0, 40) || ''}`
-            : `🆘 New Help Request: ${formattedAlert.work_plan?.slice(0, 40) || ''}`;
-          setLiveBanner(bannerMsg);
-          setTimeout(() => {
-            if (mounted) setLiveBanner(null);
-          }, 6000);
-        };
-
-        socket.on('emergency_alert', onNewAlert);
-        socket.on('alert_received', onNewAlert);
-        socket.on('new_request', onNewRequest);
-        socket.on('community_request', onNewRequest);
-      } catch (err) {
-        console.warn('Alerts socket listener setup error:', err);
+      if (isCurrent()) {
+        setLoading(false);
+        setRefreshing(false);
       }
     }
+  }, [t]);
 
-    initSocket();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const refreshAlerts = useAlertFeedRefresh(fetchAllAlerts);
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchAllAlerts();
+    void refreshAlerts();
   };
 
   const handleAcknowledge = async (alertId: string) => {
     if (acknowledgedIds.has(alertId)) return;
+    const alert = alerts.find(item => item.alert_id === alertId);
+    if (alert && requestVerification(alert)?.pending) {
+      Alert.alert('Awaiting review', 'A coordinator must verify this request before you can offer help.');
+      return;
+    }
 
     try {
       const response = await apiFetch(`/api/alerts/${alertId}/acknowledge`, { method: 'PATCH' });
@@ -659,6 +617,8 @@ export default function AlertsScreen() {
               const meta = getDisasterMeta(alert.disaster_type, t);
               const severity = getSeverityBadge(alert.severity, t);
               const isAcked = acknowledgedIds.has(alert.alert_id);
+              const verification = requestVerification(alert, t);
+              const awaitingReview = verification?.pending === true;
 
               return (
                   <View
@@ -720,6 +680,22 @@ export default function AlertsScreen() {
                     </View>
                   </View>
 
+                  {verification && (
+                    <View style={styles.chipsRow}>
+                      <View style={[styles.statusPill, { backgroundColor: `${verification.color}18` }]}>
+                        <Ionicons
+                          name={awaitingReview ? 'time-outline' : 'checkmark-circle'}
+                          size={14}
+                          color={verification.color}
+                          style={{ marginRight: 5 }}
+                        />
+                        <Text style={[styles.statusPillText, { color: verification.color }]}>
+                          {verification.label}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
                   {/* Expiry Chip (if applicable) */}
                   {alert.expires_at ? (
                     <View style={styles.chipsRow}>
@@ -749,7 +725,9 @@ export default function AlertsScreen() {
                       <TouchableOpacity
                         style={[
                           styles.ackButton,
-                          isAcked
+                          awaitingReview
+                            ? { backgroundColor: theme.surfaceSubtle, borderColor: theme.borderSubtle }
+                            : isAcked
                             ? [
                                 styles.ackButtonDone,
                                 {
@@ -774,28 +752,35 @@ export default function AlertsScreen() {
                               ],
                         ]}
                         onPress={() => handleAcknowledge(alert.alert_id)}
-                        disabled={isAcked}
+                        disabled={isAcked || awaitingReview}
                         activeOpacity={0.8}
                       >
                         <Ionicons
-                          name={isAcked ? 'checkmark-circle' : 'checkmark-done-circle'}
+                          name={awaitingReview ? 'time-outline' : isAcked ? 'checkmark-circle' : 'checkmark-done-circle'}
                           size={18}
-                          color={isAcked ? '#059669' : '#FFFFFF'}
+                          color={awaitingReview ? theme.textMuted : isAcked ? '#059669' : '#FFFFFF'}
                           style={{ marginRight: 6 }}
                         />
                         <Text
                           style={[
                             styles.ackButtonText,
                             {
-                              color: isAcked ? '#047857' : '#FFFFFF',
+                              color: awaitingReview ? theme.textMuted : isAcked ? '#047857' : '#FFFFFF',
                             },
                           ]}
                         >
-                          {isAcked
+                          {awaitingReview
+                            ? t('requestEvidence.awaitingReview')
+                            : isAcked
                             ? t('alerts.acknowledged').replace(/^[✓✔]\s*/, '')
                             : t('alerts.acknowledge')}
                         </Text>
                       </TouchableOpacity>
+                      {awaitingReview && (
+                        <Text style={[styles.timeAgo, { color: theme.textMuted, marginTop: 8 }]}>
+                          {t('requestEvidence.helpAfterReview')}
+                        </Text>
+                      )}
                     </View>
                   )}
                 </View>
