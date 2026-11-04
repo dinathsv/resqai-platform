@@ -1,3 +1,4 @@
+-- Active: 1781257077461@@127.0.0.1@3306
 -- A hazard report can explicitly state that nobody is currently affected.
 -- Keep existing counts and allow zero without changing historical migrations.
 SET LOCAL lock_timeout = '5s';
