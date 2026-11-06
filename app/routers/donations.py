@@ -48,6 +48,8 @@ async def active_citizen(db: AsyncSession, current_user: dict[str, Any]) -> uuid
 def pledge_status(donation: Donation) -> str:
     if donation.goods_status == "cancelled":
         return "cancelled"
+    if donation.quantity is None:
+        raise HTTPException(409, "Donation is not a goods pledge")
     if donation.delivered_quantity >= donation.quantity:
         return "delivered"
     if donation.delivered_quantity > 0:
@@ -60,8 +62,12 @@ def pledge_status(donation: Donation) -> str:
 
 
 async def pledge_response(db: AsyncSession, donation: Donation) -> dict:
+    if donation.need_id is None or donation.mission_id is None or donation.quantity is None:
+        raise HTTPException(404, "Pledge not found")
     need = await db.get(MissionNeed, donation.need_id)
     mission = await db.get(ReliefMission, donation.mission_id)
+    if need is None or mission is None:
+        raise HTTPException(404, "Goods need or mission not found")
     return {
         "donation_id": str(donation.donation_id), "mission_id": str(donation.mission_id),
         "mission_title": mission.title, "need_id": str(donation.need_id),
@@ -96,21 +102,31 @@ async def create_donation(body: DonationPledgeRequest,
     if not need:
         raise HTTPException(404, "Goods need not found")
     mission = await db.get(ReliefMission, need.mission_id)
+    if mission is None:
+        raise HTTPException(404, "Mission not found")
     request = await db.scalar(select(HelpRequest).where(HelpRequest.request_id == mission.origin_request_id).with_for_update())
     mission = await db.scalar(select(ReliefMission).where(ReliefMission.mission_id == mission.mission_id).with_for_update().execution_options(populate_existing=True))
-    if (not request or request.verification_status != "verified" or request.emergency_type != "donation"
+    if (mission is None or not request or request.verification_status != "verified" or request.emergency_type != "donation"
             or request.status in ("resolved", "cancelled") or request.admin_status == "finished"
             or mission.status != "active"):
         raise HTTPException(409, "This need is not open for goods pledges")
     if request.user_id == user_id:
         raise HTTPException(400, "You cannot pledge to your own request")
     need = await db.scalar(select(MissionNeed).where(MissionNeed.need_id == body.need_id).with_for_update().execution_options(populate_existing=True))
+    if need is None:
+        raise HTTPException(404, "Goods need not found")
     existing = await db.scalar(select(Donation).where(Donation.client_pledge_id == body.client_pledge_id))
     if existing:
         if not same_pledge(existing, body, user_id):
             raise HTTPException(409, "This submission identifier was already used")
         return await pledge_response(db, existing)
-    reserved = await db.scalar(select(func.coalesce(func.sum(Donation.quantity), 0)).where(Donation.need_id == need.need_id, Donation.goods_status != "cancelled"))
+    reserved = await db.scalar(
+        select(func.coalesce(func.sum(Donation.quantity), 0)).where(
+            Donation.need_id == need.need_id, Donation.goods_status != "cancelled"
+        )
+    )
+    if reserved is None:
+        reserved = Decimal(0)
     if body.quantity > need.required_quantity - reserved:
         raise HTTPException(409, "Quantity exceeds the remaining unpledged need; refresh available needs")
     donation = Donation(donor_id=user_id, mission_id=need.mission_id, need_id=need.need_id,
@@ -158,14 +174,18 @@ async def list_deliveries(current_user: dict = Depends(require_role("people")), 
             for d, need, mission in rows]
 
 
-async def locked_delivery(db: AsyncSession, delivery_id: uuid.UUID, user_id: uuid.UUID):
+async def locked_delivery(db: AsyncSession, delivery_id: uuid.UUID, user_id: uuid.UUID) -> tuple[GoodsDelivery, Donation]:
     delivery = await db.get(GoodsDelivery, delivery_id)
     if not delivery or delivery.recipient_id != user_id:
         raise HTTPException(404, "Delivery not found")
     donation = await db.get(Donation, delivery.donation_id)
+    if donation is None:
+        raise HTTPException(404, "Pledge not found")
     await db.scalar(select(MissionNeed).where(MissionNeed.need_id == donation.need_id).with_for_update())
     donation = await db.scalar(select(Donation).where(Donation.donation_id == donation.donation_id).with_for_update().execution_options(populate_existing=True))
     delivery = await db.scalar(select(GoodsDelivery).where(GoodsDelivery.delivery_id == delivery_id).with_for_update().execution_options(populate_existing=True))
+    if donation is None or delivery is None:
+        raise HTTPException(404, "Delivery not found")
     if donation.donor_id == user_id:
         raise HTTPException(403, "A donor cannot confirm their own goods delivery")
     return delivery, donation
@@ -219,6 +239,8 @@ async def cancel_pledge(donation_id: uuid.UUID, body: ReasonRequest, current_use
         raise HTTPException(404, "Pledge not found")
     await db.scalar(select(MissionNeed).where(MissionNeed.need_id == donation.need_id).with_for_update())
     donation = await db.scalar(select(Donation).where(Donation.donation_id == donation_id).with_for_update().execution_options(populate_existing=True))
+    if donation is None:
+        raise HTTPException(404, "Pledge not found")
     if donation.goods_status == "cancelled":
         return await pledge_response(db, donation)
     if donation.received_quantity > 0:

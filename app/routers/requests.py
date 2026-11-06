@@ -9,7 +9,7 @@ import uuid
 import hashlib
 import json
 from datetime import datetime, timedelta, timezone
-from typing import Any, Literal
+from typing import Any, Literal, NotRequired, TypedDict
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -92,6 +92,14 @@ class RequestInformationUpdate(BaseModel):
     affected_people: int | None = Field(None, ge=0, le=100000)
     requested_items: list[RequestedItem] | None = Field(None, min_length=1, max_length=30)
     location_label: str | None = Field(None, max_length=255)
+
+
+class RequestHistoryItem(TypedDict):
+    status: str
+    note: str | None
+    method: NotRequired[str]
+    changed_at: str
+
 
 async def notify_new_request(
     request_id: str,
@@ -190,7 +198,7 @@ async def create_request(
         flags.append("location_not_confirmed")
     if not subject:
         flags.append("anonymous_report")
-    elif role == "guest" and current_user.get("identity_status") != "approved":
+    elif current_user is not None and role == "guest" and current_user.get("identity_status") != "approved":
         flags.append("identity_review_pending")
     recent = (await db.execute(select(HelpRequest).where(
         HelpRequest.created_at >= datetime.now(timezone.utc) - timedelta(hours=24),
@@ -375,7 +383,7 @@ async def get_request(
     result = request_response(await owned_request(request_id, current_user, db), private=True)
     reviews = (await db.scalars(select(RequestVerification).where(RequestVerification.request_id == request_id))).all()
     changes = (await db.scalars(select(RequestStatusHistory).where(RequestStatusHistory.request_id == request_id))).all()
-    history = [{"status": item.decision, "note": item.notes, "method": item.method, "changed_at": item.created_at.isoformat()} for item in reviews]
+    history: list[RequestHistoryItem] = [{"status": item.decision, "note": item.notes, "method": item.method, "changed_at": item.created_at.isoformat()} for item in reviews]
     history.extend({"status": item.new_status, "note": item.notes, "changed_at": item.changed_at.isoformat()} for item in changes)
     result["history"] = sorted(history, key=lambda item: item["changed_at"], reverse=True)
     return result
