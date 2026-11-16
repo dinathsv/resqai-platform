@@ -89,7 +89,7 @@ export const en = {
     "sendRequest": "Send request",
     "requestReceived": "Received by ResQAI",
     "savedOnDevice": "Saved on this device",
-    "receivedNote": "Your request is visible to other users as unverified. Receipt does not mean a responder has been dispatched.",
+    "receivedNote": "Your request was saved and is awaiting administrator approval. Other users can see it after verification. Receipt does not mean a responder has been dispatched.",
     "queuedNote": "These requests have not reached ResQAI yet. Keep this device and session available to retry. Use your phone for urgent help.",
     "reference": "Reference",
     "trackRequests": "Track my requests",

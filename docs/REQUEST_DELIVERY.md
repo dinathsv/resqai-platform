@@ -1,8 +1,8 @@
 # Request visibility and real-time delivery
 
-`POST /api/requests` returning `201 Created` means the report is saved. Other users immediately see a generic **Unverified** listing in Alerts. The full description, contact information, exact location and verification images stay private. The signed-in owner and authorized coordinators can inspect the full report. Account/phone verification does not verify an incident.
+`POST /api/requests` returning `201 Created` means the report is saved for administrator review. New reports are **Unverified** and visible only to their signed-in owner and authorized administrators. Requests marked **Needs information** or **Rejected** also stay out of other users' feeds. An administrator must **Confirm need** before an open request appears as a generic **Verified** listing in Home/Alerts and the community feed. The full description, contact information, exact location and verification images remain private after approval. Account/phone verification does not approve an incident.
 
-The Python API reads open requests directly from the shared database for `/api/alerts` and `/api/requests/community`. Listings retain their actual **Unverified**, **Needs information** or **Verified** status. Rejected and closed requests disappear. Community acceptance, goods pledges and fulfillment still require coordinator verification. Node sends empty refresh hints; private request bodies are sent only to authorized coordinator sockets. Home and Alerts reload the saved feed when opened, when the app resumes, after a socket reconnect or publication/review event, and every 15 seconds while active. A temporary Node outage does not prevent a saved request from appearing through this fallback.
+The Python API reads only verified, open requests from the shared database for `/api/alerts` and `/api/requests/community`. Removing approval or closing a request removes it from the community feed. Community acceptance, goods pledges and fulfillment also require a verified need. New unverified reports notify authorized administrator sockets only. After approval, Node sends a refresh event to community clients; private request bodies remain restricted to authorized administrator sockets. Home and Alerts reload the saved feed when opened, when the app resumes, after a socket reconnect or approval/review event, and every 15 seconds while active. A temporary Node outage does not prevent an approved request from appearing through this fallback, and it never makes an unapproved request public.
 
 ## Fix the localhost error on Render
 
@@ -20,10 +20,10 @@ Local processes use `http://localhost:5000` and Node defaults to port `5000`; a 
 
 After deployment:
 
-1. Submit a help request. It should appear in the owner's Activities, the administrator's Requests list, and a second user's Alerts as **Unverified**, without the private description.
+1. Submit a help request. It should appear as **Unverified** in the owner's Activities and the administrator's Requests list. Confirm it is absent from a second user's Home/Alerts and community feed.
 2. Check the FastAPI log for `New request alert delivered to Node backend`. Connection errors indicate the URL/reachability problem; HTTP 401/503 indicates the internal key needs checking.
-3. Verify the request in the administrator dashboard. The second user's Alerts should update its badge to **Verified** and enable eligible community participation; pull-to-refresh also remains available.
-4. Reject or close the case and confirm it disappears from the current community feed.
+3. Select **Confirm need** and save the review in the administrator dashboard. The second user's Home/Alerts should refresh and show the generic **Verified** request. If the approval event is unavailable, the active screen polls again every 15 seconds; pull-to-refresh also remains available.
+4. Test **Request more information** or **Reject request** on a pending case and confirm it stays private. Remove approval or close an approved case and confirm it disappears from the community feed.
 
 These updates refresh the open app. They do not add operating-system push delivery while the app is closed.
 
@@ -39,6 +39,8 @@ python -m database.run_migrations
 ```
 
 For Docker, use `docker compose run --rm --build migrate`. Migration 015 preserves existing reports and allows the explicit zero count; 016 adds private evidence storage. Older queued submissions containing an urgency estimate remain accepted.
+
+Approval-first visibility requires no additional database migration. Redeploy both APIs and rebuild/update the mobile app so their feed rules, events and receipt wording match.
 
 ## Private NIC and camera-selfie evidence
 

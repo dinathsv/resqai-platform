@@ -2,6 +2,8 @@
 
 Reviewed: 3 November 2026. Source baseline: `45bbad5`.
 
+Request visibility updated: 16 November 2026. Administrator approval is required before another user can see a request.
+
 This guide explains the current project from the perspective of a person using the mobile app or administrator website: where to go, what to enter, what happens next, and what the result means. It describes the checked-out source; a hosted service or installed APK must contain the same updates to behave this way.
 
 **ResQAI coordinates emergency help and physical relief goods. Donations are goods only; the project does not process payments or money transfers.**
@@ -184,13 +186,13 @@ Select **Send request**. The app saves the submission locally first, then attemp
 
 | Result | Meaning | Next action |
 | --- | --- | --- |
-| Sent / Received by ResQAI | The server received an unverified report | Open **Track my requests** and follow review progress |
+| Sent / Received by ResQAI | The server received a private, unverified report for administrator review | Open **Track my requests** and follow review progress |
 | Queued · not sent / Saved on this device | The report has not reached the server | Keep this device/session; reconnect or retry in Activities |
 | Action needed | The server rejected the saved submission and an error is shown | Read the error; correct what the screen permits and retry as appropriate |
 
 The confirmation shows a shortened submission reference. **New request** appears after a successful send and clears description/supporting details; review the other retained fields before submitting another case.
 
-Server receipt does not mean a coordinator confirmed the need or dispatched assistance. New reports begin pending and unverified. Other users immediately see a generic **Unverified** listing; private descriptions, exact locations and identity evidence are withheld. Users do not choose urgency: automated triage uses the description and affected-person response to estimate priority and can add an English summary; it does not establish that a claim is genuine. Similar recent reports, unconfirmed locations, anonymous reports, and pending guest identity can produce review flags.
+Server receipt does not mean a coordinator confirmed the need or dispatched assistance. New reports begin pending and unverified, visible only to the signed-in owner and authorized administrators. Other users see a generic **Verified** listing only after an administrator confirms the need and while the request remains open. Requests awaiting more information or rejected in review stay private. Descriptions, contact details, exact locations and identity evidence remain private after approval. Users do not choose urgency: automated triage uses the description and affected-person response to estimate priority and can add an English summary; it does not establish that a claim is genuine. Similar recent reports, unconfirmed locations, anonymous reports, and pending guest identity can produce review flags.
 
 After the request is received, a signed-in phone-verified user can open **Add private identity photos (optional)**, consent to private review/seven-day retention, start a capture challenge, attach an NIC image and take a camera selfie with the fresh six-digit code written on paper beside their face. The same control is available in expanded Activities details. Photos stay outside the offline submission queue. Owners can delete uploads; only authorized administrators can open image bytes. Uploads remain pending human review and do not automatically verify identity or the incident. Anonymous urgent help remains available without these photos. See [private evidence configuration and limits](REQUEST_DELIVERY.md#private-nic-and-camera-selfie-evidence).
 
@@ -214,7 +216,7 @@ When verification is **Not yet verified** or **More information needed**, and ha
 2. Select **Update request details**.
 3. Edit the description and supporting details.
 4. Select **Resubmit for review**.
-5. The request returns to unverified review; its history remains available.
+5. The request returns to private, unverified review; its history remains available to you and administrators. Other users cannot see it before approval.
 
 This modal does not currently edit people count, location, or goods rows. Once handling starts or the request becomes ineligible for editing, contact the coordinator. There is no citizen cancel/delete-request control.
 
@@ -317,11 +319,11 @@ When the recipient cannot confirm, an administrator can investigate a submitted 
 
 ### 9.1 Browse and filter
 
-Open **Alerts** and pull down to refresh. The feed contains administrator broadcasts and generic summaries of open community help/goods requests. New requests appear immediately with **Unverified** or **More information needed** badges; reviewed requests display **Verified**. Rejected or closed cases disappear. Community acceptance and goods fulfillment remain unavailable until verification.
+Open **Alerts** and pull down to refresh. The feed contains administrator broadcasts and generic summaries of verified, open community help/goods requests. Requests appear only after an administrator confirms the need and display **Verified**. Unverified requests, cases awaiting more information, rejected reports and closed cases are excluded. Community acceptance and goods fulfillment also require verification.
 
 Use **All**, **Present**, and **Past**, text search, and hazard-type filters when available. Present means active and not past its expiry. Cards show the hazard, relative time, district if supplied, status, expiry if supplied, and work-plan text. Search can match type, district, and work plan. Select × to clear search.
 
-The **117** control opens the dialer. The saved feed refreshes after approval and broadcast events, reconnection, opening the screen, app resume, and every 15 seconds while the screen is active. A new saved alert can show a temporary banner. Pull-to-refresh remains available if live updates are unavailable.
+The **117** control opens the dialer. The saved feed refreshes after approval/review and broadcast events, reconnection, opening the screen, app resume, and every 15 seconds while the screen is active. If a live approval event cannot arrive, the next poll can still load the approved request. A new eligible alert can show a temporary banner. Pull-to-refresh remains available if live updates are unavailable.
 
 ### 9.2 What “Acknowledge Alert” currently does
 
@@ -436,6 +438,8 @@ To review the need:
 
 An intervening review by another coordinator is rejected as stale; refresh and reassess. Requesting more information is available while handling is pending. The requester can see the review note in Activities; no automatic callback, SMS, or email asking for more information is sent by this action.
 
+Until **Confirm need** is saved, the request is visible only to its owner and administrators. Approval publishes a generic verified listing to other users while the request remains open. **Request more information** and **Reject request** keep the report out of the community feed; withdrawing approval or closing a case removes its listing. Approval sends a refresh event, with a 15-second active-screen polling fallback.
+
 Confirming a goods need requires a registered recipient and a valid item/unit/quantity list. Approval creates/reactivates the goods mission and approved needs. Removing approval pauses open goods missions. Review flags and AI priority remain investigation aids, not proof of fraud or authenticity.
 
 To update handling, choose **In progress** or **Finished — missions completed**, supply a 10–2,000-character reason, and select **Update response status**. Urgent help can start while checks continue; goods handling requires a verified need. Finished requires prior In progress and at least one associated mission, with all associated missions completed. Closed requests cannot be reopened through this control.
@@ -528,10 +532,10 @@ A report remains a snapshot until regenerated. A failed regeneration can leave t
 
 | Verification code / label | User meaning |
 | --- | --- |
-| `unverified` / Not yet verified | Submitted, awaiting a recorded need review |
-| `needs_information` / More information needed | A coordinator needs additional information |
-| `verified` / Reviewed and verified / Need confirmed | A coordinator recorded that the need was confirmed |
-| `rejected` / Not approved | The claim was not approved in the recorded review |
+| `unverified` / Not yet verified | Submitted for need review; private to owner and administrators |
+| `needs_information` / More information needed | A coordinator needs additional information; private to owner and administrators |
+| `verified` / Reviewed and verified / Need confirmed | A coordinator confirmed the need; a generic community listing is visible while open |
+| `rejected` / Not approved | The claim was not approved; private to owner and administrators |
 
 | Handling status | User meaning |
 | --- | --- |
@@ -568,9 +572,9 @@ Joining creates Accepted. A completion report means awaiting confirmation. Compl
 
 1. A registered recipient completes mobile SMS verification.
 2. In Request Help, they request **10 packs of drinking water**, describe the situation and landmark, and send.
-3. Activities shows received but unverified. Other users see a generic Unverified listing while the full description and supporting evidence remain private to the owner and coordinators.
+3. Activities shows received but unverified. Only the owner and administrators can see the request while it awaits review.
 4. A coordinator calls or checks the situation, records the real method/findings, and confirms the need.
-5. A goods mission with that approved item becomes available in Items needed.
+5. A generic Verified listing appears in other users' Home/Alerts, and a goods mission with that approved item becomes available in Items needed. The full report and identity evidence remain private.
 6. Another verified citizen pledges 10 packs and records collection details.
 7. The coordinator physically receives 10 and records Receive with a reason.
 8. The coordinator dispatches 6 packs, then 4 packs in a separate delivery, each with a handover note.
@@ -585,9 +589,9 @@ If a delivery is wrong or incomplete, the recipient reports a problem instead of
 1. A person opens the document-free urgent-help entry.
 2. They can open the emergency dialer and separately submit a Help / rescue report with a landmark, people count, and optional GPS.
 3. Without connectivity, the submission is visibly queued, not described as received.
-4. After server receipt, coordinators see the unverified report and priority/review signals.
+4. After server receipt, coordinators see the private unverified report and priority/review signals. Other users cannot see it yet.
 5. A coordinator can start investigating urgent help while checks continue.
-6. After verification, the generic community request may appear in Alerts.
+6. After an administrator confirms the need, the open request appears as a generic Verified listing in Home/Alerts.
 7. A verified helper uses community Acknowledge Alert, creating a mission/assignment and starting response progress if needed.
 8. Completion still requires supported evidence. An anonymous requester has no registered-account recipient-confirmation journey; the administrator-reviewed completion exception is relevant when recipient confirmation is unavailable.
 

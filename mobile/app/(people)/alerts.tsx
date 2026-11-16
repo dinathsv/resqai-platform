@@ -25,6 +25,7 @@ import { Fonts } from '../../constants/theme';
 import { apiFetch } from '../../config/api';
 import { useAlertFeedRefresh } from '../../hooks/useAlertFeedRefresh';
 import { cacheAlerts, getCachedAlerts } from '../../services/offlineStorage';
+import { visibleAlerts, isCommunityRequestAlert } from '../../services/alertVisibility';
 
 export interface AlertNotification {
   alert_id: string;
@@ -37,6 +38,7 @@ export interface AlertNotification {
   district?: string;
   zone_description?: string;
   acknowledged?: boolean;
+  source?: string;
   verification_status?: 'unverified' | 'needs_information' | 'verified' | 'rejected';
 }
 
@@ -69,8 +71,7 @@ function getSeverityBadge(severity: number, t?: (k: string) => string) {
 }
 
 function requestVerification(alert: AlertNotification, t?: (key: string) => string) {
-  const isCommunity = !!alert.verification_status || ['help_rescue', 'donation'].includes(alert.disaster_type);
-  if (!isCommunity) return null;
+  if (!isCommunityRequestAlert(alert)) return null;
   if (alert.verification_status === 'verified') return { label: t ? t('relief.verified') : 'Verified', color: '#059669', pending: false };
   if (alert.verification_status === 'needs_information') return { label: t ? t('relief.needs_information') : 'Needs information', color: '#D97706', pending: true };
   return { label: t ? t('relief.unverified') : 'Unverified', color: '#D97706', pending: true };
@@ -159,18 +160,19 @@ export default function AlertsScreen() {
         const data = await res.json();
         if (!isCurrent() || signal.aborted) return;
         if (data && Array.isArray(data.alerts)) {
+          const approvedAlerts = visibleAlerts<AlertNotification>(data.alerts);
           if (fromSocket && lastFeedIds.current) {
-            const added = data.alerts.find((alert: AlertNotification) => !lastFeedIds.current!.has(alert.alert_id));
+            const added = approvedAlerts.find(alert => !lastFeedIds.current!.has(alert.alert_id));
             if (added) {
               const meta = getDisasterMeta(added.disaster_type, t);
               setLiveBanner(t('alerts.newBroadcastToast', { name: meta.name }));
             }
           }
-          lastFeedIds.current = new Set(data.alerts.map((alert: AlertNotification) => alert.alert_id));
-          setAlerts(data.alerts);
+          lastFeedIds.current = new Set(approvedAlerts.map(alert => alert.alert_id));
+          setAlerts(approvedAlerts);
           setAcknowledgedIds((previous) => {
             const next = new Set(previous);
-            for (const alert of data.alerts) {
+            for (const alert of approvedAlerts) {
               if (typeof alert.acknowledged === 'boolean') {
                 if (alert.acknowledged) next.add(alert.alert_id);
                 else next.delete(alert.alert_id);
@@ -179,7 +181,7 @@ export default function AlertsScreen() {
             return next;
           });
           try {
-            cacheAlerts(data.alerts);
+            cacheAlerts(approvedAlerts);
           } catch (e) {
             // cache error non-blocking
           }
@@ -189,34 +191,34 @@ export default function AlertsScreen() {
       if (!isCurrent() || signal.aborted) return;
       // Fallback to offline cached alerts if offline
       const cached = getCachedAlerts();
-      if (cached && cached.length > 0) {
-        setAlerts(
+      setAlerts(
           cached.map((c: any) => ({
             alert_id: String(c.alert_id),
             disaster_type: c.disaster_type || 'emergency',
             severity: c.severity || 3,
             work_plan: c.work_plan,
+            source: c.source,
+            verification_status: c.verification_status,
             status: 'active',
             created_at: c.cached_at || new Date().toISOString(),
           }))
-        );
-      }
+      );
     } catch (err) {
       if (!isCurrent() || signal.aborted) return;
       console.error('Fetch alerts error:', err);
       const cached = getCachedAlerts();
-      if (cached && cached.length > 0) {
-        setAlerts(
+      setAlerts(
           cached.map((c: any) => ({
             alert_id: String(c.alert_id),
             disaster_type: c.disaster_type || 'emergency',
             severity: c.severity || 3,
             work_plan: c.work_plan,
+            source: c.source,
+            verification_status: c.verification_status,
             status: 'active',
             created_at: c.cached_at || new Date().toISOString(),
           }))
-        );
-      }
+      );
     } finally {
       if (isCurrent()) {
         setLoading(false);

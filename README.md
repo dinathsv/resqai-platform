@@ -19,7 +19,7 @@ For every user role's functions, screen instructions, complete example journeys,
 - Hospital lookup, an experimental flood-risk model, preparedness questions, operational reports, CSV export and browser printing.
 - Automatic weather inputs for risk assessment: choose a district or optionally use GPS, with the weather period and source displayed.
 
-Account verification, incident verification and delivery confirmation are separate. New claims immediately appear as generic Unverified community listings; descriptions, identity evidence and exact locations remain private. Optional private NIC/camera-selfie evidence supports human review. Anonymous urgent SOS remains accessible.
+Account verification, incident verification and delivery confirmation are separate. New requests remain private to their owner and administrators until an administrator confirms the need. Only verified, open requests appear as generic community listings; descriptions, identity evidence and exact locations remain private after approval. Optional private NIC/camera-selfie evidence supports human review. Anonymous urgent SOS remains accessible.
 
 ## Services
 
@@ -48,7 +48,7 @@ See [the goods relief upgrade guide](docs/GOODS_RELIEF_UPGRADE.md) for Render/Ve
 
 See [automatic risk assessment](docs/AUTOMATIC_RISK_ASSESSMENT.md) for the weather input flow, deployment and model limitations. This feature does not require a database migration.
 
-See [request delivery and visibility](docs/REQUEST_DELIVERY.md) for immediate listings, private NIC/selfie verification, encryption configuration, the Render notification URL, and migrations `015`–`016`.
+See [request delivery and visibility](docs/REQUEST_DELIVERY.md) for administrator approval before sharing, automatic feed refresh, private NIC/selfie verification, encryption configuration, the Render notification URL, and migrations `015`–`016`. Approval-first visibility itself requires no additional database migration.
 
 ## Local development
 

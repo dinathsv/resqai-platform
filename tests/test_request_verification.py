@@ -28,7 +28,7 @@ def no_broadcast(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_anonymous_urgent_request_is_redacted_public_and_idempotent(client):
+async def test_anonymous_urgent_request_awaits_approval_and_is_idempotent(client):
     payload = {'message': 'Family trapped by flood water', 'client_request_id': str(uuid.uuid4())}
     first = await client.post('/api/requests', json=payload)
     assert first.status_code == 201, first.text
@@ -37,10 +37,9 @@ async def test_anonymous_urgent_request_is_redacted_public_and_idempotent(client
     repeat = await client.post('/api/requests', json=payload)
     assert first.json()['request_id'] == repeat.json()['request_id']
     public = (await client.get('/api/requests/public')).json()
-    assert len(public) == 1 and public[0]['message'] == 'Unverified help request'
-    assert 'Family' not in str(public)
+    assert public == []
     alerts = (await client.get('/api/alerts?status=all')).json()['alerts']
-    assert len(alerts) == 1 and alerts[0]['verification_status'] == 'unverified'
+    assert alerts == []
     changed = await client.post('/api/requests', json={**payload, 'message': 'Different goods needed'})
     assert changed.status_code == 409
 
@@ -60,8 +59,8 @@ async def test_no_people_affected_is_saved_idempotently_and_awaits_verification(
     assert repeat.status_code == 201, repeat.text
     assert repeat.json()['request_id'] == first.json()['request_id']
     assert repeat.json()['affected_people'] == 0
-    assert (await client.get('/api/requests/community')).json()[0]['verification_status'] == 'unverified'
-    assert (await client.get('/api/alerts')).json()['alerts'][0]['verification_status'] == 'unverified'
+    assert (await client.get('/api/requests/community')).json() == []
+    assert (await client.get('/api/alerts')).json()['alerts'] == []
     changed = await client.post('/api/requests', json={**payload, 'affected_people': 2})
     assert changed.status_code == 409
 

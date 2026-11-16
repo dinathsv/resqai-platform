@@ -91,9 +91,8 @@ function broadcastAlert(io, alert, userIds) {
 }
 
 async function notifyNewRequest(io, request, pool) {
-  // Public listeners fetch the saved, redacted feed and its review status. The
-  // private notification body must never become a community socket payload.
-  io?.to('public:alerts').emit('community_requests_updated', {});
+  // New submissions and requester edits await coordinator verification. Keep
+  // their notification, including refresh hints, within active admin sockets.
   return emitToActiveAdmins(io, 'new_request', { ...request, verification_status: 'unverified' }, pool || socketPools.get(io));
 }
 

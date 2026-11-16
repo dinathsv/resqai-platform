@@ -112,7 +112,7 @@ async def notify_new_request(
 ):
     """
     Notify coordinators about a saved, unverified request.
-    Community listeners receive a refresh hint; private details stay coordinator-only.
+    Community publication requires a separate administrator verification decision.
     """
     node_backend_url = (getattr(settings, "NODE_BACKEND_URL", None) or os.getenv("NODE_BACKEND_URL") or "http://localhost:5000").rstrip("/")
     payload = {
@@ -163,7 +163,7 @@ async def create_request(
     db: AsyncSession = Depends(get_db),
     redis_client=Depends(get_redis),
 ):
-    """Save an incident and immediately publish its redacted, unverified listing."""
+    """Save an unverified incident for its owner and administrator review."""
     role = current_user.get("role") if current_user else "guest"
     subject = current_user.get("sub") if current_user else None
     if req.request_type == "donation" and role != "people":
@@ -340,9 +340,9 @@ async def list_public_requests(
     limit: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ):
-    """Open cases with explicit review status; identity, text and exact GPS remain private."""
+    """Publish only verified, open cases; identity, text and exact GPS remain private."""
     records = (await db.execute(select(HelpRequest).where(
-        HelpRequest.verification_status.in_(["unverified", "needs_information", "verified"]),
+        HelpRequest.verification_status == "verified",
         HelpRequest.status.notin_(["resolved", "cancelled"]),
         HelpRequest.admin_status != "finished",
     ).order_by(desc(HelpRequest.created_at)).limit(limit))).scalars().all()

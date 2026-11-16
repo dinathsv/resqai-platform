@@ -49,10 +49,9 @@ async def test_failed_coordinator_transport_keeps_request_saved(client, monkeypa
     assert response.json()["verification_status"] == "unverified"
     assert "Set NODE_BACKEND_URL" in caplog.text
     assert "remains saved for review" in caplog.text
-    # The database-backed, redacted listing still works when sockets are unavailable.
+    # A notification outage must not bypass administrator approval.
     public = (await client.get("/api/requests/public")).json()
-    assert public[0]["verification_status"] == "unverified"
-    assert "Family" not in str(public)
+    assert public == []
     from app.database import get_db
     from app.main import app
     from app.models.help_request import HelpRequest

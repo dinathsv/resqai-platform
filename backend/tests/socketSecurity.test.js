@@ -46,23 +46,25 @@ test('unknown roles and disabled accounts cannot enter authenticated socket room
   }
 });
 
-test('new requests prompt a public feed refresh while their details stay with active coordinators', async () => {
-  const admin = fakeSocket('admin');
+test('new requests notify active coordinators without any community event before verification', async () => {
+  const admin = fakeSocket('admin'), disabled = fakeSocket('disabled'), citizen = fakeSocket('citizen', 'people');
   const broadcasts = [];
   const io = {
     to(room) { return { emit(event, payload) { broadcasts.push({ room, event, payload }); } }; },
-    in(room) { assert.equal(room, 'role:admin'); return { fetchSockets: async () => [admin] }; },
+    in(room) { assert.equal(room, 'role:admin'); return { fetchSockets: async () => [admin, disabled, citizen] }; },
   };
   const pool = { query: async () => ({ rows: [{ admin_id: 'admin' }] }) };
   const claim = { request_id: 'request-id', message: 'Private household details', lat: 7.1, lng: 80.1, ai_summary: 'Private summary' };
   assert.equal(await notifyNewRequest(io, claim, pool), 1);
-  assert.deepEqual(broadcasts, [{ room: 'public:alerts', event: 'community_requests_updated', payload: {} }]);
+  assert.deepEqual(broadcasts, []);
   assert.equal(admin.messages[0].event, 'new_request');
   assert.equal(admin.messages[0].payload.message, claim.message);
   assert.equal(admin.messages[0].payload.verification_status, 'unverified');
+  assert.equal(disabled.messages.length, 0);
+  assert.equal(citizen.messages.length, 0);
 });
 
-test('a public refresh hint exposes no claim details when coordinator authentication is unavailable', async () => {
+test('new submissions fail closed for every socket when coordinator authentication is unavailable', async () => {
   const broadcasts = [];
   const io = {
     to(room) { return { emit(event, payload) { broadcasts.push({ room, event, payload }); } }; },
@@ -70,5 +72,79 @@ test('a public refresh hint exposes no claim details when coordinator authentica
   };
   const pool = { query: async () => { throw Error('Database unavailable'); } };
   assert.equal(await notifyNewRequest(io, { message: 'Sensitive callback details' }, pool), 0);
+  assert.deepEqual(broadcasts, []);
+});
+
+test('requester information updates also stay private until a coordinator verifies them', async () => {
+  const admin = fakeSocket('admin');
+  const io = {
+    to() { assert.fail('requester updates must not refresh the community feed'); },
+    in(room) { assert.equal(room, 'role:admin'); return { fetchSockets: async () => [admin] }; },
+  };
+  const pool = { query: async () => ({ rows: [{ admin_id: 'admin' }] }) };
+  await notifyNewRequest(io, { request_id: 'existing-case', message: 'Additional private evidence', verification_status: 'verified' }, pool);
+  assert.equal(admin.messages[0].payload.verification_status, 'unverified');
+  assert.equal(admin.messages[0].payload.message, 'Additional private evidence');
+});
+
+test('saved administrator reviews still refresh the public feed without publishing private details', async () => {
+  const router = require('../routes/requests');
+  const handler = router.stack.find(layer => layer.route?.path === '/:id/verification').route.stack.at(-1).handle;
+  for (const decision of ['verified', 'needs_information', 'rejected']) {
+    const statements = [], broadcasts = [];
+    const client = {
+      async query(sql) {
+        statements.push(sql);
+        return { rows: sql.startsWith('SELECT * FROM help_requests') ? [{
+          verification_status: 'unverified', emergency_type: 'help_rescue', admin_status: 'pending', status: 'pending',
+          original_message: 'Private report',
+        }] : [] };
+      },
+      release() {},
+    };
+    const io = {
+      in() { return { fetchSockets: async () => [] }; },
+      to(room) {
+        return { emit(event, payload) {
+          assert.equal(statements.at(-1), 'COMMIT');
+          broadcasts.push({ room, event, payload });
+        } };
+      },
+    };
+    const response = { status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } };
+    await handler({
+      params: { id: 'c7b732cc-3439-4fab-808b-59209b2f8d85' },
+      body: { decision, expected_verification_status: 'unverified', method: 'phone_callback', notes: 'Private coordinator review findings' },
+      user: { user_id: 'reviewer' }, app: { locals: { io, pool: { connect: async () => client } } },
+    }, response);
+    assert.equal(response.body.success, true);
+    assert.deepEqual(broadcasts, [{ room: 'public:alerts', event: 'community_requests_updated', payload: {} }]);
+  }
+});
+
+test('a saved request closure still refreshes the community feed to remove the request', async () => {
+  const router = require('../routes/requests');
+  const handler = router.stack.find(layer => layer.route?.path === '/:id/status').route.stack.at(-1).handle;
+  const broadcasts = [], statements = [];
+  const client = {
+    async query(sql) {
+      statements.push(sql);
+      if (sql.includes('FROM help_requests')) return { rows: [{ admin_status: 'in_progress', status: 'in_progress', emergency_type: 'help_rescue', verification_status: 'verified' }] };
+      if (sql.includes('FROM relief_missions')) return { rows: [{ status: 'completed' }] };
+      return { rows: [] };
+    },
+    release() {},
+  };
+  const io = {
+    in() { return { fetchSockets: async () => [] }; },
+    to(room) { return { emit(event, payload) { assert.equal(statements.at(-1), 'COMMIT'); broadcasts.push({ room, event, payload }); } }; },
+  };
+  const response = { status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } };
+  await handler({
+    params: { id: 'c7b732cc-3439-4fab-808b-59209b2f8d85' },
+    body: { status: 'finished', reason: 'All assigned response missions are complete.' },
+    user: { user_id: 'reviewer' }, app: { locals: { io, pool: { connect: async () => client } } },
+  }, response);
+  assert.equal(response.body.success, true);
   assert.deepEqual(broadcasts, [{ room: 'public:alerts', event: 'community_requests_updated', payload: {} }]);
 });

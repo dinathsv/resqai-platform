@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { apiFetch } from '../../config/api';
 import { useAlertFeedRefresh } from '../../hooks/useAlertFeedRefresh';
+import { visibleAlerts, AlertVisibility } from '../../services/alertVisibility';
 import { Colors, Fonts } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -26,7 +27,7 @@ import LocationMap from '../../components/LocationMap';
 
 const OPENWEATHER_API_KEY = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY || '882c9e6e37b9947d6d7ac859be36a1a7';
 
-interface AlertItem {
+interface AlertItem extends AlertVisibility {
   alert_id: string;
   disaster_type: string;
   severity: number;
@@ -190,7 +191,7 @@ export default function DashboardScreen() {
     if (!response.ok || signal.aborted) return;
     const data = await response.json();
     if (isCurrent() && !signal.aborted && Array.isArray(data.alerts)) {
-      setAlerts(data.alerts.map((alert: AlertItem & { work_plan?: string }) => ({
+      setAlerts(visibleAlerts<AlertItem & { work_plan?: string }>(data.alerts).map(alert => ({
         ...alert,
         district: alert.district || 'Community',
         description: alert.work_plan || alert.description,

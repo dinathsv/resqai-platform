@@ -174,7 +174,7 @@ async def test_unconfigured_or_cache_outage_fails_closed_without_hiding_report(c
     monkeypatch.setattr(settings, "EVIDENCE_ENCRYPTION_KEY", "")
     assert (await client.get(path, headers=owner)).json()["configured"] is False
     assert (await client.post(path + "/challenge", headers=owner)).status_code == 503
-    assert (await client.get("/api/requests/community")).json()[0]["verification_status"] == "unverified"
+    assert (await client.get("/api/requests/community")).json() == []
     monkeypatch.setattr(settings, "EVIDENCE_ENCRYPTION_KEY", base64.urlsafe_b64encode(b"0123456789abcdef0123456789abcdef").decode())
     redis = AsyncMock()
     redis.incr.side_effect = RuntimeError("Cache unavailable")

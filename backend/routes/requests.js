@@ -73,7 +73,7 @@ router.get('/', requireAdmin, async (req, res) => {
 /**
  * POST /new
  * Called by the Python API when a new help request is created.
- * Notifies coordinators privately and asks community clients to refresh the feed.
+ * Notifies coordinators privately while the request awaits administrator review.
  */
 router.post('/new', requireInternal, async (req, res) => {
   try {
@@ -97,8 +97,8 @@ router.post('/new', requireInternal, async (req, res) => {
       }, req.app.locals.pool);
     }
 
-    console.log(`📡 New request broadcast: ${emergency_type} (urgency ${urgency_level}) — ${request_id}`);
-    return res.json({ success: true, message: 'New request broadcast to clients' });
+    console.log(`New request coordinator notification: ${emergency_type} (urgency ${urgency_level}) — ${request_id}`);
+    return res.json({ success: true, message: 'Coordinator notification processed; request awaits verification' });
   } catch (err) {
     console.error('POST /api/requests/new error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });
