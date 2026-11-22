@@ -2,7 +2,7 @@
 
 The mobile prediction page asks people to choose their district and check risk. Weather estimates are fetched by the ML service. People can optionally use GPS for the weather location after selecting the district used for the model's area profile. Without GPS, the service uses a clearly labelled representative point in the selected district.
 
-The result is an experimental assessment based on the **latest complete weather day**, not a live observation or a forecast of tomorrow. The source, location, weather date, period and retrieval time accompany the result. Weather varies within a district and the provider returns a model grid cell, so the assessment does not establish conditions at a particular house. The app keeps manual rainfall entry inside an advanced demonstration option.
+The result is an experimental assessment based on the **latest complete weather day**, not a live observation or a forecast of tomorrow. The main result shows risk, location scope, weather date and rainfall with a refresh action. **More details** contains probabilities, source attribution as plain text, the input period and retrieval time, district profile and map. Weather varies within a district and the provider returns a model grid cell, so the assessment does not establish conditions at a particular house. The app keeps manual rainfall entry inside an advanced demonstration option.
 
 ## Weather and model inputs
 

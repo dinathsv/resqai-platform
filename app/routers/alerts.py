@@ -193,6 +193,7 @@ async def list_alerts(
     alert_items = [
         {
             "alert_id": str(a.alert_id),
+            "source": "admin_alert",
             "disaster_type": a.disaster_type,
             "severity": a.severity,
             "work_plan": a.work_plan,
@@ -204,7 +205,7 @@ async def list_alerts(
         for a in alerts
     ]
 
-    # Also include community help and donation requests so citizens see them in alerts feed
+    # Community requests are published only after administrator verification.
     try:
         req_query = select(HelpRequest).where(
             HelpRequest.verification_status == "verified",
@@ -236,13 +237,14 @@ async def list_alerts(
 
         for r in community_requests:
             is_active = r.status in ["pending", "verified", "in_progress", "dispatched"]
-            req_title = "Donation Request" if r.emergency_type == "donation" else "Help & Rescue Request"
+            request_label = "goods assistance request" if r.emergency_type == "donation" else "help request"
             alert_items.append({
                 "alert_id": str(r.request_id),
+                "source": "community_request",
                 "acknowledged": str(r.request_id) in accepted_request_ids,
                 "disaster_type": r.emergency_type or "help_rescue",
                 "severity": r.urgency_level or 3,
-                "work_plan": "Verified goods assistance request" if r.emergency_type == "donation" else "Verified help request",
+                "work_plan": f"Verified {request_label}",
                 "verification_status": "verified",
                 "status": "active" if is_active else r.status,
                 "delivered_count": 0,

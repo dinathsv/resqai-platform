@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     AI_MODEL: str = "gemini-3.5-flash-lite"
 
     NODE_BACKEND_URL: str = "http://localhost:5000"
+    # Separate 32-byte base64url key. Never fall back to a JWT or internal API key.
+    EVIDENCE_ENCRYPTION_KEY: str = ""
 
     # --- Administrator recovery email; citizen OTPs use SMSlenz ---
     SMTP_HOST: str = ""

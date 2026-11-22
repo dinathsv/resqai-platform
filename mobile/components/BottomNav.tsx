@@ -16,6 +16,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import AppearanceSettings from './AppearanceSettings';
 import { apiFetch } from '../config/api';
+import { visibleAlerts } from '../services/alertVisibility';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -139,7 +140,7 @@ export default function BottomNav({ currentTab }: BottomNavProps) {
         if (data && Array.isArray(data.alerts)) {
           const stored = await AsyncStorage.getItem('@resqai_acknowledged_alerts');
           const ackedIds = stored ? JSON.parse(stored) : {};
-          const unread = data.alerts.filter((a: any) => a.status === 'active' && !ackedIds[a.alert_id]);
+          const unread = visibleAlerts(data.alerts).filter((a: any) => a.status === 'active' && !ackedIds[a.alert_id]);
           setUnreadAlertsCount(unread.length);
         }
       }

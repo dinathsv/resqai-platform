@@ -14,9 +14,10 @@ const requestsRoutes = require("./routes/requests");
 const usersRoutes = require("./routes/users");
 const missionsRoutes = require("./routes/missions");
 const guestsRoutes = require("./routes/guests");
+const requestEvidenceRoutes = require("./routes/requestEvidence");
 const { generateDashboardReport, getDashboardStats } = require("./services/dashboardService");
 
-const PORT = parseInt(process.env.PORT || "3000", 10);
+const PORT = parseInt(process.env.PORT || "5000", 10);
 const HOST = "0.0.0.0";
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -71,6 +72,7 @@ app.use("/api/requests", requestsRoutes);
 app.use("/api/admin/users", usersRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/admin/guests", guestsRoutes);
+app.use("/api/admin/request-evidence", requestEvidenceRoutes);
 app.use("/api/missions", missionsRoutes);
 app.use("/api/goods", require("./routes/goods"));
 app.use("/api/chat", require("./routes/chat"));

@@ -15,6 +15,7 @@ from app.models.rating import Rating
 from app.models.audit_log import AuditLog
 from app.models.goods import MissionNeed, GoodsDelivery, GoodsEvent
 from app.models.request_history import RequestVerification, RequestStatusHistory
+from app.models.request_evidence import RequestEvidence
 
 __all__ = [
     "User",
@@ -32,4 +33,5 @@ __all__ = [
     "AuditLog",
     "MissionNeed", "GoodsDelivery", "GoodsEvent",
     "RequestVerification", "RequestStatusHistory",
+    "RequestEvidence",
 ]

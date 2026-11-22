@@ -69,3 +69,14 @@ test('storage failure never produces a false saved or sent result', async () => 
   await assert.rejects(h.api.submitDurableRequest(payload()), /Storage full/);
   assert.equal(h.calls.length, 0);
 });
+
+test('a report with nobody affected preserves zero and leaves urgency to server triage', async () => {
+  const h = harness(); h.setUser('alice');
+  const report = { ...payload(), request_type: 'help_rescue', affected_people: 0, requested_items: [] };
+  delete report.urgency_level;
+  assert.equal(await h.api.submitDurableRequest(report), 'sent');
+  const sent = JSON.parse(h.calls[0].options.body);
+  assert.equal(sent.affected_people, 0);
+  assert.equal(Object.hasOwn(sent, 'urgency_level'), false);
+  assert.equal((await h.api.getMyRequestReceipts())[0].affected_people, 0);
+});

@@ -61,6 +61,8 @@ async def join_mission(body: JoinMissionRequest, current_user: dict = Depends(re
         raise HTTPException(404, "Mission not found")
     request = await db.scalar(select(HelpRequest).where(HelpRequest.request_id == mission.origin_request_id).with_for_update())
     mission = await db.scalar(select(ReliefMission).where(ReliefMission.mission_id == body.mission_id).with_for_update().execution_options(populate_existing=True))
+    if mission is None:
+        raise HTTPException(404, "Mission not found")
     if mission.status != "active" or not request or request.status in ("resolved", "cancelled") or request.admin_status == "finished" or request.verification_status != "verified":
         raise HTTPException(409, "Mission is not accepting helpers")
     if request.user_id == user_id:
@@ -107,6 +109,8 @@ async def confirm_assignment(assignment_id: uuid.UUID, current_user: dict = Depe
     if not assignment:
         raise HTTPException(404, "Assignment not found")
     mission = await db.get(ReliefMission, assignment.mission_id)
+    if mission is None:
+        raise HTTPException(404, "Mission not found")
     request = await db.get(HelpRequest, mission.origin_request_id) if mission.origin_request_id else None
     if not request or request.user_id != user_id or assignment.user_id == user_id:
         raise HTTPException(403, "Only the recipient may confirm this assistance")

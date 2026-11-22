@@ -74,6 +74,7 @@ export default function PredictionScreen() {
   const [loading, setLoading] = useState(false);
   const [apiHealthy, setApiHealthy] = useState<boolean | null>(null);
   const [result, setResult] = useState<PredictionResult | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
   const [error, setError] = useState('');
   const [locationError, setLocationError] = useState('');
   const [now, setNow] = useState(Date.now());
@@ -211,6 +212,7 @@ export default function PredictionScreen() {
     setLoading(true);
     setError('');
     setResult(null);
+    setShowDetails(false);
 
     try {
       const res = manualMode
@@ -237,6 +239,7 @@ export default function PredictionScreen() {
 
   const handleReset = () => {
     setResult(null);
+    setShowDetails(false);
     setError('');
   };
 
@@ -321,6 +324,10 @@ export default function PredictionScreen() {
   // ────────────── Render Sections ──────────────
 
   const districtList = districts.length > 0 ? districts : FALLBACK_DISTRICTS;
+  const hasElevatedRisk = Boolean(result && (
+    getFloodColor(result.prediction.flood_status || result.prediction.flood_category) !== C.green ||
+    (result.nbro_landslide_alert?.level ?? 0) > 0
+  ));
 
   const renderDistrictPicker = () => (
     <View style={{ zIndex: 10, position: 'relative' }}>
@@ -395,13 +402,12 @@ export default function PredictionScreen() {
 
   const renderWeatherControls = () => (
     <View style={s.weatherControls}>
-      <Text style={[s.explanation, { color: theme.textSecondary }]}>{t('prediction.automaticHelp')}</Text>
       <View style={[s.locationChoice, { backgroundColor: theme.surfaceSubtle, borderColor: theme.border }]}>
         <Text style={[s.locationChoiceTitle, { color: theme.textPrimary }]}>
           📍 {t(userLocation ? 'prediction.gpsLocation' : 'prediction.districtLocation')}
         </Text>
         <Text style={[s.explanation, { color: theme.textMuted }]}>
-          {t(userLocation ? 'prediction.gpsHelp' : 'prediction.districtLocationHelp')}
+          {t(userLocation ? 'prediction.gpsLocationShort' : 'prediction.districtLocationShort')}
         </Text>
         <TouchableOpacity
           style={[s.locationButton, { borderColor: theme.brandActive }, (loading || loadingLocation) && { opacity: 0.6 }]}
@@ -419,7 +425,7 @@ export default function PredictionScreen() {
         )}
       </View>
       {locationError ? <Text style={[s.explanation, { color: C.amber }]}>{locationError}</Text> : null}
-      <Text style={[s.explanation, { color: theme.textMuted }]}>{t('prediction.completeDayNotice')}</Text>
+      <Text style={[s.explanation, { color: theme.textSecondary }]}>{t('prediction.recentWeatherNotice')}</Text>
     </View>
   );
 
@@ -477,7 +483,7 @@ export default function PredictionScreen() {
   };
 
   // ── Flood Card ──
-  const renderFloodCard = () => {
+  const renderFloodCard = (detailsOnly = false) => {
     if (!result) return null;
     const pred = result.prediction || {};
     const flood_status = pred.flood_status || pred.flood_category || t('prediction.assessmentUnavailable');
@@ -491,15 +497,16 @@ export default function PredictionScreen() {
 
     return (
       <View style={[s.card, cardTheme]}>
-        <Text style={[s.cardTitle, { color: theme.textPrimary }]}>{getFloodEmoji(flood_status)} Flood Assessment</Text>
-        <View style={[s.statusBadge, { backgroundColor: statusBg, borderColor: statusBorder }]}>
+        <Text style={[s.cardTitle, { color: theme.textPrimary }]}>
+          {detailsOnly ? t('prediction.floodProbabilities') : `${getFloodEmoji(flood_status)} ${t('prediction.floodAssessment')}`}
+        </Text>
+        {!detailsOnly && <View style={[s.statusBadge, { backgroundColor: statusBg, borderColor: statusBorder }]}>
           <Text style={[s.statusBadgeText, { color: statusColor }]}>{flood_status}</Text>
-        </View>
+        </View>}
 
-        <Text style={[s.sectionSubtitle, { color: theme.textMuted }]}>Flood Probabilities</Text>
-        {Object.entries(flood_probabilities).map(([label, pct]) => (
+        {detailsOnly && Object.entries(flood_probabilities).map(([label, pct]) => (
           <View key={label} style={s.probRow}>
-            <Text style={[s.probLabel, { color: theme.textSecondary }]} numberOfLines={1}>{label}</Text>
+            <Text style={[s.probLabel, { color: theme.textSecondary }]}>{label.split(' (')[0]}</Text>
             <View style={[s.probBarBg, { backgroundColor: theme.surfaceSubtle }]}>
               <View
                 style={[
@@ -547,11 +554,11 @@ export default function PredictionScreen() {
   };
 
   // ── NBRO Card ──
-  const renderNBROCard = () => {
+  const renderNBROCard = (detailsOnly = false) => {
     if (!result?.nbro_landslide_alert) return null;
     const alert = result.nbro_landslide_alert;
     const alertColor = getNBROColor(alert.level);
-    const isUrgent = alert.level >= 2;
+    const isUrgent = alert.level >= 2 && !detailsOnly;
 
     const CardWrapper = isUrgent ? Animated.View : View;
     const urgentStyle = isUrgent
@@ -564,19 +571,21 @@ export default function PredictionScreen() {
           {getNBROEmoji(alert.level)} {t('prediction.rainfallIndicator')}
         </Text>
 
-        <View style={s.nbroLevelRow}>
+        {!detailsOnly && <View style={s.nbroLevelRow}>
           <View style={[s.nbroDot, { backgroundColor: isUrgent ? C.white : alertColor }]} />
           <Text style={[s.nbroStatus, { color: isUrgent ? C.white : theme.textPrimary }]}>{alert.status}</Text>
-        </View>
+        </View>}
 
-        <Text style={[s.nbroMessage, { color: isUrgent ? 'rgba(255,255,255,0.85)' : theme.textSecondary }]}>
-          {alert.message}
-        </Text>
-        <Text style={[s.nbroMessage, { color: isUrgent ? 'rgba(255,255,255,0.85)' : theme.textMuted }]}>
+        {((detailsOnly && alert.level === 0) || (!detailsOnly && alert.level > 0)) && (
+          <Text style={[s.nbroMessage, { color: isUrgent ? 'rgba(255,255,255,0.85)' : theme.textSecondary }]}>
+            {alert.message}
+          </Text>
+        )}
+        {detailsOnly && <Text style={[s.nbroMessage, { color: theme.textSecondary }]}>
           {t('prediction.rainfallIndicatorHelp')}
-        </Text>
+        </Text>}
 
-        <View style={s.nbroThresholds}>
+        {detailsOnly && <View style={s.nbroThresholds}>
           {[
             { label: '<75', color: C.green },
             { label: '75', color: C.yellow },
@@ -588,7 +597,7 @@ export default function PredictionScreen() {
               <Text style={[s.nbroThresholdText, { color: isUrgent ? 'rgba(255,255,255,0.6)' : theme.textMuted }]}>{t.label}mm</Text>
             </View>
           ))}
-        </View>
+        </View>}
       </CardWrapper>
     );
   };
@@ -628,7 +637,7 @@ export default function PredictionScreen() {
     );
   };
 
-  const renderWeatherSource = () => {
+  const renderWeatherSource = (detailsOnly = false) => {
     if (!result) return null;
     if (result.mode === 'manual') {
       return (
@@ -640,39 +649,43 @@ export default function PredictionScreen() {
     }
     const weather = result.weather;
     if (!weather) return null;
+    const rain24h = result.prediction.rain_24h_mm ?? result.prediction.peak_24h_rain_mm;
     return (
       <View style={[s.card, cardTheme]}>
-        <Text style={[s.cardTitle, { color: theme.textPrimary }]}>{t('prediction.weatherSource')}</Text>
-        <TouchableOpacity accessibilityRole="link" onPress={() => Linking.openURL(weather.source_url)}>
-          <Text style={[s.locationChoiceTitle, { color: theme.brandActive, textDecorationLine: 'underline' }]}>{weather.provider} · {weather.model}</Text>
-        </TouchableOpacity>
-        <Text style={[s.explanation, { color: theme.textSecondary }]}>{t('prediction.modelWeatherHelp')}</Text>
-        <Text style={[s.sourceLine, { color: theme.textSecondary }]}>
-          {t('prediction.latestCompleteDay')}: {weather.weather_date}
-        </Text>
-        <Text style={[s.sourceLine, { color: theme.textMuted }]}>
-          {t('prediction.weatherWindow')}: {weatherTime(weather.period_start)} – {weatherTime(weather.period_end)} ({weather.timezone})
-        </Text>
-        <Text style={[s.sourceLine, { color: theme.textMuted }]}>
-          {t('prediction.weatherFetched')}: {weatherTime(weather.fetched_at)}{weather.cached ? ` · ${t('prediction.cachedWeather')}` : ''}
-        </Text>
-        <Text style={[s.sourceLine, { color: theme.textSecondary }]}>
-          {t(result.location?.source === 'gps' ? 'prediction.gpsLocation' : 'prediction.districtLocation')}
-        </Text>
-        {Number.isFinite(weather.grid_latitude) && Number.isFinite(weather.grid_longitude) && (
-          <Text style={[s.sourceLine, { color: theme.textMuted }]}>
-            {t('prediction.weatherGridPoint')}: {weather.grid_latitude!.toFixed(3)}, {weather.grid_longitude!.toFixed(3)}
-          </Text>
+        <Text style={[s.cardTitle, { color: theme.textPrimary }]}>{t(detailsOnly ? 'prediction.weatherSource' : 'prediction.weatherSummary')}</Text>
+        {!detailsOnly && <Text style={[s.explanation, { color: theme.textSecondary }]}>
+          {t('prediction.weatherDay')}: {formatDate(weather.weather_date, { timeZone: 'Asia/Colombo' })}
+        </Text>}
+        {!detailsOnly && typeof rain24h === 'number' && Number.isFinite(rain24h) && (
+          <Text style={[s.sourceLine, { color: theme.textPrimary }]}>{t('prediction.rain24h')}: {rain24h.toFixed(1)} mm</Text>
         )}
-        <Text style={[s.explanation, { color: theme.textMuted }]}>{t('prediction.aiEstimateHelp')}</Text>
-        {weatherExpired && <Text style={[s.explanation, { color: C.red }]}>{t('prediction.weatherExpired')}</Text>}
-        <TouchableOpacity
+        {detailsOnly && <View style={s.weatherDetails}>
+          <Text style={[s.explanation, { color: theme.textSecondary }]}>{weather.provider} · {weather.model}</Text>
+          <Text style={[s.explanation, { color: theme.textSecondary }]}>{t('prediction.modelWeatherHelp')}</Text>
+          <Text style={[s.explanation, { color: theme.textSecondary }]}>{t('prediction.completeDayNotice')}</Text>
+          <Text style={[s.sourceLine, { color: theme.textSecondary }]}>
+            {t('prediction.weatherWindow')}: {weatherTime(weather.period_start)} – {weatherTime(weather.period_end)} ({weather.timezone})
+          </Text>
+          <Text style={[s.sourceLine, { color: theme.textSecondary }]}>
+            {t('prediction.weatherFetched')}: {weatherTime(weather.fetched_at)}{weather.cached ? ` · ${t('prediction.cachedWeather')}` : ''}
+          </Text>
+          <Text style={[s.sourceLine, { color: theme.textSecondary }]}>
+            {t(result.location?.source === 'gps' ? 'prediction.gpsLocation' : 'prediction.districtLocation')}
+          </Text>
+          {Number.isFinite(weather.grid_latitude) && Number.isFinite(weather.grid_longitude) && (
+            <Text style={[s.sourceLine, { color: theme.textSecondary }]}>
+              {t('prediction.weatherGridPoint')}: {weather.grid_latitude!.toFixed(3)}, {weather.grid_longitude!.toFixed(3)}
+            </Text>
+          )}
+        </View>}
+        {!detailsOnly && weatherExpired && <Text style={[s.explanation, { color: C.red }]}>{t('prediction.weatherExpired')}</Text>}
+        {!detailsOnly && <TouchableOpacity
           style={[s.locationButton, { borderColor: theme.brandActive }]}
           onPress={handlePredict}
           disabled={loading}
         >
           <Text style={[s.locationButtonText, { color: theme.brandActive }]}>{t('prediction.refreshWeather')}</Text>
-        </TouchableOpacity>
+        </TouchableOpacity>}
       </View>
     );
   };
@@ -701,14 +714,16 @@ export default function PredictionScreen() {
   };
 
   // ── Emergency Contacts ──
-  const renderEmergencyContactsCard = () => {
+  const renderEmergencyContactsCard = (detailsOnly = false) => {
     if (!result) return null;
-    const contacts = result.emergency_contacts;
+    const contacts = Object.entries(result.emergency_contacts);
+    const visibleContacts = detailsOnly ? contacts.slice(2) : contacts.slice(0, 2);
+    if (!visibleContacts.length) return null;
 
     return (
       <View style={[s.card, cardTheme]}>
         <Text style={[s.cardTitle, { color: theme.textPrimary }]}>🆘 Emergency Contacts</Text>
-        {Object.entries(contacts).map(([key, value], i, arr) => {
+        {visibleContacts.map(([key, value], i, arr) => {
           const phoneMatch = value.match(/[\d\-\s\/]+/);
           const phone = phoneMatch ? phoneMatch[0].trim().split('/')[0].trim().replace(/\s/g, '') : '';
           return (
@@ -791,25 +806,39 @@ export default function PredictionScreen() {
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
             <View style={s.resultHeader}>
               <Text style={[s.resultDistrict, { color: theme.textPrimary }]}>{result.district}</Text>
-              <Text style={[s.resultProvince, { color: theme.textMuted }]}>
-                {result.province} Province • {result.climatic_zone} Zone
+              <Text style={[s.resultProvince, { color: theme.textSecondary }]}>
+                {t(result.location?.source === 'gps' ? 'prediction.gpsLocation' : 'prediction.districtLocation')}
               </Text>
-              {result.weather && result.mode !== 'manual' && (
-                <Text style={[s.sourceLine, { color: theme.textSecondary }]}>
-                  {t('prediction.latestCompleteDay')}: {result.weather.weather_date}
-                </Text>
-              )}
             </View>
 
             {result.mode === 'manual' && renderWeatherSource()}
             {!weatherExpired && renderFloodCard()}
             {result.mode !== 'manual' && renderWeatherSource()}
             {!weatherExpired && renderNBROCard()}
-            {!weatherExpired && renderHazardCard()}
-            {!weatherExpired && renderGuidanceCard()}
-            {renderDistrictProfileCard()}
-            {renderLiveMap()}
+            {!weatherExpired && hasElevatedRisk && renderGuidanceCard()}
+            <Text style={[s.assessmentNote, { color: theme.textSecondary }]}>{t('prediction.aiEstimateHelp')}</Text>
             {renderEmergencyContactsCard()}
+
+            <TouchableOpacity
+              style={[s.detailsToggle, { backgroundColor: theme.surface, borderColor: theme.border }]}
+              onPress={() => setShowDetails(!showDetails)}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: showDetails }}
+              activeOpacity={0.7}
+            >
+              <Text style={[s.locationButtonText, { color: theme.textPrimary }]}>{t(showDetails ? 'prediction.hideDetails' : 'prediction.showDetails')}</Text>
+              <Text style={{ color: theme.textSecondary }}>{showDetails ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {showDetails && <>
+              {!weatherExpired && renderFloodCard(true)}
+              {result.mode !== 'manual' && renderWeatherSource(true)}
+              {!weatherExpired && renderNBROCard(true)}
+              {!weatherExpired && renderHazardCard()}
+              {!weatherExpired && !hasElevatedRisk && renderGuidanceCard()}
+              {renderDistrictProfileCard()}
+              {renderLiveMap()}
+              {renderEmergencyContactsCard(true)}
+            </>}
 
             <TouchableOpacity style={[s.resetButton, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={handleReset} activeOpacity={0.7}>
               <Text style={[s.resetButtonText, { color: theme.textPrimary }]}>🔄 {t('common.retry')}</Text>
@@ -856,6 +885,9 @@ const s = StyleSheet.create({
   referenceLink: { fontFamily: Fonts.medium, fontSize: 12, textAlign: 'center', paddingTop: 6 },
   noticeBox: { borderWidth: 1, padding: 12, borderRadius: 12, gap: 8 },
   sourceLine: { fontSize: 12, fontFamily: Fonts.medium, lineHeight: 18, marginTop: 8, marginBottom: 4 },
+  weatherDetails: { marginTop: 12, gap: 4 },
+  assessmentNote: { fontSize: 12, fontFamily: Fonts.medium, lineHeight: 18, marginHorizontal: 4, marginBottom: 14 },
+  detailsToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderWidth: 1, borderRadius: 12, marginBottom: 14 },
 
   // Picker
   inputLabel: { fontSize: 13, fontFamily: Fonts.semiBold, marginBottom: 6, marginLeft: 4, color: C.textMid },
@@ -934,7 +966,7 @@ const s = StyleSheet.create({
   // NBRO
   nbroLevelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   nbroDot: { width: 14, height: 14, borderRadius: 7, marginRight: 10 },
-  nbroStatus: { fontSize: 15, fontFamily: Fonts.bold, fontWeight: '700', color: C.textDark },
+  nbroStatus: { flex: 1, fontSize: 15, fontFamily: Fonts.bold, fontWeight: '700', color: C.textDark },
   nbroMessage: { fontSize: 13, fontFamily: Fonts.medium, lineHeight: 19, marginBottom: 12, color: C.textMid },
   nbroThresholds: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 4 },
   nbroThresholdItem: { alignItems: 'center', gap: 3 },

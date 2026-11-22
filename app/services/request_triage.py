@@ -6,7 +6,10 @@ from difflib import SequenceMatcher
 from app.config import settings
 
 
-def initial_triage(message: str, request_type: str, urgency: int | None = None) -> dict:
+def initial_triage(
+    message: str, request_type: str, urgency: int | None = None,
+    affected_people: int | None = None,
+) -> dict:
     text = message.casefold()
     critical = ("not breathing", "unconscious", "trapped", "drowning", "severe bleeding",
                 "හුස්ම ගන්න බැ", "සිහිසුන්", "சுவாசிக்க முடிய", "மயக்கம்", "சிக்கிய")
@@ -16,20 +19,29 @@ def initial_triage(message: str, request_type: str, urgency: int | None = None) 
         "medical": ("injur", "bleeding", "තුවාල", "காயம்"),
         "landslide": ("landslide", "නාය", "மண்சரிவு"),
     }.items() if any(word in text for word in words)), "other")
-    priority = max(urgency or (2 if request_type == "donation" else 3),
+    # Missing counts from older clients retain the existing help priority. A
+    # report with nobody affected still needs review; danger signals take priority.
+    base_priority = 2 if request_type == "donation" or affected_people == 0 else 3
+    priority = max(base_priority, urgency or 1,
                    5 if any(word in text for word in critical) else 1)
     return {"urgency_level": priority, "incident_type": incident,
             "triage_source": "rules", "ai_summary": None}
 
 
-async def triage_request(message: str, request_type: str, urgency: int | None = None) -> dict:
-    result = initial_triage(message, request_type, urgency)
+async def triage_request(
+    message: str, request_type: str, urgency: int | None = None,
+    affected_people: int | None = None,
+) -> dict:
+    result = initial_triage(message, request_type, urgency, affected_people)
     # Saving a report must never wait indefinitely for an external AI service.
     if not settings.AI_API_KEY:
         return result
     try:
         from app.routers.ai import TranslateReportRequest, translate_report
-        parsed = await asyncio.wait_for(translate_report(TranslateReportRequest(message=message)), timeout=3)
+        context = message
+        if affected_people is not None:
+            context += f"\n\nReported number of people affected: {affected_people}."
+        parsed = await asyncio.wait_for(translate_report(TranslateReportRequest(message=context)), timeout=3)
         score = parsed.get("urgency_level")
         summary = parsed.get("summary_english")
         if (isinstance(score, int) and not isinstance(score, bool) and 1 <= score <= 5

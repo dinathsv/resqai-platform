@@ -6,20 +6,22 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import MinimalButton from '../../components/MinimalButton';
+import RequestEvidence from '../../components/RequestEvidence';
 import { ReliefPage, ReliefCard, ReliefText, ReliefField, ReliefBadge, reliefStyles } from '../../components/ReliefUI';
-import { createClientId, submitDurableRequest, getMyQueuedRequests } from '../../services/requestQueue';
+import { createClientId, submitDurableRequest, getMyQueuedRequests, getMyRequestReceipts } from '../../services/requestQueue';
 
 export default function HelpScreen() {
   const { theme } = useTheme(); const { t } = useLanguage(); const router = useRouter();
   const [kind, setKind] = useState<'help_rescue' | 'donation'>('help_rescue');
   const [message, setMessage] = useState(''); const [locationLabel, setLocationLabel] = useState('');
-  const [people, setPeople] = useState('1'); const [urgency, setUrgency] = useState(3);
+  const [peopleAffected, setPeopleAffected] = useState<boolean | null>(null);
+  const [people, setPeople] = useState('1');
   const [evidence, setEvidence] = useState(''); const [busy, setBusy] = useState(false);
   const [locating, setLocating] = useState(false); const [error, setError] = useState('');
   const [coords, setCoords] = useState<{lat: number; lng: number} | null>(null);
   const [locationNotice, setLocationNotice] = useState('');
   const [items, setItems] = useState([{ item_name: '', quantity: '1', unit: 'packs' }]);
-  const [result, setResult] = useState<{state: string; id: string} | null>(null);
+  const [result, setResult] = useState<{state: string; id: string; serverId?: string} | null>(null);
   const [clientId, setClientId] = useState(createClientId);
 
   async function locate() {
@@ -40,8 +42,9 @@ export default function HelpScreen() {
     if (busy) return;
     setError('');
     if (message.trim().length < 5) { setError(t('relief.describeRequired')); return; }
-    const affected = Number(people);
-    if (!Number.isInteger(affected) || affected < 1 || affected > 100000) { setError(t('relief.peopleInvalid')); return; }
+    if (peopleAffected === null) { setError(t('relief.affectedPeopleRequired')); return; }
+    const affected = peopleAffected ? Number(people) : 0;
+    if (peopleAffected && (!/^\d+$/.test(people) || !Number.isInteger(affected) || affected < 1 || affected > 100000)) { setError(t('relief.peopleInvalid')); return; }
     const requested = kind === 'donation' ? items.map(i => ({ item_name: i.item_name.trim(), quantity: Number(i.quantity), unit: i.unit.trim() })) : [];
     if (requested.some(i => i.item_name.length < 2 || !i.unit || !Number.isInteger(i.quantity) || i.quantity <= 0 || i.quantity > 100000)) { setError(t('relief.itemsInvalid')); return; }
     if (kind === 'donation' && !await AsyncStorage.getItem('token')) { setError(t('relief.accountForGoods')); return; }
@@ -52,9 +55,11 @@ export default function HelpScreen() {
         lat: coords?.lat ?? null, lng: coords?.lng ?? null,
         location_source: coords ? 'gps' : locationLabel.trim() ? 'manual' : 'unknown',
         location_label: locationLabel.trim(), affected_people: affected,
-        urgency_level: urgency, requested_items: requested, evidence_note: evidence.trim(),
+        requested_items: requested, evidence_note: evidence.trim(),
       });
-      setResult({ state, id: clientId });
+      // Evidence is a separate online step; failure to read its server reference must not undo the saved request receipt.
+      const receipt = state === 'sent' ? await getMyRequestReceipts().then(rows => rows.find(row => row.client_request_id === clientId)).catch(() => null) : null;
+      setResult({ state, id: clientId, serverId: receipt?.request_id });
       if (state === 'failed') {
         const pending = (await getMyQueuedRequests()).find(r => r.id === clientId);
         setError(pending?.error || t('relief.retryRequired'));
@@ -79,7 +84,8 @@ export default function HelpScreen() {
       <ReliefText>{result.state === 'sent' ? t('relief.receivedNote') : t('relief.queuedNote')}</ReliefText>
       <ReliefText muted>{t('relief.reference')}: {result.id.slice(0, 8)}</ReliefText>
       <MinimalButton title={t('relief.trackRequests')} onPress={() => router.push('/(people)/activities')} />
-      {result.state === 'sent' ? <MinimalButton title={t('relief.newRequest')} variant="outline" onPress={() => { setResult(null); setMessage(''); setEvidence(''); }} /> : null}
+      {result.state === 'sent' && result.serverId ? <RequestEvidence key={result.serverId} requestId={result.serverId} /> : null}
+      {result.state === 'sent' ? <MinimalButton title={t('relief.newRequest')} variant="outline" onPress={() => { setResult(null); setMessage(''); setEvidence(''); setPeopleAffected(null); setPeople('1'); }} /> : null}
     </ReliefCard> : null}
     {(!result || result.state === 'failed') && <ReliefCard>
       <ReliefText title>{t('relief.whatNeeded')}</ReliefText>
@@ -88,9 +94,12 @@ export default function HelpScreen() {
         <MinimalButton title={t('relief.goodsRequest')} variant={kind === 'donation' ? 'primary' : 'outline'} onPress={() => setKind('donation')} disabled={busy} />
       </View>
       <ReliefField label={t('relief.situation')} value={message} onChangeText={setMessage} multiline maxLength={4000} editable={!busy} />
-      <ReliefField label={t('relief.affectedPeople')} value={people} onChangeText={setPeople} keyboardType="number-pad" maxLength={7} editable={!busy} />
-      <ReliefText>{t('relief.urgency')}</ReliefText>
-      <View style={reliefStyles.row}>{[1, 2, 3, 4, 5].map(level => <MinimalButton key={level} title={String(level)} small variant={urgency === level ? 'primary' : 'outline'} onPress={() => setUrgency(level)} disabled={busy} />)}</View>
+      <ReliefText>{t('relief.hasAffectedPeople')}</ReliefText>
+      <View style={reliefStyles.row}>
+        <MinimalButton title={t('common.yes')} variant={peopleAffected === true ? 'primary' : 'outline'} onPress={() => setPeopleAffected(true)} disabled={busy} />
+        <MinimalButton title={t('common.no')} variant={peopleAffected === false ? 'primary' : 'outline'} onPress={() => setPeopleAffected(false)} disabled={busy} />
+      </View>
+      {peopleAffected === true && <ReliefField label={t('relief.affectedPeople')} value={people} onChangeText={setPeople} keyboardType="number-pad" maxLength={7} editable={!busy} />}
       <ReliefField label={t('relief.locationLabel')} value={locationLabel} onChangeText={setLocationLabel} placeholder={t('relief.locationPlaceholder')} maxLength={255} editable={!busy} />
       <MinimalButton title={locating ? t('common.loading') : coords ? t('relief.updateGps') : t('relief.useGps')} variant="outline" onPress={() => { void locate(); }} disabled={locating || busy} />
       {coords ? <ReliefText muted>{coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</ReliefText> : null}

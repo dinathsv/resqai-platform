@@ -91,7 +91,8 @@ function broadcastAlert(io, alert, userIds) {
 }
 
 async function notifyNewRequest(io, request, pool) {
-  // A new claim is unverified. Precise location and free text are coordinator-only.
+  // New submissions and requester edits await coordinator verification. Keep
+  // their notification, including refresh hints, within active admin sockets.
   return emitToActiveAdmins(io, 'new_request', { ...request, verification_status: 'unverified' }, pool || socketPools.get(io));
 }
 
