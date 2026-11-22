@@ -15,7 +15,6 @@ from passlib.context import CryptContext
 from app.main import app
 from app.database import Base, get_db
 from app.routers import auth
-from app.models.nic_entry import NicEntry
 
 from sqlalchemy.ext.compiler import compiles
 from geoalchemy2.types import Geometry
@@ -83,12 +82,6 @@ async def setup_db():
         from app.models.user import User
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
-
-    async with TestingSessionLocal() as session:
-        nic1 = NicEntry(nic_number="881234567V", is_valid=True, district="Colombo")
-        nic2 = NicEntry(nic_number="198812345678", is_valid=True, district="Kandy")
-        session.add_all([nic1, nic2])
-        await session.commit()
 
     yield
 

@@ -1,93 +1,50 @@
-"""
-Seed a default administrator for local development.
+"""Create an administrator using explicit DATABASE_URL, ADMIN_EMAIL and ADMIN_PASSWORD.
 
-Usage:
-    python database/seed_admin.py
-
-Default credentials:
-    Email:    admin@resqai.lk
-    Password: admin123 (or set ADMIN_PASSWORD in environment)
+Run `python -m database.seed_admin`. ADMIN_NAME, ADMIN_AGENCY and ADMIN_DISTRICT
+are optional.
 """
 
-import os
 import asyncio
+import os
 import uuid
-import bcrypt
+
 import asyncpg
+import bcrypt
 
-# Use DATABASE_URL from environment if available, otherwise fallback to localhost
-DB_URL = os.getenv("DATABASE_URL", "postgresql://resqai_user:resqai_local_db_password@localhost:5433/resqai")
-
-# asyncpg doesn't support 'postgresql+asyncpg://', so we replace it
-if DB_URL.startswith("postgresql+asyncpg://"):
-    DB_URL = DB_URL.replace("postgresql+asyncpg://", "postgresql://")
-
-
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@resqai.lk")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
-ADMIN_NAME = os.getenv("ADMIN_NAME", "ResQAI Admin")
-ADMIN_AGENCY = os.getenv("ADMIN_AGENCY", "DMC")
-ADMIN_DISTRICT = os.getenv("ADMIN_DISTRICT", "Colombo")
-
-def hash_password(password: str) -> str:
-    """Hash password using bcrypt, compatible with passlib's bcrypt output."""
-    salt = bcrypt.gensalt(rounds=12)
-    hashed = bcrypt.hashpw(password.encode("utf-8"), salt)
-    return hashed.decode("utf-8")
 
 async def main():
-    if not ADMIN_EMAIL or len(ADMIN_PASSWORD) < 6 or len(ADMIN_PASSWORD.encode("utf-8")) > 72:
-        raise RuntimeError("Set ADMIN_EMAIL and ADMIN_PASSWORD (6 characters minimum, 72 UTF-8 bytes maximum)")
-    conn = await asyncpg.connect(DB_URL)
+    url = os.getenv("DATABASE_URL", "").replace("postgresql+asyncpg://", "postgresql://", 1)
+    email = os.getenv("ADMIN_EMAIL", "").strip().lower()
+    password = os.getenv("ADMIN_PASSWORD", "")
+    password_bytes = password.encode("utf-8")
+    if not url or not email or len(password) < 12 or len(password_bytes) > 72:
+        raise SystemExit("Set DATABASE_URL, ADMIN_EMAIL and ADMIN_PASSWORD (12 characters minimum, 72 UTF-8 bytes maximum)")
 
-    admins = [
-        {
-            "email": ADMIN_EMAIL,
-            "password": ADMIN_PASSWORD,
-            "name": ADMIN_NAME,
-            "agency": ADMIN_AGENCY,
-            "district": ADMIN_DISTRICT,
-        },
-        {
-            "email": "kirrsh001@gmail.com",
-            "password": "password123",
-            "name": "Kirrsh Admin",
-            "agency": "DMC",
-            "district": "Colombo",
-        },
-    ]
-
-    for adm in admins:
-        pw_hash = hash_password(adm["password"])
-        existing = await conn.fetchrow(
-            "SELECT admin_id FROM administrators WHERE email = $1", adm["email"]
+    password_hash = bcrypt.hashpw(password_bytes, bcrypt.gensalt(rounds=12)).decode("utf-8")
+    conn = await asyncpg.connect(url)
+    try:
+        created = await conn.fetchval(
+            """
+            INSERT INTO public.administrators (admin_id, full_name, email, agency, district, password_hash)
+            SELECT $1, $2, $3, $4, $5, $6
+            WHERE NOT EXISTS (
+                SELECT 1 FROM public.administrators WHERE lower(email) = $3::varchar
+            )
+            ON CONFLICT (email) DO NOTHING
+            RETURNING admin_id
+            """,
+            uuid.uuid4(),
+            os.getenv("ADMIN_NAME", "ResQAI Admin"),
+            email,
+            os.getenv("ADMIN_AGENCY") or None,
+            os.getenv("ADMIN_DISTRICT") or None,
+            password_hash,
         )
-        if existing:
-            await conn.execute(
-                """
-                UPDATE administrators
-                SET password_hash = $2, full_name = $3, agency = $4, district = $5, is_active = TRUE
-                WHERE email = $1
-                """,
-                adm["email"], pw_hash, adm["name"], adm["agency"], adm["district"]
-            )
-            print(f"✅ Admin credentials updated: {adm['email']}")
-        else:
-            await conn.execute(
-                """
-                INSERT INTO administrators (admin_id, full_name, email, agency, district, password_hash, is_active)
-                VALUES ($1, $2, $3, $4, $5, $6, TRUE)
-                """,
-                uuid.uuid4(),
-                adm["name"],
-                adm["email"],
-                adm["agency"],
-                adm["district"],
-                pw_hash,
-            )
-            print(f"✅ Admin user created: {adm['email']}")
+    finally:
+        await conn.close()
 
-    await conn.close()
+    print("Administrator created." if created else "Administrator already exists.")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
