@@ -1,20 +1,9 @@
--- Historical baseline: apply backend/migrations using database.run_migrations before API startup.
--- NEW EMPTY DATABASES ONLY. Existing databases must use versioned migrations.
--- ============================================================================
--- ResQAI — AI-Powered Disaster Relief Platform for Sri Lanka
--- PostgreSQL + PostGIS Schema
--- ============================================================================
-
--- ── Extensions ──────────────────────────────────────────────────────────────
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- ── ENUM Types ──────────────────────────────────────────────────────────────
 
--- Language preferences for Sri Lanka's trilingual population
 CREATE TYPE language_pref AS ENUM ('si', 'ta', 'en');
 
--- Categories of emergencies handled by the platform
 CREATE TYPE emergency_type AS ENUM (
     'flood',
     'landslide',
@@ -30,7 +19,6 @@ CREATE TYPE emergency_type AS ENUM (
     'help_rescue'
 );
 
--- Lifecycle status of a help request
 CREATE TYPE request_status AS ENUM (
     'pending',
     'ai_processing',
@@ -42,9 +30,6 @@ CREATE TYPE request_status AS ENUM (
 );
 
 
--- ============================================================================
--- 1. USERS
--- ============================================================================
 CREATE TABLE users (
     user_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     full_name       VARCHAR(150)    NOT NULL,
@@ -61,20 +46,15 @@ CREATE TABLE users (
     updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
 );
 
--- B-tree indexes for common lookups
 CREATE INDEX idx_users_email        ON users (email);
 CREATE INDEX idx_users_phone        ON users (phone_number);
 
--- Spatial index for proximity queries
 CREATE INDEX idx_users_gps          ON users USING GIST (gps_location);
 
 
--- ============================================================================
--- 2. GUEST SESSIONS
--- ============================================================================
 CREATE TABLE guest_sessions (
     session_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    nic_number      VARCHAR(12)     NOT NULL,           -- Old 9-digit or new 12-digit NIC
+    nic_number      VARCHAR(12)     NOT NULL,
     nic_verified    BOOLEAN         NOT NULL DEFAULT FALSE,
     nic_format_valid BOOLEAN        NOT NULL DEFAULT FALSE,
     temp_token      VARCHAR(512)    NOT NULL UNIQUE,
@@ -90,15 +70,12 @@ CREATE INDEX idx_guest_expires      ON guest_sessions (expires_at);
 CREATE INDEX idx_guest_gps          ON guest_sessions USING GIST (gps_location);
 
 
--- ============================================================================
--- 3. ADMINISTRATORS
--- ============================================================================
 CREATE TABLE administrators (
     admin_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     full_name       VARCHAR(150)    NOT NULL,
     email           VARCHAR(255)    NOT NULL UNIQUE,
-    agency          VARCHAR(150),                       -- e.g. DMC, NBRO, SL Red Cross
-    district        VARCHAR(100),                       -- e.g. Colombo, Galle, Ratnapura
+    agency          VARCHAR(150),
+    district        VARCHAR(100),
     password_hash   VARCHAR(255)    NOT NULL,
     is_active       BOOLEAN         NOT NULL DEFAULT TRUE,
     created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
@@ -110,13 +87,9 @@ CREATE INDEX idx_admin_district     ON administrators (district);
 CREATE INDEX idx_admin_agency       ON administrators (agency);
 
 
--- ============================================================================
--- 4. HELP REQUESTS
--- ============================================================================
 CREATE TABLE help_requests (
     request_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    -- Exactly one of these must be set (enforced by CHECK below)
     user_id         UUID            REFERENCES users (user_id)
                                         ON DELETE CASCADE,
     guest_session_id UUID           REFERENCES guest_sessions (session_id)
@@ -134,7 +107,6 @@ CREATE TABLE help_requests (
     resolved_at     TIMESTAMPTZ,
     updated_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
-    -- Ensure every request is linked to exactly one requester type
     CONSTRAINT chk_requester_type CHECK (
         (user_id IS NOT NULL AND guest_session_id IS NULL AND is_guest_request = FALSE)
         OR
@@ -153,15 +125,12 @@ CREATE INDEX idx_hr_created         ON help_requests (created_at DESC);
 CREATE INDEX idx_hr_gps             ON help_requests USING GIST (gps_location);
 
 
--- ============================================================================
--- 5. HOSPITALS
--- ============================================================================
 CREATE TABLE hospitals (
     hospital_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name            VARCHAR(255)    NOT NULL,
     phone           VARCHAR(20),
     gps_location    GEOMETRY(POINT, 4326) NOT NULL,
-    specialization  VARCHAR(255),                       -- e.g. General, Teaching, Base
+    specialization  VARCHAR(255),
     has_cardiac_icu BOOLEAN         NOT NULL DEFAULT FALSE,
     has_trauma_unit BOOLEAN         NOT NULL DEFAULT FALSE,
     is_active       BOOLEAN         NOT NULL DEFAULT TRUE,
@@ -174,12 +143,9 @@ CREATE INDEX idx_hosp_active        ON hospitals (is_active) WHERE is_active = T
 CREATE INDEX idx_hosp_gps           ON hospitals USING GIST (gps_location);
 
 
--- ============================================================================
--- 6. NIC DATABASE
--- ============================================================================
 CREATE TABLE nic_database (
     nic_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    nic_number      VARCHAR(12)     NOT NULL UNIQUE,    -- Old or new format
+    nic_number      VARCHAR(12)     NOT NULL UNIQUE,
     is_valid        BOOLEAN         NOT NULL DEFAULT TRUE,
     district        VARCHAR(100),
     registered_at   TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
@@ -190,9 +156,6 @@ CREATE INDEX idx_nic_number         ON nic_database (nic_number);
 CREATE INDEX idx_nic_district       ON nic_database (district);
 
 
--- ============================================================================
--- TRIGGER: Auto-update `updated_at` on any row modification
--- ============================================================================
 
 CREATE OR REPLACE FUNCTION fn_set_updated_at()
 RETURNS TRIGGER AS $$
@@ -202,7 +165,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Apply the trigger to every table that has an updated_at column
 CREATE TRIGGER trg_users_updated_at
     BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
@@ -228,12 +190,6 @@ CREATE TRIGGER trg_nic_database_updated_at
     FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
 
 
--- ============================================================================
--- FUNCTION: get_nearest_hospitals(lat, lng, limit_count)
--- Returns the nearest active hospitals sorted by distance (metres).
--- Uses PostGIS ST_Distance on geography casts for accurate Earth-surface
--- distance rather than planar/degree-based approximations.
--- ============================================================================
 
 CREATE OR REPLACE FUNCTION get_nearest_hospitals(
     lat         FLOAT,
@@ -276,18 +232,9 @@ END;
 $$ LANGUAGE plpgsql STABLE;
 
 
--- ============================================================================
--- Sample usage:
---   SELECT * FROM get_nearest_hospitals(6.9271, 79.8612, 5);
---   → Returns 5 nearest active hospitals to Colombo city centre
--- ============================================================================
 
 
--- ============================================================================
--- ADDITIONAL ENUM TYPES
--- ============================================================================
 
--- Lifecycle status of a relief mission
 CREATE TYPE mission_status AS ENUM (
     'planning',
     'active',
@@ -296,7 +243,6 @@ CREATE TYPE mission_status AS ENUM (
     'cancelled'
 );
 
--- Lifecycle status of a volunteer assignment
 CREATE TYPE assignment_status AS ENUM (
     'pending',
     'accepted',
@@ -305,7 +251,6 @@ CREATE TYPE assignment_status AS ENUM (
     'withdrawn'
 );
 
--- Lifecycle status of a donation
 CREATE TYPE donation_status AS ENUM (
     'pending',
     'completed',
@@ -313,7 +258,6 @@ CREATE TYPE donation_status AS ENUM (
     'refunded'
 );
 
--- Alert status
 CREATE TYPE alert_status AS ENUM (
     'active',
     'expired',
@@ -321,9 +265,6 @@ CREATE TYPE alert_status AS ENUM (
 );
 
 
--- ============================================================================
--- 7. RELIEF MISSIONS
--- ============================================================================
 CREATE TABLE relief_missions (
     mission_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     admin_id        UUID            NOT NULL
@@ -349,9 +290,6 @@ CREATE TRIGGER trg_relief_missions_updated_at
     FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
 
 
--- ============================================================================
--- 8. DONATIONS
--- ============================================================================
 CREATE TABLE donations (
     donation_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     donor_id        UUID            NOT NULL
@@ -375,9 +313,6 @@ CREATE TRIGGER trg_donations_updated_at
     FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
 
 
--- ============================================================================
--- 9. VOLUNTEER ASSIGNMENTS
--- ============================================================================
 CREATE TABLE volunteer_assignments (
     assignment_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id         UUID            NOT NULL
@@ -403,9 +338,6 @@ CREATE TRIGGER trg_volunteer_assignments_updated_at
     FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
 
 
--- ============================================================================
--- 10. EMERGENCY ALERTS
--- ============================================================================
 CREATE TABLE emergency_alerts (
     alert_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     admin_id        UUID            NOT NULL
@@ -433,9 +365,6 @@ CREATE TRIGGER trg_emergency_alerts_updated_at
     FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
 
 
--- ============================================================================
--- 11. AGENCY CHAT MESSAGES
--- ============================================================================
 CREATE TABLE agency_chat_messages (
     message_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     sender_id       UUID            NOT NULL
@@ -454,9 +383,6 @@ CREATE INDEX idx_acm_alert           ON agency_chat_messages (alert_id);
 CREATE INDEX idx_acm_sent            ON agency_chat_messages (sent_at DESC);
 
 
--- ============================================================================
--- 12. RATINGS
--- ============================================================================
 CREATE TABLE ratings (
     rating_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     rater_id        UUID            NOT NULL
@@ -471,7 +397,6 @@ CREATE TABLE ratings (
     comment         TEXT,
     created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
 
-    -- A user can only rate another user once per request
     CONSTRAINT uq_rating_per_request UNIQUE (rater_id, rated_user_id, request_id)
 );
 
@@ -480,9 +405,6 @@ CREATE INDEX idx_rating_rated        ON ratings (rated_user_id);
 CREATE INDEX idx_rating_request      ON ratings (request_id);
 
 
--- ============================================================================
--- 13. AUDIT LOGS
--- ============================================================================
 CREATE TABLE audit_logs (
     log_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id         UUID            REFERENCES users (user_id)
