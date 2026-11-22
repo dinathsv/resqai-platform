@@ -53,11 +53,11 @@ def resolve_location(district: str, latitude: float | None, longitude: float | N
     canonical = next((name for name in DISTRICT_COORDS if name.lower() == district.strip().lower()), None)
     if canonical is None:
         raise ValueError("Choose a supported Sri Lankan district.")
-    if (latitude is None) != (longitude is None):
-        raise ValueError("Latitude and longitude must be supplied together.")
-    source = "district_representative"
-    if latitude is None:
+    if latitude is None and longitude is None:
         latitude, longitude = DISTRICT_COORDS[canonical]
+        source = "district_representative"
+    elif latitude is None or longitude is None:
+        raise ValueError("Latitude and longitude must be supplied together.")
     else:
         # Regional bounds, not administrative boundary identification. The user
         # explicitly confirms the district used for the model profile.

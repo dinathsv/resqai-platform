@@ -12,7 +12,10 @@ ML_DIR = Path(__file__).resolve().parents[1]
 
 @pytest.fixture(scope="module")
 def engine():
-    spec = importlib.util.spec_from_file_location("prediction_contract_engine", ML_DIR / "predict.py")
+    path = ML_DIR / "predict.py"
+    spec = importlib.util.spec_from_file_location("prediction_contract_engine", path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load prediction engine from {path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
