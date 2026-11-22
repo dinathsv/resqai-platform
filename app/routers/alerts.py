@@ -12,6 +12,7 @@ Flow 6: Admin sending an area alert
 """
 
 import logging
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Any
@@ -30,6 +31,59 @@ from ..services.sms_service import sms_gateway
 logger = logging.getLogger("resqai.alerts")
 router = APIRouter(tags=["Alerts"])
 
+SRI_LANKA_DISTRICTS = {
+    "colombo": (79.80, 6.75, 80.22, 7.05),
+    "gampaha": (79.82, 6.98, 80.25, 7.35),
+    "kalutara": (79.90, 6.45, 80.35, 6.78),
+    "kandy": (80.45, 7.10, 80.95, 7.55),
+    "matale": (80.45, 7.40, 80.95, 8.05),
+    "nuwara eliya": (80.45, 6.75, 80.98, 7.18),
+    "galle": (80.05, 5.95, 80.50, 6.45),
+    "matara": (80.40, 5.85, 80.80, 6.40),
+    "hambantota": (80.75, 6.05, 81.65, 6.55),
+    "jaffna": (79.85, 9.45, 80.45, 9.85),
+    "kilinochchi": (80.05, 9.20, 80.65, 9.60),
+    "mannar": (79.70, 8.70, 80.30, 9.20),
+    "vavuniya": (80.20, 8.55, 80.75, 9.10),
+    "mullaitivu": (80.35, 9.00, 80.95, 9.45),
+    "batticaloa": (81.30, 7.30, 81.85, 7.95),
+    "ampara": (81.40, 6.80, 81.95, 7.60),
+    "trincomalee": (80.85, 8.30, 81.45, 8.95),
+    "kurunegala": (79.80, 7.25, 80.60, 8.15),
+    "puttalam": (79.70, 7.50, 80.20, 8.55),
+    "anuradhapura": (80.05, 8.05, 80.95, 8.85),
+    "polonnaruwa": (80.70, 7.65, 81.35, 8.35),
+    "badulla": (80.85, 6.70, 81.35, 7.35),
+    "monaragala": (80.95, 6.35, 81.65, 7.25),
+    "ratnapura": (80.20, 6.30, 80.95, 6.95),
+    "kegalle": (80.10, 6.90, 80.60, 7.35),
+}
+
+def resolve_zone_wkt(zone_str: str | None) -> str | None:
+    if not zone_str or not zone_str.strip():
+        return None
+    trimmed = zone_str.strip()
+    if trimmed.upper().startswith(("POLYGON", "MULTIPOLYGON")):
+        return trimmed
+    tokens = [t.strip().lower().replace(" district", "").replace(" province", "") for t in re.split(r"[,;\n/]+", trimmed) if t.strip()]
+    bounds = []
+    for token in tokens:
+        if token in SRI_LANKA_DISTRICTS:
+            bounds.append(SRI_LANKA_DISTRICTS[token])
+            continue
+        for dist, b in SRI_LANKA_DISTRICTS.items():
+            if token in dist or dist in token:
+                bounds.append(b)
+                break
+    if not bounds:
+        return None
+    min_lng = min(b[0] for b in bounds)
+    min_lat = min(b[1] for b in bounds)
+    max_lng = max(b[2] for b in bounds)
+    max_lat = max(b[3] for b in bounds)
+    return f"POLYGON(({min_lng} {min_lat}, {max_lng} {min_lat}, {max_lng} {max_lat}, {min_lng} {max_lat}, {min_lng} {min_lat}))"
+
+
 
 class CreateAlertRequest(BaseModel):
     disaster_type: str = Field(..., min_length=1)
@@ -40,7 +94,7 @@ class CreateAlertRequest(BaseModel):
     )
     work_plan: str | None = None
     district: str | None = None
-    expires_hours: int | None = Field(None, ge=1, le=168, description="Hours until alert expires")
+    expires_hours: int | None = Field(None, ge=0, le=168, description="Hours until alert expires")
 
 
 class UpdateAlertRequest(BaseModel):
@@ -77,9 +131,10 @@ async def create_alert(
         expires_at=expires_at,
     )
 
-    # Set affected zone if provided (WKT polygon)
-    if req.affected_zone_wkt:
-        new_alert.affected_zone = f"SRID=4326;{req.affected_zone_wkt}"
+    # Set affected zone if provided (WKT polygon or district names)
+    resolved_wkt = resolve_zone_wkt(req.affected_zone_wkt or req.district)
+    if resolved_wkt:
+        new_alert.affected_zone = f"SRID=4326;{resolved_wkt}"
 
     db.add(new_alert)
     await db.commit()
@@ -91,7 +146,7 @@ async def create_alert(
     # Find users in the affected area using PostGIS spatial query
     affected_users = []
     try:
-        if req.affected_zone_wkt:
+        if resolved_wkt:
             # Find registered users whose GPS is within the affected zone
             user_query = text("""
                 SELECT user_id, full_name, phone_number
@@ -102,7 +157,7 @@ async def create_alert(
                       ST_GeomFromText(:zone_wkt, 4326)
                   )
             """)
-            result = await db.execute(user_query, {"zone_wkt": req.affected_zone_wkt})
+            result = await db.execute(user_query, {"zone_wkt": resolved_wkt})
             affected_users = [dict(r._mapping) for r in result.all()]
         else:
             # Broadcast to all users with phone numbers
