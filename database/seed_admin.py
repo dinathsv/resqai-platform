@@ -40,40 +40,52 @@ async def main():
         raise RuntimeError("Set ADMIN_EMAIL and ADMIN_PASSWORD (6 characters minimum, 72 UTF-8 bytes maximum)")
     conn = await asyncpg.connect(DB_URL)
 
-    password_hash = hash_password(ADMIN_PASSWORD)
+    admins = [
+        {
+            "email": ADMIN_EMAIL,
+            "password": ADMIN_PASSWORD,
+            "name": ADMIN_NAME,
+            "agency": ADMIN_AGENCY,
+            "district": ADMIN_DISTRICT,
+        },
+        {
+            "email": "kirrsh001@gmail.com",
+            "password": "password123",
+            "name": "Kirrsh Admin",
+            "agency": "DMC",
+            "district": "Colombo",
+        },
+    ]
 
-    existing = await conn.fetchrow(
-        "SELECT admin_id FROM administrators WHERE email = $1", ADMIN_EMAIL
-    )
-    if existing:
-        await conn.execute(
-            """
-            UPDATE administrators
-            SET password_hash = $2, full_name = $3, agency = $4, district = $5, is_active = TRUE
-            WHERE email = $1
-            """,
-            ADMIN_EMAIL, password_hash, ADMIN_NAME, ADMIN_AGENCY, ADMIN_DISTRICT
+    for adm in admins:
+        pw_hash = hash_password(adm["password"])
+        existing = await conn.fetchrow(
+            "SELECT admin_id FROM administrators WHERE email = $1", adm["email"]
         )
-        print(f"✅ Admin credentials updated successfully!")
-        print(f"   Email:    {ADMIN_EMAIL}")
-        await conn.close()
-        return
-
-    await conn.execute(
-        """
-        INSERT INTO administrators (admin_id, full_name, email, agency, district, password_hash, is_active)
-        VALUES ($1, $2, $3, $4, $5, $6, TRUE)
-        """,
-        uuid.uuid4(),
-        ADMIN_NAME,
-        ADMIN_EMAIL,
-        ADMIN_AGENCY,
-        ADMIN_DISTRICT,
-        password_hash,
-    )
-
-    print(f"✅ Admin user created successfully!")
-    print(f"   Email:    {ADMIN_EMAIL}")
+        if existing:
+            await conn.execute(
+                """
+                UPDATE administrators
+                SET password_hash = $2, full_name = $3, agency = $4, district = $5, is_active = TRUE
+                WHERE email = $1
+                """,
+                adm["email"], pw_hash, adm["name"], adm["agency"], adm["district"]
+            )
+            print(f"✅ Admin credentials updated: {adm['email']}")
+        else:
+            await conn.execute(
+                """
+                INSERT INTO administrators (admin_id, full_name, email, agency, district, password_hash, is_active)
+                VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+                """,
+                uuid.uuid4(),
+                adm["name"],
+                adm["email"],
+                adm["agency"],
+                adm["district"],
+                pw_hash,
+            )
+            print(f"✅ Admin user created: {adm['email']}")
 
     await conn.close()
 

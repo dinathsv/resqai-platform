@@ -26,45 +26,136 @@ function mapEmergencyType(typeStr) {
   return 'other';
 }
 
+
+const SRI_LANKA_DISTRICTS = {
+  colombo: { minLng: 79.80, minLat: 6.75, maxLng: 80.22, maxLat: 7.05 },
+  gampaha: { minLng: 79.82, minLat: 6.98, maxLng: 80.25, maxLat: 7.35 },
+  kalutara: { minLng: 79.90, minLat: 6.45, maxLng: 80.35, maxLat: 6.78 },
+  kandy: { minLng: 80.45, minLat: 7.10, maxLng: 80.95, maxLat: 7.55 },
+  matale: { minLng: 80.45, minLat: 7.40, maxLng: 80.95, maxLat: 8.05 },
+  'nuwara eliya': { minLng: 80.45, minLat: 6.75, maxLng: 80.98, maxLat: 7.18 },
+  nuwaraeliya: { minLng: 80.45, minLat: 6.75, maxLng: 80.98, maxLat: 7.18 },
+  galle: { minLng: 80.05, minLat: 5.95, maxLng: 80.50, maxLat: 6.45 },
+  matara: { minLng: 80.40, minLat: 5.85, maxLng: 80.80, maxLat: 6.40 },
+  hambantota: { minLng: 80.75, minLat: 6.05, maxLng: 81.65, maxLat: 6.55 },
+  jaffna: { minLng: 79.85, minLat: 9.45, maxLng: 80.45, maxLat: 9.85 },
+  kilinochchi: { minLng: 80.05, minLat: 9.20, maxLng: 80.65, maxLat: 9.60 },
+  mannar: { minLng: 79.70, minLat: 8.70, maxLng: 80.30, maxLat: 9.20 },
+  vavuniya: { minLng: 80.20, minLat: 8.55, maxLng: 80.75, maxLat: 9.10 },
+  mullaitivu: { minLng: 80.35, minLat: 9.00, maxLng: 80.95, maxLat: 9.45 },
+  batticaloa: { minLng: 81.30, minLat: 7.30, maxLng: 81.85, maxLat: 7.95 },
+  ampara: { minLng: 81.40, minLat: 6.80, maxLng: 81.95, maxLat: 7.60 },
+  trincomalee: { minLng: 80.85, minLat: 8.30, maxLng: 81.45, maxLat: 8.95 },
+  kurunegala: { minLng: 79.80, minLat: 7.25, maxLng: 80.60, maxLat: 8.15 },
+  puttalam: { minLng: 79.70, minLat: 7.50, maxLng: 80.20, maxLat: 8.55 },
+  anuradhapura: { minLng: 80.05, minLat: 8.05, maxLng: 80.95, maxLat: 8.85 },
+  polonnaruwa: { minLng: 80.70, minLat: 7.65, maxLng: 81.35, maxLat: 8.35 },
+  badulla: { minLng: 80.85, minLat: 6.70, maxLng: 81.35, maxLat: 7.35 },
+  monaragala: { minLng: 80.95, minLat: 6.35, maxLng: 81.65, maxLat: 7.25 },
+  ratnapura: { minLng: 80.20, minLat: 6.30, maxLng: 80.95, maxLat: 6.95 },
+  kegalle: { minLng: 80.10, minLat: 6.90, maxLng: 80.60, maxLat: 7.35 },
+};
+
+const PROVINCES = {
+  western: ['colombo', 'gampaha', 'kalutara'],
+  central: ['kandy', 'matale', 'nuwara eliya'],
+  southern: ['galle', 'matara', 'hambantota'],
+  northern: ['jaffna', 'kilinochchi', 'mannar', 'vavuniya', 'mullaitivu'],
+  eastern: ['trincomalee', 'batticaloa', 'ampara'],
+  'north western': ['kurunegala', 'puttalam'],
+  wayamba: ['kurunegala', 'puttalam'],
+  'north central': ['anuradhapura', 'polonnaruwa'],
+  uva: ['badulla', 'monaragala'],
+  sabaragamuwa: ['ratnapura', 'kegalle'],
+};
+
+function resolveZoneWKT(input) {
+  if (!input || typeof input !== 'string') return null;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  if (trimmed.toUpperCase().startsWith('POLYGON') || trimmed.toUpperCase().startsWith('MULTIPOLYGON')) {
+    return trimmed;
+  }
+
+  const lower = trimmed.toLowerCase();
+  if (['all', 'nationwide', 'islandwide', 'sri lanka', 'srilanka', 'national', 'island-wide', 'entire country'].includes(lower)) {
+    return null;
+  }
+
+  const tokens = lower.split(/[,;\n/]+/).map(t => t.trim()).filter(Boolean);
+  const matchedBounds = [];
+
+  for (const rawToken of tokens) {
+    const token = rawToken.replace(/\s*(province|district)\s*$/i, '').trim();
+    if (PROVINCES[token]) {
+      for (const d of PROVINCES[token]) {
+        if (SRI_LANKA_DISTRICTS[d]) matchedBounds.push(SRI_LANKA_DISTRICTS[d]);
+      }
+      continue;
+    }
+    if (SRI_LANKA_DISTRICTS[token]) {
+      matchedBounds.push(SRI_LANKA_DISTRICTS[token]);
+      continue;
+    }
+    for (const [distName, bounds] of Object.entries(SRI_LANKA_DISTRICTS)) {
+      if (token.includes(distName) || distName.includes(token)) {
+        matchedBounds.push(bounds);
+        break;
+      }
+    }
+  }
+
+  if (matchedBounds.length === 0) {
+    return null;
+  }
+
+  const minLng = Math.min(...matchedBounds.map(b => b.minLng));
+  const minLat = Math.min(...matchedBounds.map(b => b.minLat));
+  const maxLng = Math.max(...matchedBounds.map(b => b.maxLng));
+  const maxLat = Math.max(...matchedBounds.map(b => b.maxLat));
+
+  return `POLYGON((${minLng} ${minLat}, ${maxLng} ${minLat}, ${maxLng} ${maxLat}, ${minLng} ${maxLat}, ${minLng} ${minLat}))`;
+}
+
 router.post('/', requireAdmin, async (req, res) => {
   try {
     const raw_disaster_type = req.body.disaster_type || req.body.disasterType;
     const zone_wkt = req.body.zone_wkt || req.body.affectedZone;
     const work_plan = req.body.work_plan || req.body.workPlan;
-    const expires_hours = req.body.expires_hours || req.body.expiresIn || 24;
+    const expires_hours = req.body.expires_hours !== undefined ? req.body.expires_hours : (req.body.expiresIn !== undefined ? req.body.expiresIn : 24);
     const severity = req.body.severity || 3;
     const is_draft = req.body.is_draft || false;
 
-    if (!Number.isInteger(Number(severity)) || Number(severity) < 1 || Number(severity) > 5 ||
-        !Number.isFinite(Number(expires_hours)) || Number(expires_hours) < 1 || Number(expires_hours) > 168) {
-      return res.status(400).json({ error: 'Severity must be 1–5 and expiry 1–168 hours' });
+    const expNum = Number(expires_hours);
+    const sevNum = Number(severity);
+    if (!Number.isInteger(sevNum) || sevNum < 1 || sevNum > 5 ||
+        !Number.isFinite(expNum) || expNum < 0 || expNum > 168) {
+      return res.status(400).json({ error: 'Severity must be 1–5 and expiry 0–168 hours' });
     }
     if (!raw_disaster_type) {
       return res.status(400).json({ error: 'disaster_type is required' });
     }
 
     const disaster_type = mapEmergencyType(raw_disaster_type);
-
     const adminId = req.admin.admin_id;
+
     if (is_draft) {
       return res.status(400).json({ error: 'Draft alerts are not supported by the current database schema' });
     }
 
-    const status = is_draft ? 'draft' : 'active';
+    const status = 'active';
 
     let expiresAt = null;
-    if (expires_hours && Number(expires_hours) > 0) {
-      expiresAt = new Date(Date.now() + Number(expires_hours) * 3600 * 1000);
+    if (expNum > 0) {
+      expiresAt = new Date(Date.now() + expNum * 3600 * 1000);
     }
 
-    // Check if zone_wkt is a valid WKT polygon
+    // Resolve district names or direct WKT to a valid PostGIS polygon
     const cleanZone = zone_wkt && typeof zone_wkt === 'string' ? zone_wkt.trim() : '';
-    const isWktPolygon = Boolean(
-      cleanZone &&
-      (cleanZone.toUpperCase().startsWith('POLYGON') || cleanZone.toUpperCase().startsWith('MULTIPOLYGON'))
-    );
+    const resolvedZone = resolveZoneWKT(cleanZone);
+    const isWktPolygon = Boolean(resolvedZone);
 
-    if (cleanZone && !isWktPolygon) return res.status(400).json({ error: 'Select a valid polygon or clear the zone for a nationwide alert' });
     let insertQuery;
     let insertParams;
 
@@ -76,7 +167,7 @@ router.post('/', requireAdmin, async (req, res) => {
         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, ST_GeomFromText($8, 4326))
         RETURNING alert_id, disaster_type, severity, work_plan, status, created_at, expires_at
       `;
-      insertParams = [adminId, disaster_type, Number(severity) || 3, work_plan || null, status, expiresAt, 0, cleanZone];
+      insertParams = [adminId, disaster_type, sevNum, work_plan || null, status, expiresAt, 0, resolvedZone];
     } else {
       insertQuery = `
         INSERT INTO emergency_alerts (
@@ -85,7 +176,7 @@ router.post('/', requireAdmin, async (req, res) => {
         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7)
         RETURNING alert_id, disaster_type, severity, work_plan, status, created_at, expires_at
       `;
-      insertParams = [adminId, disaster_type, Number(severity) || 3, work_plan || null, status, expiresAt, 0];
+      insertParams = [adminId, disaster_type, sevNum, work_plan || null, status, expiresAt, 0];
     }
 
     const { rows: alertRows } = await req.app.locals.pool.query(insertQuery, insertParams);
@@ -105,7 +196,7 @@ router.post('/', requireAdmin, async (req, res) => {
           WHERE is_active=TRUE AND is_verified=TRUE AND gps_location IS NOT NULL
             AND ST_Within(gps_location, ST_GeomFromText($1, 4326))
         `;
-        userParams = [cleanZone];
+        userParams = [resolvedZone];
       }
 
       let users = [];
