@@ -1,6 +1,6 @@
 """Read-only startup contract. Schema changes belong in versioned SQL migrations."""
 
-from sqlalchemy import inspect
+from sqlalchemy import Enum, inspect
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from app.database import Base
@@ -28,9 +28,12 @@ async def check_schema(connection: AsyncConnection) -> None:
         enums = {item["name"]: set(item["labels"]) for item in inspector.get_enums(schema="public")}
         for table in Base.metadata.tables.values():
             for column in table.columns:
-                labels = getattr(column.type, "enums", None)
-                if labels and not set(labels).issubset(enums.get(column.type.name, set())):
-                    problems.append(f"missing enum values for {column.type.name}")
+                column_type = column.type
+                if not isinstance(column_type, Enum) or not column_type.enums:
+                    continue
+                name = column_type.name
+                if name is None or not set(column_type.enums).issubset(enums.get(name, set())):
+                    problems.append(f"missing enum values for {name}")
         if problems:
             raise RuntimeError("Database schema incompatible; apply reviewed migrations before starting: " + "; ".join(sorted(set(problems))))
 

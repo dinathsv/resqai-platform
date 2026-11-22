@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from google.genai import errors
 
 from services import llm_service
 
@@ -56,8 +57,7 @@ async def test_chatbot_recovers_from_primary_503_using_backup(client, monkeypatc
     monkeypatch.setenv('GEMINI_API_KEY', 'test-key')
     monkeypatch.setenv('LLM_MODEL', 'primary')
     monkeypatch.setenv('LLM_FALLBACK_MODELS', 'backup')
-    error = RuntimeError('model overloaded')
-    error.code = 503
+    error = errors.ServerError(503, {'message': 'model overloaded'})
     generate = AsyncMock(side_effect=[error, SimpleNamespace(text='1. Generated guidance.')])
     sdk_client = SimpleNamespace(models=SimpleNamespace(generate_content=generate), aclose=AsyncMock())
     monkeypatch.setattr(llm_service.genai, 'Client', MagicMock(return_value=SimpleNamespace(aio=sdk_client)))
@@ -80,8 +80,7 @@ async def test_chatbot_all_models_unavailable_returns_emergency_fallback(client,
     monkeypatch.setenv('GEMINI_API_KEY', 'test-key')
     monkeypatch.setenv('LLM_MODEL', 'primary')
     monkeypatch.setenv('LLM_FALLBACK_MODELS', 'backup')
-    error = RuntimeError('model overloaded')
-    error.code = 503
+    error = errors.ServerError(503, {'message': 'model overloaded'})
     generate = AsyncMock(side_effect=error)
     sdk_client = SimpleNamespace(models=SimpleNamespace(generate_content=generate), aclose=AsyncMock())
     monkeypatch.setattr(llm_service.genai, 'Client', MagicMock(return_value=SimpleNamespace(aio=sdk_client)))

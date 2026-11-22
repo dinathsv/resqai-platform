@@ -30,10 +30,10 @@ def sdk(monkeypatch):
     return SimpleNamespace(client=client, generate=generate, factory=factory)
 
 
-def upstream_error(code):
-    error = RuntimeError(f'upstream status {code}')
-    error.code = code
-    return error
+class UpstreamError(RuntimeError):
+    def __init__(self, code: int) -> None:
+        super().__init__(f'upstream status {code}')
+        self.code = code
 
 
 def called_models(sdk):
@@ -136,7 +136,7 @@ async def test_missing_key_fails_before_network_call(monkeypatch, sdk):
 @pytest.mark.asyncio
 @pytest.mark.parametrize('code', [408, 429, 500, 502, 503, 504])
 async def test_transient_primary_failure_immediately_uses_backup(monkeypatch, sdk, code):
-    sdk.generate.side_effect = [upstream_error(code), SimpleNamespace(text='Backup answer')]
+    sdk.generate.side_effect = [UpstreamError(code), SimpleNamespace(text='Backup answer')]
     sleep = AsyncMock()
     monkeypatch.setattr(llm_service.asyncio, 'sleep', sleep)
     assert await llm_service.chat('System', 'Question') == 'Backup answer'
@@ -158,7 +158,7 @@ async def test_transport_error_uses_backup(monkeypatch, sdk, error):
 @pytest.mark.asyncio
 async def test_single_model_retries_and_recovers(monkeypatch, sdk):
     monkeypatch.setenv('LLM_FALLBACK_MODELS', 'primary')
-    sdk.generate.side_effect = [upstream_error(503), SimpleNamespace(text='Recovered')]
+    sdk.generate.side_effect = [UpstreamError(503), SimpleNamespace(text='Recovered')]
     sleep = AsyncMock()
     monkeypatch.setattr(llm_service.asyncio, 'sleep', sleep)
     assert await llm_service.chat('System', 'Question') == 'Recovered'
@@ -170,7 +170,7 @@ async def test_single_model_retries_and_recovers(monkeypatch, sdk):
 @pytest.mark.asyncio
 async def test_all_models_are_tried_before_retrying_primary(monkeypatch, sdk):
     sdk.generate.side_effect = [
-        upstream_error(503), upstream_error(503), SimpleNamespace(text='Recovered'),
+        UpstreamError(503), UpstreamError(503), SimpleNamespace(text='Recovered'),
     ]
     sleep = AsyncMock()
     monkeypatch.setattr(llm_service.asyncio, 'sleep', sleep)
@@ -182,7 +182,7 @@ async def test_all_models_are_tried_before_retrying_primary(monkeypatch, sdk):
 @pytest.mark.asyncio
 async def test_rate_limited_primary_is_not_retried_when_backup_is_temporary_unavailable(monkeypatch, sdk):
     sdk.generate.side_effect = [
-        upstream_error(429), upstream_error(503), SimpleNamespace(text='Backup answer'),
+        UpstreamError(429), UpstreamError(503), SimpleNamespace(text='Backup answer'),
     ]
     sleep = AsyncMock()
     monkeypatch.setattr(llm_service.asyncio, 'sleep', sleep)
@@ -194,7 +194,7 @@ async def test_rate_limited_primary_is_not_retried_when_backup_is_temporary_unav
 
 @pytest.mark.asyncio
 async def test_all_rate_limited_models_fail_without_retries_or_sleep(monkeypatch, sdk):
-    sdk.generate.side_effect = upstream_error(429)
+    sdk.generate.side_effect = UpstreamError(429)
     sleep = AsyncMock()
     monkeypatch.setattr(llm_service.asyncio, 'sleep', sleep)
     with pytest.raises(RuntimeError, match='upstream status 429'):
@@ -244,7 +244,7 @@ async def test_rate_limit_log_extracts_structured_metadata_without_error_body(mo
 @pytest.mark.asyncio
 async def test_unavailable_model_is_not_retried_in_later_rounds(monkeypatch, sdk):
     sdk.generate.side_effect = [
-        upstream_error(404), upstream_error(503), SimpleNamespace(text='Backup answer'),
+        UpstreamError(404), UpstreamError(503), SimpleNamespace(text='Backup answer'),
     ]
     sleep = AsyncMock()
     monkeypatch.setattr(llm_service.asyncio, 'sleep', sleep)
@@ -257,7 +257,7 @@ async def test_unavailable_model_is_not_retried_in_later_rounds(monkeypatch, sdk
 @pytest.mark.asyncio
 @pytest.mark.parametrize('code', [400, 401, 403])
 async def test_permanent_error_is_not_retried(sdk, code):
-    sdk.generate.side_effect = upstream_error(code)
+    sdk.generate.side_effect = UpstreamError(code)
     with pytest.raises(RuntimeError, match=f'upstream status {code}'):
         await llm_service.chat('System', 'Question')
     sdk.generate.assert_awaited_once()
@@ -266,7 +266,7 @@ async def test_permanent_error_is_not_retried(sdk, code):
 
 @pytest.mark.asyncio
 async def test_exhausted_retries_close_client(monkeypatch, sdk):
-    sdk.generate.side_effect = upstream_error(503)
+    sdk.generate.side_effect = UpstreamError(503)
     sleep = AsyncMock()
     monkeypatch.setattr(llm_service.asyncio, 'sleep', sleep)
     with pytest.raises(RuntimeError, match='upstream status 503'):
@@ -306,7 +306,7 @@ async def test_longer_configured_timeout_allows_slow_backup_to_complete(monkeypa
 
     async def generate(**kwargs):
         if kwargs['model'] == 'primary':
-            raise upstream_error(429)
+            raise UpstreamError(429)
         await asyncio.sleep(0.02)
         return SimpleNamespace(text='Slow backup answer')
 
