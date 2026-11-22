@@ -51,7 +51,7 @@ async def test_register_duplicate_email(client: AsyncClient):
 
     r = await client.post('/api/auth/register', json={
         "full_name": "Dup User",
-        "email": "dup@example.com",
+        "email": "DUP@example.com",
         "password": "password123",
         "phone_number": "0771234568",
     })
@@ -163,6 +163,36 @@ async def test_login_locked_after_5(client: AsyncClient):
     })
     assert r_6.status_code == 429
     assert "locked" in r_6.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_admin_login_requires_password_and_enforces_lockout(client: AsyncClient):
+    from app.database import get_db
+    from app.main import app
+    from app.models.administrator import Administrator
+    from app.routers.auth import pwd_context
+
+    email = "coordinator@example.com"
+    password = "test-coordinator-passphrase"
+    async for session in app.dependency_overrides[get_db]():
+        session.add(Administrator(
+            full_name="Test Coordinator",
+            email=email,
+            password_hash=pwd_context.hash(password),
+        ))
+        await session.commit()
+
+    url = '/api/auth/admin/login'
+    valid = await client.post(url, json={"email": email, "password": password})
+    assert valid.status_code == 200
+
+    for _ in range(5):
+        invalid = await client.post(url, json={"email": email, "password": "incorrect-password"})
+        assert invalid.status_code == 401
+
+    locked = await client.post(url, json={"email": email.upper(), "password": password})
+    assert locked.status_code == 429
+
 
 async def get_test_redis():
     from app.main import app
