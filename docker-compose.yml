@@ -36,6 +36,7 @@ services:
   # starting upgraded APIs. Normal application startup remains read-only.
   migrate:
     profiles: ["tools"]
+    image: resqai_project-python-api:latest
     build:
       context: .
       dockerfile: app/Dockerfile
@@ -48,6 +49,24 @@ services:
     restart: "no"
     depends_on:
       postgres:
+        condition: service_healthy
+
+  seed:
+    profiles: ["tools"]
+    image: resqai_project-python-api:latest
+    environment:
+      DATABASE_URL: ${PYTHON_DATABASE_URL:?Set PYTHON_DATABASE_URL in .env}
+      REDIS_URL: redis://redis:6379
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      CITIZEN_PASSWORD: ${CITIZEN_PASSWORD:-password123}
+    volumes:
+      - ./database:/workspace/database:ro
+    command: ["python", "-m", "database.seed"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   python-api:

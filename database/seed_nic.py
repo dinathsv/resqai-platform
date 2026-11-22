@@ -12,7 +12,7 @@ import asyncpg
 import os
 
 # Use DATABASE_URL from environment if available, otherwise fallback to localhost
-DB_URL = os.environ.get("DATABASE_URL", "postgresql://resqai_user:resqai_pass@localhost:5433/resqai")
+DB_URL = os.environ.get("DATABASE_URL", "postgresql://resqai_user:resqai_local_db_password@localhost:5433/resqai")
 
 # asyncpg doesn't support 'postgresql+asyncpg://', so we replace it
 if DB_URL.startswith("postgresql+asyncpg://"):
@@ -50,6 +50,12 @@ def generate_new_nic():
 async def main():
     print("Connecting to database...")
     conn = await asyncpg.connect(DB_URL)
+
+    count = await conn.fetchval("SELECT count(*) FROM nic_database")
+    if count and count >= 50:
+        print(f"✅ NIC database already has {count} records.")
+        await conn.close()
+        return
 
     records = []
 
