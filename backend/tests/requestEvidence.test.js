@@ -26,11 +26,17 @@ test('every private evidence endpoint requires an active administrator', () => {
 });
 
 test('metadata forwards the administrator bearer and forbids redirects and caches', async t => {
+  const previousUrl = process.env.FASTAPI_URL;
+  process.env.FASTAPI_URL = 'https://evidence.example.test/';
+  t.after(() => {
+    if (previousUrl === undefined) delete process.env.FASTAPI_URL;
+    else process.env.FASTAPI_URL = previousUrl;
+  });
   const fetch = t.mock.method(globalThis, 'fetch', async () => Response.json({ configured: true, items: [] }));
   const res = response();
   await handlers['/:requestId'](request({ evidenceId: undefined }), res);
   const [url, options] = fetch.mock.calls[0].arguments;
-  assert.ok(url.endsWith(`/api/requests/${requestId}/verification-evidence`));
+  assert.equal(url, `https://evidence.example.test/api/requests/${requestId}/verification-evidence`);
   assert.equal(options.headers.Authorization, 'Bearer private-admin-token');
   assert.equal(options.redirect, 'error');
   assert.equal(options.cache, 'no-store');
@@ -68,6 +74,21 @@ test('upstream denial remains denied and never includes private upstream error t
   await handlers['/:requestId/:evidenceId/image'](request(), res);
   assert.equal(res.statusCode, 403);
   assert.ok(!JSON.stringify(res.body).includes('secret'));
+});
+
+test('FastAPI token rejection does not invalidate the Node admin session', async t => {
+  t.mock.method(console, 'error', () => {});
+  t.mock.method(globalThis, 'fetch', async () => new Response('private upstream details', { status: 401 }));
+  for (const [path, params] of [
+    ['/:requestId', { evidenceId: undefined }],
+    ['/:requestId/:evidenceId/image', {}],
+  ]) {
+    const res = response();
+    await handlers[path](request(params), res);
+    assert.equal(res.statusCode, 502);
+    assert.deepEqual(res.body, { error: 'The private evidence service is temporarily unavailable.' });
+    assert.equal(res.headers['cache-control'], 'private, no-store');
+  }
 });
 
 test('non-JPEG and oversized upstream image responses are rejected', async t => {

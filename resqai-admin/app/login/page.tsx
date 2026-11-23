@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -55,7 +56,14 @@ export default function LoginPage() {
   return (
     <div className={styles.wrapper}>
       <form className={styles.form} onSubmit={handleSubmit}>
-        <div className={styles.brandIcon}>RQ</div>
+        <Image
+          className={styles.brandLogo}
+          src="/resqai_logo.png"
+          alt=""
+          width={64}
+          height={72}
+          loading="eager"
+        />
         <div className={styles.title}>ResQAI Admin</div>
         <div className={styles.subtitle}>Admin Access</div>
 

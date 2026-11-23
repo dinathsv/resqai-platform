@@ -24,6 +24,11 @@
   margin-bottom: 8px;
 }
 
+.brandLogo {
+  display: block;
+  margin: 0 auto 8px;
+}
+
 .title {
   font-size: 18px;
   font-weight: 600;

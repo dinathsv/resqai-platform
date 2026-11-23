@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { isAxiosError } from 'axios';
 import Image from 'next/image';
 import useSWR from 'swr';
 import api from '@/lib/api';
@@ -25,6 +26,18 @@ interface EvidenceMetadata {
 const fetcher = (url: string) => api.get<EvidenceMetadata>(url, {
   headers: { 'Cache-Control': 'no-cache' },
 }).then(response => response.data);
+
+async function imageError(error: unknown): Promise<string> {
+  const fallback = 'The image could not be loaded. Try opening it again.';
+  const body = isAxiosError(error) ? error.response?.data : undefined;
+  if (!(body instanceof Blob) || body.type.split(';')[0] !== 'application/json') return fallback;
+  try {
+    const { error: message } = JSON.parse(await body.text());
+    return typeof message === 'string' ? message : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 function EvidenceImage({ requestId, evidence }: { requestId: string; evidence: EvidenceItem }) {
   const [image, setImage] = useState<string | null>(null);
@@ -79,7 +92,10 @@ function EvidenceImage({ requestId, evidence }: { requestId: string; evidence: E
       objectUrl.current = url;
       setImage(url);
     } catch (error) {
-      if (!controller.signal.aborted) setError(apiError(error, 'The image is unavailable or has expired.'));
+      if (!controller.signal.aborted) {
+        const message = await imageError(error);
+        if (!controller.signal.aborted) setError(message);
+      }
     } finally {
       if (pending.current === controller) { pending.current = null; setLoading(false); }
     }
@@ -102,8 +118,8 @@ function EvidenceImage({ requestId, evidence }: { requestId: string; evidence: E
 }
 
 export default function RequestEvidence({ requestId }: { requestId: string }) {
-  const { data, error, isLoading } = useSWR<EvidenceMetadata>(
-    `/api/admin/request-evidence/${requestId}`, fetcher, { refreshInterval: 15000 },
+  const { data, error, isLoading, isValidating, mutate } = useSWR<EvidenceMetadata>(
+    `/api/admin/request-evidence/${requestId}`, fetcher, { refreshInterval: 15000, shouldRetryOnError: false },
   );
 
   return <section className="section">
@@ -111,7 +127,12 @@ export default function RequestEvidence({ requestId }: { requestId: string }) {
     <p>Compare the NIC and camera photo manually. Confirm the reported need separately; these uploads do not provide automatic face matching or proof of liveness.</p>
     <p className="opsMuted">Only administrators can open these images. Each image access is recorded. Hide images when you finish reviewing.</p>
     {isLoading ? <p role="status">Checking private evidence…</p>
-      : error ? <p role="alert" className="opsError">Private evidence could not be loaded. Try again after checking the evidence service.</p>
+      : error ? <>
+        <p role="alert" className="opsError">{apiError(error, 'Private evidence could not be loaded.')}</p>
+        <button type="button" disabled={isValidating} onClick={() => { void mutate().catch(() => undefined); }}>
+          {isValidating ? 'Checking private evidence…' : 'Retry loading evidence'}
+        </button>
+      </>
         : !data?.configured ? <p className="opsMuted">Private evidence storage is not configured. Use a phone callback or field confirmation.</p>
           : !data.items.length ? <p className="opsMuted">No current NIC or camera photo supplied. Ask for evidence if it is needed for your review.</p>
             : <div className={styles.grid}>{data.items.map(evidence => <EvidenceImage key={evidence.evidence_id} requestId={requestId} evidence={evidence} />)}</div>}

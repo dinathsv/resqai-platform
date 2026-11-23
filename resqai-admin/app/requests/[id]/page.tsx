@@ -27,6 +27,13 @@ interface RequestDetail {
   verification_history: Array<{ verification_id: string; decision: string; method: string; notes: string; reviewer_name?: string; agency?: string; created_at: string }>;
 }
 const fetcher = (url: string) => api.get(url).then(response => response.data);
+const reasonHelp = 'Enter 10–2,000 characters.';
+type FormFeedback = { message: string; error?: boolean };
+
+function ActionFeedback({ feedback }: { feedback: FormFeedback | null }) {
+  if (!feedback) return null;
+  return <p role={feedback.error ? 'alert' : 'status'} className={feedback.error ? 'opsError' : undefined}>{feedback.message}</p>;
+}
 
 export default function RequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -36,34 +43,63 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
   const [notes, setNotes] = useState('');
   const [nextStatus, setNextStatus] = useState('in_progress');
   const [reason, setReason] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState('');
-  const [failed, setFailed] = useState(false);
+  const [saving, setSaving] = useState<'review' | 'status' | null>(null);
+  const [reviewFeedback, setReviewFeedback] = useState<FormFeedback | null>(null);
+  const [statusFeedback, setStatusFeedback] = useState<FormFeedback | null>(null);
 
-  async function review(event: FormEvent) {
+  async function review(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!request || saving) return;
-    setSaving(true); setFeedback('');
+    const findings = notes.trim();
+    if (findings.length < 10 || findings.length > 2000) {
+      setReviewFeedback({ error: true, message: 'Enter 10–2,000 characters for your findings and reason.' });
+      event.currentTarget.querySelector('textarea')?.focus();
+      return;
+    }
+    setSaving('review');
+    setReviewFeedback(null);
     try {
-      await api.patch(`/api/requests/${id}/verification`, { decision, method, notes, expected_verification_status: request.verification_status });
-      setNotes(''); await mutate(); setFailed(false); setFeedback('Review saved with the reviewer and decision history.');
-    } catch (error) { setFailed(true); setFeedback(apiError(error, 'Review could not be saved.')); }
-    finally { setSaving(false); }
+      await api.patch(`/api/requests/${id}/verification`, { decision, method, notes: findings, expected_verification_status: request.verification_status });
+      setNotes('');
+      setReviewFeedback({ message: 'Review saved.' });
+      await mutate().catch(() => undefined);
+    } catch (error) {
+      setReviewFeedback({ error: true, message: apiError(error, 'Review could not be saved.') });
+    } finally {
+      setSaving(null);
+    }
   }
-  async function updateStatus(event: FormEvent) {
-    event.preventDefault(); if (saving) return;
-    setSaving(true); setFeedback('');
-    try { await api.patch(`/api/requests/${id}/status`, { status: nextStatus, reason }); await mutate(); setReason(''); setFailed(false); setFeedback('Response status updated.'); }
-    catch (error) { setFailed(true); setFeedback(apiError(error, 'Status could not be updated.')); }
-    finally { setSaving(false); }
+
+  async function updateStatus(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!request || saving) return;
+    const updateReason = reason.trim();
+    if (updateReason.length < 10 || updateReason.length > 2000) {
+      setStatusFeedback({ error: true, message: 'Enter 10–2,000 characters for the response status change.' });
+      event.currentTarget.querySelector('textarea')?.focus();
+      return;
+    }
+    setSaving('status');
+    setStatusFeedback(null);
+    try {
+      await api.patch(`/api/requests/${id}/status`, { status: nextStatus, reason: updateReason });
+      setReason('');
+      setStatusFeedback({ message: 'Response status updated.' });
+      await mutate().catch(() => undefined);
+    } catch (error) {
+      setStatusFeedback({ error: true, message: apiError(error, 'Response status could not be updated.') });
+    } finally {
+      setSaving(null);
+    }
   }
   if (isLoading) return <div className="page">Loading request…</div>;
-  if (error || !request) return <div className="page" role="alert">Unable to load this request.</div>;
+  if (!request) return <div className="page" role="alert">Unable to load this request.</div>;
   const closed = request.admin_status === 'finished' || ['resolved', 'cancelled'].includes(request.status);
 
   return <div className="page">
     <Link href="/requests">← Review queue</Link>
     <h1>{request.request_type === 'donation' ? 'Goods request' : 'Help request'} #{id.slice(0, 8)}</h1>
+    {error && <p role="alert" className="opsError">The request could not be refreshed. Showing the last loaded details.</p>}
     <div className="opsActions"><VerificationBadge status={request.verification_status} /><span className="statusBadge statusInfo">{readable(request.admin_status)}</span><strong>Priority {request.urgency_level}/5</strong></div>
     <section className="section">
       <h2>Reported situation</h2>
@@ -91,18 +127,23 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
     <section className="section">
       <h2>Review the need</h2>
       <p>Record the checks you completed and the evidence supporting your decision. Only verified, open requests appear in the community feed. Confirm need shares a generic listing; requesting more information or rejecting the report keeps it private to the requester and administrators.</p>
-      {closed ? <p>This request is closed.</p> : <form className="opsForm" onSubmit={review}>
+      {closed ? <p>This request is closed.</p> : <form className="opsForm" onSubmit={review} noValidate>
         <label>Decision<select value={decision} onChange={event => setDecision(event.target.value)}><option value="needs_information">Request more information</option><option value="verified">Confirm need</option><option value="rejected">Reject request</option></select></label>
         <label>Verification method<select value={method} onChange={event => setMethod(event.target.value)}><option value="phone_callback">Phone callback</option><option value="field_visit">Field visit</option><option value="agency_confirmation">Agency confirmation</option><option value="document_review">Document review</option></select></label>
-        <label>Findings and reason<textarea value={notes} onChange={event => setNotes(event.target.value)} minLength={10} maxLength={2000} rows={4} required placeholder="Who confirmed the need, what was checked, and any remaining uncertainty" /></label>
-        <button type="submit" disabled={saving || notes.trim().length < 10}>{saving ? 'Saving…' : 'Save review'}</button>
+        <label>Findings and reason <small id="review-reason-help" className="opsMuted">{reasonHelp}</small>
+          <textarea value={notes} onChange={event => setNotes(event.target.value)} minLength={10} maxLength={2000} rows={4} required readOnly={saving === 'review'} aria-describedby="review-reason-help" placeholder="Who confirmed the need, what was checked, and any remaining uncertainty" />
+        </label>
+        <button type="submit" disabled={saving !== null}>{saving === 'review' ? 'Saving…' : 'Save review'}</button>
       </form>}
-      {feedback && <p role={failed ? 'alert' : 'status'} className={failed ? 'opsError' : ''}>{feedback}</p>}
+      <ActionFeedback feedback={reviewFeedback} />
     </section>
     <section className="section"><h2>Response progress</h2>
-      {!closed && <form className="opsForm" onSubmit={updateStatus}><label>Next status<select value={nextStatus} onChange={event => setNextStatus(event.target.value)}><option value="in_progress">In progress</option><option value="finished">Finished — missions completed</option></select></label>
-        <label>Reason<textarea value={reason} minLength={10} maxLength={2000} required onChange={event => setReason(event.target.value)} rows={2} /></label>
-        <button type="submit" disabled={saving || reason.trim().length < 10}>Update response status</button></form>}
+      {!closed && <form className="opsForm" onSubmit={updateStatus} noValidate><label>Next status<select value={nextStatus} onChange={event => setNextStatus(event.target.value)}><option value="in_progress">In progress</option><option value="finished">Finished — missions completed</option></select></label>
+        <label>Reason <small id="status-reason-help" className="opsMuted">{reasonHelp}</small>
+          <textarea value={reason} minLength={10} maxLength={2000} required readOnly={saving === 'status'} aria-describedby="status-reason-help" onChange={event => setReason(event.target.value)} rows={2} />
+        </label>
+        <button type="submit" disabled={saving !== null}>{saving === 'status' ? 'Updating…' : 'Update response status'}</button></form>}
+      <ActionFeedback feedback={statusFeedback} />
       {request.missions?.map(mission => <p key={mission.mission_id}><Link href={`/missions/${mission.mission_id}`}>{mission.title}</Link> · {readable(mission.status)}</p>)}
       {!request.missions?.length && <p>No mission yet.</p>}
       {request.request_type === 'donation' && <p><Link href="/goods">Open goods and delivery coordination</Link></p>}
