@@ -1,10 +1,13 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const { requireAdmin } = require('../middleware/auth');
 const { UUID_PATTERN } = require('../services/requestWorkflow');
 
 const router = express.Router();
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const SERVICE_UNAVAILABLE = 'The private evidence service is temporarily unavailable.';
+const RENDER_BACKEND_HOST = 'resqai-platform-backend.onrender.com';
+const RENDER_API_URL = 'https://resqai-platform-api.onrender.com';
 
 function privateResponse(res) {
   res.set('Cache-Control', 'private, no-store');
@@ -23,8 +26,10 @@ function validIds(req, res) {
 
 async function fetchEvidence(req, res, suffix = '') {
   const configuredUrl = process.env.FASTAPI_URL?.trim();
-  const base = configuredUrl || (process.env.NODE_ENV === 'production' || process.env.RENDER === 'true'
-    ? '' : 'http://localhost:8000');
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
+  const defaultUrl = process.env.RENDER_EXTERNAL_HOSTNAME === RENDER_BACKEND_HOST
+    ? RENDER_API_URL : isProduction ? '' : 'http://localhost:8000';
+  const base = configuredUrl || defaultUrl;
   if (!base) {
     console.error('Private evidence proxy requires FASTAPI_URL');
     res.status(503).json({ error: SERVICE_UNAVAILABLE });
@@ -42,21 +47,38 @@ async function fetchEvidence(req, res, suffix = '') {
     res.status(503).json({ error: SERVICE_UNAVAILABLE });
     return;
   }
-  return fetch(url.href, {
-    headers: { Authorization: req.headers.authorization },
-    // A redirect must never send an administrator credential to another host.
+  const get = headers => fetch(url.href, {
+    headers,
+    // A redirect must never send a credential to another host.
     redirect: 'error',
     cache: 'no-store',
     signal: AbortSignal.timeout(15000),
   });
+  const internalKey = process.env.INTERNAL_API_KEY;
+  if (req.admin && internalKey?.length >= 32) {
+    const token = jwt.sign(
+      { resource: `${req.params.requestId}${suffix}`.toLowerCase() },
+      internalKey,
+      {
+        algorithm: 'HS256', audience: 'resqai-request-evidence', issuer: 'resqai-node',
+        subject: req.admin.admin_id, expiresIn: '30s',
+      },
+    );
+    const response = await get({ 'X-ResQAI-Evidence-Authorization': token });
+    if (response.status !== 401) return response;
+    await response.body?.cancel();
+  }
+  // An older Python deployment, or one without a shared internal key, can
+  // still accept the original admin session when both services share its key.
+  return get({ Authorization: req.headers.authorization });
 }
 
 function upstreamError(response, res) {
   // Node has already verified the admin session. An upstream 401 is a
   // service-to-service failure and must not sign the admin out of the panel.
   if (response.status === 401) {
-    console.error('Private evidence API rejected the forwarded administrator token. Check Node JWT_SECRET and FastAPI SECRET_KEY.');
-    return res.status(502).json({ error: SERVICE_UNAVAILABLE });
+    console.error('Private evidence API rejected authentication. Check the shared INTERNAL_API_KEY or matching JWT signing keys.');
+    return res.status(502).json({ error: 'The evidence service could not authenticate the review. Contact the service administrator.' });
   }
   switch (response.status) {
     case 403:

@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock
 import pytest
 from cryptography.exceptions import InvalidTag
 from fastapi import HTTPException
+from jose import jwt
 from PIL import Image
 from sqlalchemy import select
 
@@ -64,6 +65,38 @@ async def capture_payload(client, request_id, owner):
     assert "no-store" in response.headers["cache-control"]
     return {"challenge_id": response.json()["challenge_id"], "nic_image": image_url(True),
             "selfie_image": image_url(), "captured_at": datetime.now(timezone.utc).isoformat(), "consent": True}
+
+
+@pytest.mark.asyncio
+async def test_proxy_credentials_are_scoped_to_the_route_and_active_administrator(client, monkeypatch):
+    key = "isolated-internal-test-key-at-least-32-characters"
+    monkeypatch.setattr(settings, "INTERNAL_API_KEY", key)
+    request_id, owner, _, _, admin_id = await seed_case()
+    path = f"/api/requests/{request_id}/verification-evidence"
+    payload = await capture_payload(client, request_id, owner)
+    assert (await client.post(path, headers=owner, json=payload)).status_code == 201
+
+    def proxy_headers(resource, **overrides):
+        now = int(datetime.now(timezone.utc).timestamp())
+        claims = {"sub": str(admin_id), "aud": "resqai-request-evidence", "iss": "resqai-node",
+                  "iat": now, "exp": now + 30, "resource": str(resource), **overrides}
+        return {"X-ResQAI-Evidence-Authorization": jwt.encode(claims, key, algorithm="HS256")}
+
+    metadata = await client.get(path, headers=proxy_headers(request_id))
+    assert metadata.status_code == 200
+    evidence_id = metadata.json()["items"][0]["evidence_id"]
+    image_path = f"{path}/{evidence_id}/image"
+    resource = f"{request_id}/{evidence_id}/image"
+    assert (await client.get(image_path, headers=proxy_headers(request_id))).status_code == 401
+    assert (await client.get(path, headers=proxy_headers(resource))).status_code == 401
+    assert (await client.get(image_path, headers=proxy_headers(resource, aud="other"))).status_code == 401
+    assert (await client.get(image_path, headers=proxy_headers(resource, sub=str(uuid.uuid4())))).status_code == 403
+
+    image = await client.get(image_path, headers=proxy_headers(resource))
+    assert image.status_code == 200 and image.headers["content-type"] == "image/jpeg"
+    async for db in app.dependency_overrides[get_db]():
+        view = await db.scalar(select(AuditLog).where(AuditLog.action == "request_evidence_viewed"))
+        assert view.admin_id == admin_id
 
 
 @pytest.mark.asyncio

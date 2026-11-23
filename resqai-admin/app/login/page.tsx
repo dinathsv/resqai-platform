@@ -6,6 +6,7 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import axios from "axios";
+import brandLogo from "../../public/resqai_logo.png";
 import styles from "./login.module.css";
 
 const AUTH_API_URL =
@@ -58,11 +59,12 @@ export default function LoginPage() {
       <form className={styles.form} onSubmit={handleSubmit}>
         <Image
           className={styles.brandLogo}
-          src="/resqai_logo.png"
+          src={brandLogo}
           alt=""
           width={64}
           height={72}
           loading="eager"
+          unoptimized
         />
         <div className={styles.title}>ResQAI Admin</div>
         <div className={styles.subtitle}>Admin Access</div>

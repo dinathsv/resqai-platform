@@ -10,12 +10,15 @@ from datetime import datetime, timedelta, timezone
 
 from cryptography.exceptions import InvalidTag
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from jose import JWTError, jwt
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database import AsyncSessionLocal, get_db
-from app.middleware.auth import get_current_user, require_role
+from app.middleware.auth import get_current_user, oauth2_scheme_optional
+from app.models.administrator import Administrator
 from app.models.audit_log import AuditLog
 from app.models.guest_session import GuestSession
 from app.models.request_evidence import RequestEvidence
@@ -47,6 +50,44 @@ def audit(db, user, action, entity_id):
         user_id=uuid.UUID(user["sub"]) if user["role"] == "people" else None,
         action=action, entity_type="request_evidence", entity_id=entity_id,
     ))
+
+
+async def evidence_reader(
+    request: Request, token: str | None = Depends(oauth2_scheme_optional),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    delegated = request.headers.get("X-ResQAI-Evidence-Authorization")
+    if not delegated:
+        if not token:
+            raise HTTPException(401, "Authentication required", headers={"WWW-Authenticate": "Bearer"})
+        return await get_current_user(token, db)
+
+    denied = HTTPException(401, "Evidence authentication failed")
+    internal_key = settings.INTERNAL_API_KEY
+    if len(internal_key) < 32:
+        raise denied
+
+    resource = request.path_params["request_id"].lower()
+    if evidence_id := request.path_params.get("evidence_id"):
+        resource += f"/{evidence_id.lower()}/image"
+    try:
+        claims = jwt.decode(
+            delegated, internal_key, algorithms=["HS256"],
+            audience="resqai-request-evidence", issuer="resqai-node",
+            options={"require_aud": True, "require_iss": True, "require_sub": True,
+                     "require_iat": True, "require_exp": True},
+        )
+        lifetime = int(claims["exp"]) - int(claims["iat"])
+        if claims.get("resource") != resource or not 0 < lifetime <= 30:
+            raise denied
+        admin_id = uuid.UUID(claims["sub"])
+    except (JWTError, ValueError, TypeError):
+        raise denied from None
+
+    admin = await db.get(Administrator, admin_id)
+    if not admin or not admin.is_active:
+        raise HTTPException(403, "Administrator account unavailable")
+    return {"sub": str(admin_id), "role": "admin"}
 
 
 async def upload_owner(request_id, user, db, lock=False):
@@ -177,7 +218,7 @@ async def upload_evidence(
 @router.get("/{request_id}/verification-evidence")
 async def list_evidence(
     request_id: uuid.UUID, response: Response,
-    user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db),
+    user: dict = Depends(evidence_reader), db: AsyncSession = Depends(get_db),
 ):
     response.headers.update(PRIVATE_HEADERS)
     await owned_request(request_id, user, db)
@@ -199,8 +240,10 @@ async def list_evidence(
 @router.get("/{request_id}/verification-evidence/{evidence_id}/image")
 async def view_evidence(
     request_id: uuid.UUID, evidence_id: uuid.UUID,
-    user: dict = Depends(require_role("admin")), db: AsyncSession = Depends(get_db),
+    user: dict = Depends(evidence_reader), db: AsyncSession = Depends(get_db),
 ):
+    if user["role"] != "admin":
+        raise HTTPException(403, "Administrator access required")
     await owned_request(request_id, user, db)
     row = (await db.execute(select(RequestEvidence).where(
         RequestEvidence.evidence_id == evidence_id, RequestEvidence.request_id == request_id,
