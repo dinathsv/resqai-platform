@@ -5,6 +5,6 @@
     "${workspaceFolder}/app",
     "${workspaceFolder}/ai-service",
     "${workspaceFolder}/ml-models"
-  ]
+  ],
+  "git.ignoreLimitWarning": true
 }
-
