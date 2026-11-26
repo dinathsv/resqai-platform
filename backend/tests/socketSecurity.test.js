@@ -87,16 +87,25 @@ test('requester information updates also stay private until a coordinator verifi
   assert.equal(admin.messages[0].payload.message, 'Additional private evidence');
 });
 
-test('saved administrator reviews still refresh the public feed without publishing private details', async () => {
+test('only approval and withdrawal refresh the public feed after a review commits', async () => {
   const router = require('../routes/requests');
   const handler = router.stack.find(layer => layer.route?.path === '/:id/verification').route.stack.at(-1).handle;
-  for (const decision of ['verified', 'needs_information', 'rejected']) {
+  const reviews = [
+    ['unverified', 'verified', true],
+    ['unverified', 'needs_information', false],
+    ['unverified', 'rejected', false],
+    ['needs_information', 'verified', true],
+    ['verified', 'verified', false],
+    ['verified', 'needs_information', true],
+    ['verified', 'rejected', true],
+  ];
+  for (const [previous, decision, refreshesFeed] of reviews) {
     const statements = [], broadcasts = [];
     const client = {
       async query(sql) {
         statements.push(sql);
         return { rows: sql.startsWith('SELECT * FROM help_requests') ? [{
-          verification_status: 'unverified', emergency_type: 'help_rescue', admin_status: 'pending', status: 'pending',
+          verification_status: previous, emergency_type: 'help_rescue', admin_status: 'pending', status: 'pending',
           original_message: 'Private report',
         }] : [] };
       },
@@ -114,11 +123,11 @@ test('saved administrator reviews still refresh the public feed without publishi
     const response = { status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } };
     await handler({
       params: { id: 'c7b732cc-3439-4fab-808b-59209b2f8d85' },
-      body: { decision, expected_verification_status: 'unverified', method: 'phone_callback', notes: 'Private coordinator review findings' },
+      body: { decision, expected_verification_status: previous, method: 'phone_callback', notes: 'Private coordinator review findings' },
       user: { user_id: 'reviewer' }, app: { locals: { io, pool: { connect: async () => client } } },
     }, response);
     assert.equal(response.body.success, true);
-    assert.deepEqual(broadcasts, [{ room: 'public:alerts', event: 'community_requests_updated', payload: {} }]);
+    assert.deepEqual(broadcasts, refreshesFeed ? [{ room: 'public:alerts', event: 'community_requests_updated', payload: {} }] : []);
   }
 });
 
@@ -147,4 +156,32 @@ test('a saved request closure still refreshes the community feed to remove the r
   }, response);
   assert.equal(response.body.success, true);
   assert.deepEqual(broadcasts, [{ room: 'public:alerts', event: 'community_requests_updated', payload: {} }]);
+});
+
+test('coordinators can start an unverified SOS response without notifying the community', async () => {
+  const router = require('../routes/requests');
+  const handler = router.stack.find(layer => layer.route?.path === '/:id/status').route.stack.at(-1).handle;
+  const admin = fakeSocket('reviewer');
+  const client = {
+    async query(sql) {
+      if (sql.includes('FROM help_requests')) return { rows: [{
+        admin_status: 'pending', status: 'pending', emergency_type: 'help_rescue', verification_status: 'unverified',
+      }] };
+      if (sql.includes('FROM administrators')) return { rows: [{ admin_id: 'reviewer' }] };
+      return { rows: [] };
+    },
+    release() {},
+  };
+  const io = {
+    in() { return { fetchSockets: async () => [admin] }; },
+    to() { assert.fail('private progress must not refresh the community feed'); },
+  };
+  const response = { status(code) { this.code = code; return this; }, json(body) { this.body = body; } };
+  await handler({
+    params: { id: 'c7b732cc-3439-4fab-808b-59209b2f8d85' },
+    body: { status: 'in_progress', reason: 'Coordinator began emergency response.' },
+    user: { user_id: 'reviewer' }, app: { locals: { io, pool: { connect: async () => client } } },
+  }, response);
+  assert.equal(response.body.success, true);
+  assert.equal(admin.messages[0].payload.status, 'in_progress');
 });

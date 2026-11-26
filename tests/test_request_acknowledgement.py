@@ -45,7 +45,7 @@ class RequestAcknowledgementTests(unittest.IsolatedAsyncioTestCase):
     async def test_closed_request_cannot_be_accepted(self):
         db = AsyncMock()
         db.execute.side_effect = [result({'user_id': uuid.uuid4()}), result({
-            'user_id': uuid.uuid4(), 'status': 'resolved', 'admin_status': 'finished',
+            'user_id': uuid.uuid4(), 'status': 'resolved', 'admin_status': 'finished', 'verification_status': 'verified',
         })]
         with self.assertRaises(HTTPException) as raised:
             await acknowledge_request_alert(uuid.uuid4(), {'sub': str(uuid.uuid4())}, db)
@@ -61,5 +61,6 @@ class RequestAcknowledgementTests(unittest.IsolatedAsyncioTestCase):
         })]
         with self.assertRaises(HTTPException) as raised:
             await acknowledge_request_alert(uuid.uuid4(), {'sub': str(uuid.uuid4())}, db)
-        self.assertEqual(raised.exception.status_code, 409)
+        self.assertEqual(raised.exception.status_code, 404)
+        self.assertEqual(raised.exception.detail, 'Community request not found')
         db.commit.assert_not_awaited()

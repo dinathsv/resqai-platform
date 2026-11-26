@@ -10,84 +10,22 @@ import {
   KeyboardAvoidingView,
   Platform,
   Linking,
-  Alert,
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import { requireOptionalNativeModule } from 'expo';
 import { useRouter } from 'expo-router';
 import { aiFetch } from '../../config/api';
 import { Colors, Fonts } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { usePeopleAccess } from '../../context/PeopleAccessContext';
+import { useVoiceInput } from '../../hooks/useVoiceInput';
 import TopBar from '../../components/TopBar';
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   text: string;
   timestamp: Date;
-}
-
-type WebSpeechRecognition = {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  maxAlternatives: number;
-  onstart: (() => void) | null;
-  onresult: ((event: SpeechRecognitionEvent) => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-};
-
-type WebSpeechRecognitionConstructor = new () => WebSpeechRecognition;
-
-interface NativeSpeechRecognitionModule {
-  addListener: (
-    eventName: string,
-    listener: (event: NativeSpeechEvent) => void,
-  ) => { remove: () => void };
-  requestPermissionsAsync: () => Promise<{ granted: boolean }>;
-  isRecognitionAvailable: () => boolean;
-  start: (options: {
-    lang: string;
-    interimResults: boolean;
-    continuous: boolean;
-    maxAlternatives: number;
-    addsPunctuation: boolean;
-  }) => void;
-  stop: () => void;
-}
-
-interface NativeSpeechEvent {
-  error?: string;
-  results?: Array<{ transcript?: string }>;
-}
-
-const nativeSpeechRecognition =
-  Platform.OS === 'web'
-    ? null
-    : requireOptionalNativeModule<NativeSpeechRecognitionModule>('ExpoSpeechRecognition');
-
-function useNativeSpeechRecognitionEvent(
-  eventName: string,
-  listener: (event: NativeSpeechEvent) => void,
-) {
-  useEffect(() => {
-    if (!nativeSpeechRecognition) return undefined;
-    const subscription = nativeSpeechRecognition.addListener(eventName, listener);
-    return () => subscription.remove();
-  }, [eventName, listener]);
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition?: WebSpeechRecognitionConstructor;
-    webkitSpeechRecognition?: WebSpeechRecognitionConstructor;
-  }
 }
 
 export default function ChatbotScreen() {
@@ -108,7 +46,9 @@ export default function ChatbotScreen() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [show1990, setShow1990] = useState(false);
-  const [isListening, setIsListening] = useState(false);
+  const voice = useVoiceInput(setInput);
+  const isListening = voice.state === 'listening';
+  const voiceBusy = voice.state === 'starting' || voice.state === 'stopping';
   const [voiceLanguage, setVoiceLanguage] = useState(
     language === 'si' ? 'si-LK' : language === 'ta' ? 'ta-LK' : 'en-US'
   );
@@ -118,45 +58,11 @@ export default function ChatbotScreen() {
   }, [language]);
   const [, setDetectedLang] = useState('en');
   const flatListRef = useRef<FlatList>(null);
-  const webRecognitionRef = useRef<WebSpeechRecognition | null>(null);
-  const webListeningRef = useRef(false);
-  const webTranscriptRef = useRef('');
-  const webRestartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useNativeSpeechRecognitionEvent('start', () => setIsListening(true));
-  useNativeSpeechRecognitionEvent('end', () => setIsListening(false));
-  useNativeSpeechRecognitionEvent('result', (event) => {
-    const transcript = event.results?.[0]?.transcript;
-    if (transcript) {
-      setInput(transcript);
-    }
-  });
-  useNativeSpeechRecognitionEvent('error', (event) => {
-    setIsListening(false);
-    if (event.error !== 'aborted') {
-      Alert.alert(
-        'Voice input',
-        event.error === 'not-allowed'
-          ? 'Allow microphone access to use voice input.'
-          : 'Voice input is not available. Please try again.',
-      );
-    }
-  });
-
-  useEffect(() => {
-    return () => {
-      webListeningRef.current = false;
-      if (webRestartTimerRef.current) {
-        clearTimeout(webRestartTimerRef.current);
-      }
-      webRecognitionRef.current?.abort();
-      webRecognitionRef.current = null;
-    };
-  }, []);
 
   const sendMessageText = async (textToSend: string) => {
     const trimmed = textToSend.trim();
     if (!trimmed || loading) return;
+    voice.cancel();
 
     const userMsg: Message = {
       id: `user-${Date.now()}`,
@@ -213,125 +119,6 @@ export default function ChatbotScreen() {
 
   const onSend = () => {
     sendMessageText(input);
-  };
-
-  const toggleVoiceInput = async () => {
-    if (isListening) {
-      if (Platform.OS === 'web') {
-        webListeningRef.current = false;
-        if (webRestartTimerRef.current) {
-          clearTimeout(webRestartTimerRef.current);
-          webRestartTimerRef.current = null;
-        }
-        webRecognitionRef.current?.stop();
-      } else {
-        nativeSpeechRecognition?.stop();
-      }
-      return;
-    }
-
-    try {
-      if (Platform.OS === 'web') {
-        const SpeechRecognition =
-          window.SpeechRecognition || window.webkitSpeechRecognition;
-
-        if (!SpeechRecognition) {
-          Alert.alert(
-            'Voice input unavailable',
-            'Use Chrome or Edge to use voice input in the browser.',
-          );
-          return;
-        }
-
-        const recognition = new SpeechRecognition();
-        webRecognitionRef.current = recognition;
-        webListeningRef.current = true;
-        webTranscriptRef.current = '';
-        recognition.lang = voiceLanguage;
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.maxAlternatives = 1;
-
-        recognition.onstart = () => setIsListening(true);
-        recognition.onresult = (event: SpeechRecognitionEvent) => {
-          let finalText = webTranscriptRef.current;
-          let interimText = '';
-
-          for (let index = event.resultIndex; index < event.results.length; index += 1) {
-            const text = event.results[index][0]?.transcript ?? '';
-            if (event.results[index].isFinal) {
-              finalText += `${text} `;
-            } else {
-              interimText += text;
-            }
-          }
-
-          webTranscriptRef.current = finalText;
-          setInput(`${finalText}${interimText}`.trim());
-        };
-        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-          if (
-            event.error === 'not-allowed' ||
-            event.error === 'service-not-allowed'
-          ) {
-            webListeningRef.current = false;
-            setIsListening(false);
-            Alert.alert('Microphone access needed', 'Allow microphone access in your browser.');
-          } else if (event.error === 'network') {
-            setIsListening(true);
-          } else if (event.error !== 'aborted' && event.error !== 'no-speech') {
-            webListeningRef.current = false;
-            setIsListening(false);
-            console.warn('Web voice input stopped:', event.error);
-          }
-        };
-        recognition.onend = () => {
-          if (webListeningRef.current && webRecognitionRef.current === recognition) {
-            webRestartTimerRef.current = setTimeout(() => {
-              if (webListeningRef.current && webRecognitionRef.current === recognition) {
-                try {
-                  recognition.start();
-                } catch {
-                  setIsListening(true);
-                }
-              }
-            }, 150);
-          } else {
-            setIsListening(false);
-          }
-        };
-
-        recognition.start();
-        return;
-      }
-
-      if (!nativeSpeechRecognition) {
-        console.warn('Voice input requires a development build on native platforms.');
-        return;
-      }
-
-      const permission = await nativeSpeechRecognition.requestPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert('Microphone access needed', 'Allow microphone access to use voice input.');
-        return;
-      }
-
-      if (!nativeSpeechRecognition.isRecognitionAvailable()) {
-        Alert.alert('Voice input unavailable', 'Speech recognition is not available on this device.');
-        return;
-      }
-
-      nativeSpeechRecognition.start({
-        lang: voiceLanguage,
-        interimResults: true,
-        continuous: true,
-        maxAlternatives: 1,
-        addsPunctuation: true,
-      });
-    } catch (error) {
-      console.error('Voice input error:', error);
-      Alert.alert('Voice input error', 'Could not start voice input. Please try again.');
-    }
   };
 
   const handleBack = () => {
@@ -506,7 +293,7 @@ export default function ChatbotScreen() {
                     },
                   ]}
                   onPress={() => setVoiceLanguage(langOpt.value)}
-                  disabled={isListening}
+                  disabled={isListening || voiceBusy}
                   activeOpacity={0.7}
                 >
                   <Text
@@ -535,6 +322,7 @@ export default function ChatbotScreen() {
                 style={[styles.textInput, { color: theme.textPrimary }]}
                 value={input}
                 onChangeText={setInput}
+                editable={!isListening && !voiceBusy}
                 placeholder={t('chatbot.typeMessagePlaceholder')}
                 placeholderTextColor={theme.textMuted}
                 multiline={false}
@@ -546,16 +334,21 @@ export default function ChatbotScreen() {
               <TouchableOpacity
                 style={[
                   styles.micButton,
-                  !nativeSpeechRecognition && Platform.OS !== 'web' && styles.micButtonDisabled,
+                  voiceBusy && styles.micButtonDisabled,
                 ]}
-                onPress={toggleVoiceInput}
-                disabled={!nativeSpeechRecognition && Platform.OS !== 'web'}
+                onPress={() => void voice.toggle(input, voiceLanguage)}
+                disabled={voiceBusy}
                 activeOpacity={0.7}
-                accessibilityLabel={isListening ? 'Stop voice input' : 'Start voice input'}
+                accessibilityRole="button"
+                accessibilityLabel={t(isListening ? 'chatbot.stopVoice' : 'chatbot.startVoice')}
               >
-                <Text style={[styles.micIcon, { opacity: theme.isDark ? 0.8 : 1 }]}>
-                  {isListening ? '■' : '🎙️'}
-                </Text>
+                {voiceBusy ? (
+                  <ActivityIndicator size="small" color={theme.accent} />
+                ) : (
+                  <Text style={[styles.micIcon, { opacity: theme.isDark ? 0.8 : 1 }]}>
+                    {isListening ? '■' : '🎙️'}
+                  </Text>
+                )}
               </TouchableOpacity>
 
               {/* Dark navy/indigo send arrow button */}
@@ -572,6 +365,23 @@ export default function ChatbotScreen() {
                 <Text style={styles.sendArrow}>➤</Text>
               </TouchableOpacity>
             </View>
+            {voice.issue && (
+              <View style={styles.voiceFeedback}>
+                <Text accessibilityRole="alert" style={{ color: theme.textSecondary }}>
+                  {t(`chatbot.${voice.issue}`)}
+                </Text>
+                {voice.issue === 'micSettingsPermission' && (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    onPress={() => void Linking.openSettings().catch(() => {})}
+                  >
+                    <Text style={{ color: theme.accent, fontFamily: Fonts.semiBold }}>
+                      {t('chatbot.openSettings')}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
           </View>
 
           {/* Bottom Medical Disclaimer Pill matching Image 1 */}
@@ -799,6 +609,11 @@ const styles = StyleSheet.create({
   voiceLanguageText: {
     fontSize: 11,
     fontFamily: Fonts.medium,
+  },
+  voiceFeedback: {
+    marginTop: 6,
+    gap: 6,
+    alignItems: 'flex-start',
   },
   inputCapsule: {
     flexDirection: 'row',

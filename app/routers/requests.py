@@ -366,14 +366,14 @@ async def list_my_requests(
 
 async def owned_request(request_id: uuid.UUID, user: dict, db: AsyncSession, lock: bool = False) -> HelpRequest:
     query = select(HelpRequest).where(HelpRequest.request_id == request_id)
+    if user["role"] != "admin":
+        owner = HelpRequest.guest_session_id if user["role"] == "guest" else HelpRequest.user_id
+        query = query.where(owner == uuid.UUID(user["sub"]))
     if lock:
         query = query.with_for_update().execution_options(populate_existing=True)
     record = (await db.execute(query)).scalar_one_or_none()
     if not record:
         raise HTTPException(status_code=404, detail="Request not found")
-    owner = record.guest_session_id if user["role"] == "guest" else record.user_id
-    if user["role"] != "admin" and str(owner) != user["sub"]:
-        raise HTTPException(status_code=403, detail="This request belongs to another person")
     return record
 
 

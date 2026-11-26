@@ -12,8 +12,7 @@
       "bundleIdentifier": "com.resqai.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "ResQAI needs your location to find nearby hospitals and emergency services.",
-        "NSSpeechRecognitionUsageDescription": "Allow $(PRODUCT_NAME) to use speech recognition.",
-        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to use the microphone."
+        "NSSpeechRecognitionUsageDescription": "Allow $(PRODUCT_NAME) to turn your speech into text in the chatbot."
       }
     },
     "android": {
@@ -43,7 +42,7 @@
         {
           "cameraPermission": "Allow ResQAI to take an optional NIC photo and a new selfie for private reviewer verification.",
           "photosPermission": "Allow ResQAI to select an optional NIC photo for private reviewer verification.",
-          "microphonePermission": false
+          "microphonePermission": "Allow $(PRODUCT_NAME) to use the microphone for voice input in the chatbot."
         }
       ],
       "expo-speech-recognition",

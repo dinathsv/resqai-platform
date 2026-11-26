@@ -62,7 +62,11 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
     try {
       await api.patch(`/api/requests/${id}/verification`, { decision, method, notes: findings, expected_verification_status: request.verification_status });
       setNotes('');
-      setReviewFeedback({ message: 'Review saved.' });
+      setReviewFeedback({
+        message: decision === 'verified'
+          ? 'Request verified and shared with the community.'
+          : 'Review saved. The request is private to the requester and administrators.',
+      });
       await mutate().catch(() => undefined);
     } catch (error) {
       setReviewFeedback({ error: true, message: apiError(error, 'Review could not be saved.') });
@@ -128,7 +132,7 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
     <RequestEvidence key={id} requestId={id} />
     <section className="section">
       <h2>Review the need</h2>
-      <p>Record the checks you completed and the evidence supporting your decision. Only verified, open requests appear in the community feed. Confirm need shares a generic listing; requesting more information or rejecting the report keeps it private to the requester and administrators.</p>
+      <p>Record what you checked and why you made this decision. Confirming the need shares a generic listing in the community feed. Requests awaiting information or marked rejected stay private to the requester and administrators.</p>
       {closed ? <p>This request is closed.</p> : <form className="opsForm" onSubmit={review} noValidate>
         <label>Decision<select value={decision} onChange={event => setDecision(event.target.value)}><option value="needs_information">Request more information</option><option value="verified">Confirm need</option><option value="rejected">Reject request</option></select></label>
         <label>Verification method<select value={method} onChange={event => setMethod(event.target.value)}><option value="phone_callback">Phone callback</option><option value="field_visit">Field visit</option><option value="agency_confirmation">Agency confirmation</option><option value="document_review">Document review</option></select></label>

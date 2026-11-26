@@ -8,6 +8,12 @@ const router = express.Router();
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
 
+function isPublicRequest(request) {
+  return request.verification_status === 'verified'
+    && request.admin_status !== 'finished'
+    && !['resolved', 'cancelled'].includes(request.status);
+}
+
 router.get('/', requireAdmin, async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page || '1', 10));
@@ -291,7 +297,9 @@ router.patch('/:id/status', requireAdmin, async (req, res) => {
     await client.query(`INSERT INTO audit_logs(admin_id,action,entity_type,entity_id) VALUES($1,$2,'help_request',$3)`, [req.user.user_id, `request_status:${oldStatus}:${status}`, req.params.id]);
     await client.query('COMMIT');
     await emitToActiveAdmins(req.app.locals.io, 'request_updated', { request_id: req.params.id, status }, client);
-    req.app.locals.io?.to('public:alerts').emit('community_requests_updated', {});
+    if (isPublicRequest(request)) {
+      req.app.locals.io?.to('public:alerts').emit('community_requests_updated', {});
+    }
     return res.json({ success: true, request_id: req.params.id, status });
   } catch (err) {
     if (client) await client.query('ROLLBACK').catch(() => {});
@@ -310,9 +318,11 @@ router.patch('/:id/verification', requireAdmin, async (req, res) => {
     await client.query('BEGIN');
     const { rows } = await client.query('SELECT * FROM help_requests WHERE request_id=$1 FOR UPDATE', [req.params.id]);
     if (!rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Request not found' }); }
-    const error = reviewError(req.body || {}, rows[0]);
+    const request = rows[0];
+    const error = reviewError(req.body || {}, request);
     if (error) { await client.query('ROLLBACK'); return res.status(409).json({ error }); }
     const { decision, method, notes } = req.body;
+    const reviewedRequest = { ...request, verification_status: decision };
     await client.query(`UPDATE help_requests SET verification_status=$1, verification_method=$2,
       verification_notes=$3, verified_by=$4, verified_at=NOW(), updated_at=NOW() WHERE request_id=$5`,
     [decision, method, notes.trim(), req.user.user_id, req.params.id]);
@@ -323,15 +333,17 @@ router.patch('/:id/verification', requireAdmin, async (req, res) => {
     let goods = null;
     // Inventory deliveries require a registered recipient. Coordinators handle
     // guest goods requests through the request's contact and response history.
-    if (decision === 'verified' && rows[0].emergency_type === 'donation' && rows[0].user_id) {
-      goods = await require('./goods').ensureGoodsNeedsForVerifiedRequest(client, { ...rows[0], verification_status: decision }, req.user.user_id);
+    if (decision === 'verified' && request.emergency_type === 'donation' && request.user_id) {
+      goods = await require('./goods').ensureGoodsNeedsForVerifiedRequest(client, reviewedRequest, req.user.user_id);
     } else if (decision !== 'verified') {
       await client.query(`UPDATE relief_missions SET status='paused',updated_at=NOW()
         WHERE origin_request_id=$1 AND mission_type='donation' AND status IN ('planning','active')`, [req.params.id]);
     }
     await client.query('COMMIT');
     await emitToActiveAdmins(req.app.locals.io, 'request_updated', { request_id: req.params.id, verification_status: decision }, client);
-    req.app.locals.io?.to('public:alerts').emit('community_requests_updated', {});
+    if (isPublicRequest(request) !== isPublicRequest(reviewedRequest)) {
+      req.app.locals.io?.to('public:alerts').emit('community_requests_updated', {});
+    }
     return res.json({ success: true, verification_status: decision, goods });
   } catch (err) {
     if (client) await client.query('ROLLBACK').catch(() => {});

@@ -154,7 +154,7 @@ async def test_public_case_redacts_message_and_evidence(client):
     assert len(public_alerts) == 1 and public_alerts[0]['work_plan'] == 'Verified help request'
     assert 'Private' not in str(public_alerts)
     other, _ = await register_verified(client, 'other@example.com')
-    assert (await client.get(f'/api/requests/{request_id}', headers=other)).status_code == 403
+    assert (await client.get(f'/api/requests/{request_id}', headers=other)).status_code == 404
     mine = (await client.get('/api/requests/my', headers=headers)).json()
     assert mine[0]['evidence_note'] == 'Private callback notes'
     async for db in app.dependency_overrides[get_db]():

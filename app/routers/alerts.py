@@ -395,14 +395,12 @@ async def acknowledge_request_alert(
         raise HTTPException(status_code=403, detail="An active registered account is required")
     result = await db.execute(text("SELECT * FROM help_requests WHERE request_id=:id FOR UPDATE"), {"id": alert_id})
     request = result.mappings().first()
-    if not request:
+    if not request or request.get("verification_status") != "verified":
         raise HTTPException(status_code=404, detail="Community request not found")
     if str(request["user_id"]) == str(user_id):
         raise HTTPException(status_code=400, detail="You cannot accept your own request")
     if request["status"] in ("resolved", "cancelled") or request["admin_status"] == "finished":
         raise HTTPException(status_code=409, detail="This request is already closed")
-    if request.get("verification_status") != "verified":
-        raise HTTPException(status_code=409, detail="A coordinator must verify this request before community acceptance. Urgent SOS remains visible to dispatchers.")
     mission_type = "donation" if request["emergency_type"] == "donation" else "help"
     result = await db.execute(text("SELECT mission_id, status FROM relief_missions WHERE origin_request_id=:id ORDER BY created_at LIMIT 1"), {"id": alert_id})
     mission = result.mappings().first()

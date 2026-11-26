@@ -97,7 +97,10 @@ async def test_request_stays_with_owner_and_admin_until_verified_and_hides_after
     assert (await client.get("/api/requests/my", headers=headers(owner))).json()[0]["request_id"] == request_id
     assert (await client.get(f"/api/requests/{request_id}", headers=headers(admin, "admin"))).status_code == 200
     assert (await client.get("/api/requests", headers=headers(admin, "admin"))).json()[0]["request_id"] == request_id
-    assert (await client.get(f"/api/requests/{request_id}", headers=headers(other))).status_code == 403
+    unauthorized = await client.get(f"/api/requests/{request_id}", headers=headers(other))
+    missing = await client.get(f"/api/requests/{uuid.uuid4()}", headers=headers(other))
+    assert unauthorized.status_code == missing.status_code == 404
+    assert unauthorized.json() == missing.json()
     assert (await client.get("/api/requests", headers=headers(other))).status_code == 403
     assert (await client.patch(f"/api/requests/{request_id}/status", headers=headers(owner), json={"status": "verified"})).status_code == 403
 
@@ -121,6 +124,7 @@ async def test_request_stays_with_owner_and_admin_until_verified_and_hides_after
         await db.commit()
     for path in paths:
         assert await visible_ids(path) == [request_id]
+    assert (await client.get(f"/api/requests/{request_id}", headers=headers(other))).status_code == 404
 
     for decision in ("needs_information", "rejected", "unverified"):
         async for db in app.dependency_overrides[get_db]():
@@ -151,7 +155,7 @@ async def test_admin_broadcast_remains_public_while_unverified_requests_are_hidd
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("kind", ["help_rescue", "donation"])
-@pytest.mark.parametrize("verification", ["unverified", "needs_information"])
+@pytest.mark.parametrize("verification", ["unverified", "needs_information", "rejected"])
 async def test_pending_claims_cannot_be_accepted_or_start_fulfillment(kind, verification):
     user = MagicMock()
     user.first.return_value = {"user_id": uuid.uuid4()}
@@ -164,7 +168,7 @@ async def test_pending_claims_cannot_be_accepted_or_start_fulfillment(kind, veri
     db.execute.side_effect = [user, claim]
     with pytest.raises(HTTPException) as error:
         await acknowledge_request_alert(uuid.uuid4(), {"sub": str(uuid.uuid4())}, db)
-    assert error.value.status_code == 409
-    assert "verify" in error.value.detail
+    assert error.value.status_code == 404
+    assert error.value.detail == "Community request not found"
     assert db.execute.await_count == 2
     db.commit.assert_not_awaited()

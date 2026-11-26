@@ -125,7 +125,7 @@ async def test_private_pair_encrypted_redacted_audited_and_revocable(client):
 
     image_path = f'{path}/{items[0]["evidence_id"]}/image'
     assert (await client.get(path)).status_code == 401
-    assert (await client.get(path, headers=other)).status_code == 403
+    assert (await client.get(path, headers=other)).status_code == 404
     assert (await client.get(image_path, headers=owner)).status_code == 403
     assert (await client.get(image_path, headers=other)).status_code == 403
     opened = await client.get(image_path, headers=reviewer)
@@ -138,7 +138,7 @@ async def test_private_pair_encrypted_redacted_audited_and_revocable(client):
         public = await client.get(public_path)
         assert "Private" not in public.text and "base64" not in public.text and "challenge" not in public.text
         assert all(item["evidence_id"] not in public.text for item in items)
-    assert (await client.delete(path, headers=other)).status_code == 403
+    assert (await client.delete(path, headers=other)).status_code == 404
     assert (await client.delete(path, headers=owner)).json() == {"deleted": True}
     assert (await client.get(image_path, headers=reviewer)).status_code == 404
 
@@ -148,7 +148,7 @@ async def test_challenge_is_one_use_and_bound_to_owner_and_request(client):
     request_id, owner, other, _, _ = await seed_case()
     path = f"/api/requests/{request_id}/verification-evidence"
     payload = await capture_payload(client, request_id, owner)
-    assert (await client.post(path, headers=other, json=payload)).status_code == 403
+    assert (await client.post(path, headers=other, json=payload)).status_code == 404
     second = uuid.uuid4()
     async for db in app.dependency_overrides[get_db]():
         record = await db.get(HelpRequest, request_id)
