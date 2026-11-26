@@ -19,7 +19,7 @@ For every user role's functions, screen instructions, complete example journeys,
 - Hospital lookup, an experimental flood-risk model, preparedness questions, operational reports, CSV export and browser printing.
 - Automatic weather inputs for risk assessment: choose a district or optionally use GPS, with the weather period and source displayed.
 
-Account verification, incident verification and delivery confirmation are separate. New requests remain private to their owner and administrators until an administrator confirms the need. Only verified, open requests appear as generic community listings; descriptions, identity evidence and exact locations remain private after approval. Optional private NIC/camera-selfie evidence supports human review. Anonymous urgent SOS remains accessible.
+Account verification, incident verification and delivery confirmation are separate. A phone-verified citizen or a guest with an approved NIC can submit help and goods requests. Guests awaiting approval and guests whose NIC was rejected can still use the first-aid chatbot. New requests remain private to their owner and administrators until an administrator confirms the need. Only verified, open requests appear as generic community listings. Descriptions, identity evidence and exact locations remain private after approval. Optional private NIC and camera-selfie evidence supports human review.
 
 ## Services
 

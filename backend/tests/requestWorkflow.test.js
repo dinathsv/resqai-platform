@@ -8,13 +8,50 @@ const chatRouter = require('../routes/chat');
 const request = { request_id: 'c7b732cc-3439-4fab-808b-59209b2f8d85', user_id: 'recipient', emergency_type: 'donation', verification_status: 'unverified', status: 'pending', admin_status: 'pending', requested_items: [{ item_name: 'Rice', unit: 'kg', quantity: 20 }] };
 const review = { decision: 'verified', method: 'phone_callback', notes: 'Called the recipient and confirmed the required quantity with field staff.', expected_verification_status: 'unverified' };
 
-test('need approval requires evidence findings, method, registered recipient and itemized goods', () => {
+test('need approval requires evidence findings, method, signed-in recipient and itemized goods', () => {
   assert.equal(reviewError(review, request), null);
   assert.match(reviewError({ ...review, notes: '' }, request), /reason/);
   assert.match(reviewError({ ...review, method: 'ai_prediction' }, request), /method/);
-  assert.match(reviewError(review, { ...request, user_id: null }), /registered recipient/);
+  assert.match(reviewError(review, { ...request, user_id: null }), /signed-in recipient/);
+  assert.equal(reviewError(review, { ...request, user_id: null, guest_session_id: 'guest-session' }), null);
   assert.match(reviewError(review, { ...request, requested_items: [] }), /items and quantities/);
   assert.match(reviewError(review, { ...request, requested_items: [{ item_name: 'Rice', unit: 'kg', quantity: -1 }] }), /positive quantity/);
+});
+
+test('a guest goods request can be verified and finished by a coordinator', async () => {
+  const guestRequest = { ...request, user_id: null, guest_session_id: 'guest-session' };
+  const statements = [];
+  const client = {
+    async query(sql) {
+      statements.push(sql);
+      if (sql.startsWith('SELECT * FROM help_requests')) return { rows: [guestRequest] };
+      if (sql.includes('FROM help_requests')) {
+        return { rows: [{ ...guestRequest, admin_status: 'in_progress', verification_status: 'verified' }] };
+      }
+      return { rows: [] };
+    },
+    release() {},
+  };
+  const req = {
+    params: { id: request.request_id },
+    user: { user_id: 'admin' },
+    app: { locals: { pool: { connect: async () => client } } },
+  };
+  const response = () => ({ code: 200, status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } });
+  const reviewRoute = requestRouter.stack.find(layer => layer.route?.path === '/:id/verification').route.stack.at(-1).handle;
+  const reviewResponse = response();
+  await reviewRoute({ ...req, body: review }, reviewResponse);
+  assert.equal(reviewResponse.code, 200);
+  assert.equal(reviewResponse.body.verification_status, 'verified');
+  assert.equal(reviewResponse.body.goods, null);
+  assert.equal(statements.at(-1), 'COMMIT');
+
+  const statusRoute = requestRouter.stack.find(layer => layer.route?.path === '/:id/status').route.stack.at(-1).handle;
+  const statusResponse = response();
+  await statusRoute({ ...req, body: { status: 'finished', reason: 'The recipient confirmed the handover by phone.' } }, statusResponse);
+  assert.equal(statusResponse.code, 200);
+  assert.equal(statusResponse.body.status, 'finished');
+  assert.equal(statements.at(-1), 'COMMIT');
 });
 
 test('stale reviews and reviews of closed requests are blocked', () => {

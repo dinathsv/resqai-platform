@@ -153,8 +153,8 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            <TouchableOpacity onPress={() => router.push('/(people)/help')} style={{ paddingVertical: 16 }} accessibilityRole="button">
-              <Text style={{ color: theme.emergency, fontFamily: Fonts.semiBold, textAlign: 'center' }}>{t('relief.urgentTitle')} · {t('relief.requestTitle')}</Text>
+            <TouchableOpacity onPress={() => router.push('/(people)/chatbot')} style={{ paddingVertical: 16 }} accessibilityRole="button">
+              <Text style={{ color: theme.emergency, fontFamily: Fonts.semiBold, textAlign: 'center' }}>{t('relief.urgentTitle')} · {t('relief.firstAid')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[

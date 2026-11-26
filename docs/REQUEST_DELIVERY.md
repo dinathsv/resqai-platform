@@ -44,7 +44,7 @@ Approval-first visibility requires no additional database migration. Redeploy bo
 
 ## Private NIC and camera-selfie evidence
 
-After a request reaches the server, a phone-verified signed-in requester can open **Add private identity photos (optional)** on the receipt or in Activities request details. Anonymous urgent reports remain available. Evidence is optional, so obtaining documents does not delay the initial report.
+Phone-verified citizens and NIC-approved guests can send help or goods requests. After submitting a request, the requester can open **Add private identity photos (optional)** on the receipt or in Activities request details.
 
 1. Read and accept private reviewer access and seven-day retention.
 2. Start a five-minute capture challenge. Write the new six-digit code on paper and hold it beside your face for the selfie.

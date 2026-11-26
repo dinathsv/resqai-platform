@@ -167,7 +167,7 @@ function isExpiredJwt(token: string): boolean {
   }
 }
 
-export async function getToken(): Promise<string | null> {
+export async function getAuthSession(): Promise<{ token: string; role: 'people' | 'guest' } | null> {
   for (const key of ['token', 'guest_token'] as const) {
     const token = await AsyncStorage.getItem(key);
     if (!token) continue;
@@ -177,10 +177,14 @@ export async function getToken(): Promise<string | null> {
       continue;
     }
 
-    return token;
+    return { token, role: key === 'guest_token' ? 'guest' : 'people' };
   }
 
   return null;
+}
+
+export async function getToken(): Promise<string | null> {
+  return (await getAuthSession())?.token ?? null;
 }
 
 // ---------------------------------------------------------------------------

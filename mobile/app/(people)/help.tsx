@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { View, Linking, ActivityIndicator } from 'react-native';
 import * as Location from 'expo-location';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { usePeopleAccess } from '../../context/PeopleAccessContext';
 import MinimalButton from '../../components/MinimalButton';
 import RequestEvidence from '../../components/RequestEvidence';
 import { ReliefPage, ReliefCard, ReliefText, ReliefField, ReliefBadge, reliefStyles } from '../../components/ReliefUI';
@@ -12,6 +12,7 @@ import { createClientId, submitDurableRequest, getMyQueuedRequests, getMyRequest
 
 export default function HelpScreen() {
   const { theme } = useTheme(); const { t } = useLanguage(); const router = useRouter();
+  const { guestStatus } = usePeopleAccess();
   const [kind, setKind] = useState<'help_rescue' | 'donation'>('help_rescue');
   const [message, setMessage] = useState(''); const [locationLabel, setLocationLabel] = useState('');
   const [peopleAffected, setPeopleAffected] = useState<boolean | null>(null);
@@ -47,7 +48,6 @@ export default function HelpScreen() {
     if (peopleAffected && (!/^\d+$/.test(people) || !Number.isInteger(affected) || affected < 1 || affected > 100000)) { setError(t('relief.peopleInvalid')); return; }
     const requested = kind === 'donation' ? items.map(i => ({ item_name: i.item_name.trim(), quantity: Number(i.quantity), unit: i.unit.trim() })) : [];
     if (requested.some(i => i.item_name.length < 2 || !i.unit || !Number.isInteger(i.quantity) || i.quantity <= 0 || i.quantity > 100000)) { setError(t('relief.itemsInvalid')); return; }
-    if (kind === 'donation' && !await AsyncStorage.getItem('token')) { setError(t('relief.accountForGoods')); return; }
     setBusy(true);
     try {
       const state = await submitDurableRequest({
@@ -106,7 +106,7 @@ export default function HelpScreen() {
       {locationNotice ? <ReliefText muted>{locationNotice}</ReliefText> : null}
       {kind === 'donation' && <>
         <ReliefText title>{t('relief.requestedGoods')}</ReliefText>
-        <ReliefText muted>{t('relief.goodsReviewNote')}</ReliefText>
+        <ReliefText muted>{t(guestStatus ? 'relief.guestGoodsReviewNote' : 'relief.goodsReviewNote')}</ReliefText>
         {items.map((item, index) => <View key={index} style={{ gap: 10, paddingVertical: 8 }}>
           <ReliefField label={`${t('relief.item')} ${index + 1}`} value={item.item_name} onChangeText={value => setItems(old => old.map((r, i) => i === index ? { ...r, item_name: value } : r))} placeholder={t('relief.itemPlaceholder')} maxLength={120} />
           <View style={{ flexDirection: 'row', gap: 12 }}>

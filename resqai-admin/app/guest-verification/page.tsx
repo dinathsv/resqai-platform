@@ -3,6 +3,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import api from "@/lib/api";
+import { apiError } from "@/lib/operations";
 import styles from "./guest-verification.module.css";
 
 interface GuestSession {
@@ -46,6 +47,7 @@ export default function GuestVerificationPage() {
   const [selectedGuest, setSelectedGuest] = useState<GuestSession | null>(null);
   const [actionNotes, setActionNotes] = useState<string>("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState("");
 
   const queryUrl = `/api/admin/guests?page=${page}&limit=20${
     statusFilter !== "all" ? `&status=${statusFilter}` : ""
@@ -56,24 +58,30 @@ export default function GuestVerificationPage() {
   });
 
   const handleStatusUpdate = async (sessionId: string, newStatus: "approved" | "rejected") => {
+    if (updatingId) return;
+    setUpdatingId(sessionId);
+    setActionError("");
     try {
-      setUpdatingId(sessionId);
       await api.patch(`/api/admin/guests/${sessionId}/status`, {
         status: newStatus,
-        notes: actionNotes.trim() || undefined,
+        notes: selectedGuest?.session_id === sessionId ? actionNotes.trim() : undefined,
       });
 
-      await mutate();
-      if (selectedGuest && selectedGuest.session_id === sessionId) {
+      if (selectedGuest?.session_id === sessionId) {
         setSelectedGuest(null);
       }
-      setActionNotes("");
-    } catch (err: any) {
-      console.error("Failed to update guest verification status:", err);
-      alert(err.response?.data?.error || "Failed to update verification status");
+      await mutate().catch(() => undefined);
+    } catch (err) {
+      setActionError(apiError(err, "Failed to update verification status. Please try again."));
     } finally {
       setUpdatingId(null);
     }
+  };
+
+  const closeInspection = () => {
+    if (updatingId) return;
+    setSelectedGuest(null);
+    setActionError("");
   };
 
   const getNicType = (nic: string | null) => {
@@ -184,6 +192,7 @@ export default function GuestVerificationPage() {
       </div>
 
       {/* Guests Table */}
+      {actionError && !selectedGuest && <p role="alert" className="opsError">{actionError}</p>}
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
         <div className="table-wrapper">
           <table className="data-table">
@@ -240,7 +249,12 @@ export default function GuestVerificationPage() {
                         {guest.nic_photo ? (
                           <div
                             className={styles.thumbnailContainer}
-                            onClick={() => setSelectedGuest(guest)}
+                            onClick={() => {
+                              if (updatingId) return;
+                              setSelectedGuest(guest);
+                              setActionNotes(guest.admin_notes ?? "");
+                              setActionError("");
+                            }}
                             title="Click to zoom and inspect NIC photo"
                           >
                             <img
@@ -262,7 +276,7 @@ export default function GuestVerificationPage() {
                         <div className={styles.nicBadge}>
                           <span>{guest.nic_number || "N/A"}</span>
                           {guest.nic_verified && (
-                            <span title="Format Verified" style={{ color: "var(--status-success)" }}>
+                            <span title="Identity approved" style={{ color: "var(--status-success)" }}>
                               ✓
                             </span>
                           )}
@@ -317,7 +331,7 @@ export default function GuestVerificationPage() {
                               isCurrentUpdating ? styles.actionBtnDisabled : ""
                             }`}
                             onClick={() => handleStatusUpdate(guest.session_id, "approved")}
-                            disabled={isCurrentUpdating || isApproved}
+                            disabled={!!updatingId || isApproved}
                             title="Approve this guest identity"
                           >
                             ✓ Approve
@@ -327,7 +341,7 @@ export default function GuestVerificationPage() {
                               isCurrentUpdating ? styles.actionBtnDisabled : ""
                             }`}
                             onClick={() => handleStatusUpdate(guest.session_id, "rejected")}
-                            disabled={isCurrentUpdating || isRejected}
+                            disabled={!!updatingId || isRejected}
                             title="Reject this guest identity"
                           >
                             ✕ Reject
@@ -368,11 +382,11 @@ export default function GuestVerificationPage() {
 
       {/* High-Resolution Photo Zoom Modal */}
       {selectedGuest && (
-        <div className={styles.modalBackdrop} onClick={() => setSelectedGuest(null)}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalBackdrop} onClick={closeInspection}>
+          <div role="dialog" aria-modal="true" aria-labelledby="nic-inspection-title" className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>NIC Photo Inspection & Verification</h3>
-              <button className={styles.closeBtn} onClick={() => setSelectedGuest(null)}>
+              <h3 id="nic-inspection-title" className={styles.modalTitle}>NIC Photo Inspection & Verification</h3>
+              <button className={styles.closeBtn} onClick={closeInspection} disabled={!!updatingId} aria-label="Close NIC inspection">
                 ✕
               </button>
             </div>
@@ -414,23 +428,27 @@ export default function GuestVerificationPage() {
               </div>
 
               <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 6 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>
-                  Admin Verification Notes (Optional):
+                <label htmlFor="guest-verification-notes" style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>
+                  Admin Verification Notes (Optional)
                 </label>
                 <input
+                  id="guest-verification-notes"
                   type="text"
                   className={styles.notesInput}
                   placeholder="Record what you checked, any callback or agency confirmation, and remaining uncertainty…"
                   value={actionNotes}
                   onChange={(e) => setActionNotes(e.target.value)}
+                  disabled={!!updatingId}
                 />
               </div>
+              {actionError && <p role="alert" className="opsError">{actionError}</p>}
             </div>
 
             <div className={styles.modalFooter}>
               <button
                 className="btn btn-secondary btn-sm"
-                onClick={() => setSelectedGuest(null)}
+                onClick={closeInspection}
+                disabled={!!updatingId}
               >
                 Cancel
               </button>
@@ -438,14 +456,14 @@ export default function GuestVerificationPage() {
                 <button
                   className={styles.rejectBtn}
                   onClick={() => handleStatusUpdate(selectedGuest.session_id, "rejected")}
-                  disabled={updatingId === selectedGuest.session_id}
+                  disabled={!!updatingId || selectedGuest.admin_status === "rejected"}
                 >
                   ✕ Reject Identity
                 </button>
                 <button
                   className={styles.approveBtn}
                   onClick={() => handleStatusUpdate(selectedGuest.session_id, "approved")}
-                  disabled={updatingId === selectedGuest.session_id}
+                  disabled={!!updatingId || selectedGuest.admin_status === "approved"}
                 >
                   ✓ Approve Identity
                 </button>

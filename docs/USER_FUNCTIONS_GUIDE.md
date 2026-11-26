@@ -35,8 +35,8 @@ Some screens and controls have implementation gaps. These are identified beside 
 
 | User perspective | What this person does | Access needed |
 | --- | --- | --- |
-| Person needing urgent help | Sends a help/rescue report and can open emergency dialer links | Anonymous urgent help is available without documents, registration, OTP, or GPS |
-| NIC guest | Uses a temporary session after NIC-format, photo, and mobile OTP submission | Guest session; identity initially awaits human review |
+| Person needing urgent help | Opens first-aid guidance or the emergency dialer and can submit a help request after signing in | The chatbot and dialer are available without an account. Requests require a verified citizen account or an approved guest NIC |
+| NIC guest | Uses a temporary session after NIC-format, photo, and mobile OTP submission | Uses the chatbot during NIC review and can send help or goods requests after approval |
 | Registered citizen / recipient | Requests goods, tracks owned requests, receives goods, and confirms assistance | Active account with completed mobile OTP verification for protected goods/volunteer actions |
 | Donor | Offers goods against reviewed needs and follows their progress | Verified registered account to pledge |
 | Volunteer | Accepts eligible community work and submits a completion note | Verified registered account; Volunteer Hub has a navigation limitation described below |
@@ -102,15 +102,15 @@ Administrator recovery currently uses email instead; see [administrator access](
 5. Enter a mobile number and select **Send OTP**.
 6. Enter the six SMS digits. The guest resend button has a 45-second countdown, and the server limits repeated sends.
 7. Select **Verify & Continue as Guest**. GPS is attempted, but unavailable GPS does not prevent continuation.
-8. Home opens with a temporary phone-verified guest session. NIC identity review starts as pending.
+8. The first-aid chatbot opens and shows your NIC review status. When the administrator approves your NIC, select **Home** to access help and goods requests.
 
 Camera/library permissions are requested when needed. On web, the camera modal offers **Snap Photo** and a device-file fallback. Failure to access a camera does not make an image automatically valid.
 
-Guest approval does not approve their emergency reports. The mobile app currently has no separate guest-review status panel or guest-to-registered-account conversion screen. A rejected guest session is blocked; sign out to use the document-free urgent-help route or contact a coordinator.
+Each report still goes through its own administrator review. If your guest session expires, sign in again with the same NIC and verified phone number to resume the review. If the administrator rejected your NIC photo, sign in again with a new photo to start a new review. You can use the chatbot while waiting or after rejection.
 
-### 2.5 Continue without documents for urgent help
+### 2.5 Open first-aid guidance before signing in
 
-Use the urgent-help link from Sign In or **Need urgent help? Continue without documents** on the guest screen. This opens the request form directly. Choose **Help / rescue**. A person can send that report without an account, NIC, photo, OTP, or GPS. Essential-goods requests require a verified registered account.
+Select **First-aid guidance** from Sign In or the guest screen to open the chatbot and emergency dialer link.
 
 ## 3. Home, navigation, language, appearance, and profile
 
@@ -152,7 +152,7 @@ Preset/reset changes apply locally and attempt an account update for registered 
 
 ### 4.1 Fill the request form
 
-Open **Request Help** from Home, an urgent-help entry link, or **Activities → New request**. The **Immediate danger?** card offers a 1990 dialer link and **First-aid guidance**.
+Sign in with a phone-verified citizen account or an approved guest NIC. Open **Request Help** from Home or **Activities → New request**. The **Immediate danger?** card offers a 1990 dialer link and **First-aid guidance**.
 
 | Field or control | What to enter or choose |
 | --- | --- |
@@ -170,7 +170,7 @@ Supporting details are a written note. This request form does not upload emergen
 
 ### 4.2 Request essential goods
 
-Sign in with an active, mobile-verified registered account, choose **Essential goods**, and add:
+Choose **Essential goods** and add the details below. For a guest request, the coordinator follows up using the verified phone number.
 
 - Item name, such as drinking water or blankets.
 - Positive whole quantity, from 1 to 100,000 in this form.
@@ -192,9 +192,9 @@ Select **Send request**. The app saves the submission locally first, then attemp
 
 The confirmation shows a shortened submission reference. **New request** appears after a successful send and clears description/supporting details; review the other retained fields before submitting another case.
 
-Server receipt does not mean a coordinator confirmed the need or dispatched assistance. New reports begin pending and unverified, visible only to the signed-in owner and authorized administrators. Other users see a generic **Verified** listing only after an administrator confirms the need and while the request remains open. Requests awaiting more information or rejected in review stay private. Descriptions, contact details, exact locations and identity evidence remain private after approval. Users do not choose urgency: automated triage uses the description and affected-person response to estimate priority and can add an English summary; it does not establish that a claim is genuine. Similar recent reports, unconfirmed locations, anonymous reports, and pending guest identity can produce review flags.
+Server receipt does not mean a coordinator confirmed the need or dispatched assistance. New reports begin pending and unverified, visible only to the signed-in owner and authorized administrators. Other users see a generic **Verified** listing only after an administrator confirms the need and while the request remains open. Requests awaiting more information or rejected in review stay private. Descriptions, contact details, exact locations and identity evidence remain private after approval. Automated triage uses the description and affected-person response to estimate priority and can add an English summary. Similar recent reports and unconfirmed locations can produce review flags.
 
-After the request is received, a signed-in phone-verified user can open **Add private identity photos (optional)**, consent to private review/seven-day retention, start a capture challenge, attach an NIC image and take a camera selfie with the fresh six-digit code written on paper beside their face. The same control is available in expanded Activities details. Photos stay outside the offline submission queue. Owners can delete uploads; only authorized administrators can open image bytes. Uploads remain pending human review and do not automatically verify identity or the incident. Anonymous urgent help remains available without these photos. See [private evidence configuration and limits](REQUEST_DELIVERY.md#private-nic-and-camera-selfie-evidence).
+After the request is received, a signed-in phone-verified user can open **Add private identity photos (optional)**, consent to private review/seven-day retention, start a capture challenge, attach an NIC image and take a camera selfie with the fresh six-digit code written on paper beside their face. The same control is available in expanded Activities details. Photos stay outside the offline submission queue. Owners can delete uploads; only authorized administrators can open image bytes. An administrator reviews uploaded photos. See [private evidence configuration and limits](REQUEST_DELIVERY.md#private-nic-and-camera-selfie-evidence).
 
 ## 5. Track requests, add information, and work offline
 
@@ -206,7 +206,7 @@ Open **Activities**. Use **New request**, **Relief goods**, and pull-to-refresh 
 - **Submitted requests** shows owned submissions, verification and handling badges, reviewer notes, and requested goods.
 - **View request history** expands the full request reference and dated review/status notes; select it again to collapse.
 
-Registered users and current NIC guests can retrieve their protected request history. Anonymous users rely on local successful-submission receipts. If the server cannot be reached, saved receipt copies may remain visible but may be stale.
+Registered users and approved NIC guests can retrieve their protected request history. When the server is unavailable, the device can display saved receipts.
 
 ### 5.2 Respond to a request for information
 
@@ -226,7 +226,7 @@ The offline banner states that requests will sync when connected. **Send request
 
 Queued requests retry when connectivity returns or the app becomes active. **Retry saved requests** in Activities also retries queued and action-needed entries. Network errors, server errors, and rate limiting can keep a request queued; other rejection responses require user attention.
 
-Retries retain a submission identifier so a successful request is not accidentally created twice. Queues and receipts are separated by the account/guest-session that created them. Signing into another account cannot submit someone else's queue. Anonymous queues remain in their anonymous device context. Expired guest sessions have no queue-recovery/migration screen.
+Retries retain a submission identifier to prevent duplicate requests. Each account or guest session has its own queue and receipts. If a guest session expires, sign in again on the same device with the same NIC and verified mobile number to recover access to the saved queue.
 
 Keep the same app/browser storage until queued requests are sent. Clearing storage removes local queues and receipts. The device receipt cache keeps the most recent 100 successful submissions. Activities has no delete/edit-queued-entry control. This offline capability applies to request submission and saved records; online AI, weather, goods operations, identity OTP, and live updates still need connectivity.
 
@@ -440,9 +440,9 @@ An intervening review by another coordinator is rejected as stale; refresh and r
 
 Until **Confirm need** is saved, the request is visible only to its owner and administrators. Approval publishes a generic verified listing to other users while the request remains open. **Request more information** and **Reject request** keep the report out of the community feed; withdrawing approval or closing a case removes its listing. Approval sends a refresh event, with a 15-second active-screen polling fallback.
 
-Confirming a goods need requires a registered recipient and a valid item/unit/quantity list. Approval creates/reactivates the goods mission and approved needs. Removing approval pauses open goods missions. Review flags and AI priority remain investigation aids, not proof of fraud or authenticity.
+Confirming a goods need requires a signed-in requester and a valid item list with units and quantities. For registered recipients, approval creates or reactivates the goods mission and approved needs. Withdrawing approval pauses open goods missions. For guest requests, call the verified phone number to coordinate assistance and record the outcome in the response reason.
 
-To update handling, choose **In progress** or **Finished — missions completed**, supply a 10–2,000-character reason, and select **Update response status**. Urgent help can start while checks continue; goods handling requires a verified need. Finished requires prior In progress and at least one associated mission, with all associated missions completed. Closed requests cannot be reopened through this control.
+To update handling, choose **In progress** or **Finished**, supply a 10–2,000-character reason, and select **Update response status**. Urgent help can start while checks continue. Goods handling requires a verified need. Move the request to **In progress** before finishing it. Complete all associated missions before closing. If you coordinated a guest goods request by phone, record the outcome when closing it.
 
 There is no admin request-create, original-report edit, manual urgency-change, volunteer-assignment, cancellation/deletion, or reopen control in the current request screens.
 
@@ -486,7 +486,7 @@ Open **NIC Verification**. Review Total/Pending/Approved/Rejected counters, filt
 
 Click the photo to open **NIC Photo Inspection & Verification**. Inspect the picture and NIC/phone details, enter optional **Admin Verification Notes**, and choose **Approve Identity** or **Reject Identity**. Row-level Approve/Reject controls are also available. Approval and rejection can subsequently be changed through those controls.
 
-Approval records reviewed identity status; rejection blocks the guest session and disconnects live access. Neither action approves an emergency need. This is manual inspection, with no national identity-registry lookup, automatic ownership match, or document-authenticity guarantee. The route sends no explicit guest SMS/email about the decision.
+Approval lets the guest submit help and goods requests. Rejection returns the guest to chatbot-only access and disconnects live updates. Guests see the latest decision in the chatbot. Coordinators review each reported need separately.
 
 ### 14.7 Manage registered users
 
@@ -584,16 +584,16 @@ Joining creates Accepted. A completion report means awaiting confirmation. Compl
 
 If a delivery is wrong or incomplete, the recipient reports a problem instead of confirming. A different coordinator investigates and records a return or confirmed delivery outcome. The quantity is not counted delivered just because it was pledged or dispatched.
 
-### 16.2 Urgent help without documents
+### 16.2 Urgent help from an approved guest
 
-1. A person opens the document-free urgent-help entry.
-2. They can open the emergency dialer and separately submit a Help / rescue report with a landmark, people count, and optional GPS.
+1. A guest uses the chatbot or emergency dialer while an administrator reviews their NIC.
+2. After approval, they can open Home and submit a Help / rescue report with a landmark, people count, and optional GPS.
 3. Without connectivity, the submission is visibly queued, not described as received.
 4. After server receipt, coordinators see the private unverified report and priority/review signals. Other users cannot see it yet.
 5. A coordinator can start investigating urgent help while checks continue.
 6. After an administrator confirms the need, the open request appears as a generic Verified listing in Home/Alerts.
 7. A verified helper uses community Acknowledge Alert, creating a mission/assignment and starting response progress if needed.
-8. Completion still requires supported evidence. An anonymous requester has no registered-account recipient-confirmation journey; the administrator-reviewed completion exception is relevant when recipient confirmation is unavailable.
+8. A coordinator can record a reviewed completion exception for help delivered to a guest.
 
 ### 16.3 Weather check without rainfall knowledge
 
@@ -616,7 +616,7 @@ These findings describe the reviewed source. They are included so a user or viva
 | Administrator recovery | Uses SMTP email; SMSlenz-only configuration does not supply that email channel |
 | Home weather | GPS permission denial can leave Loading with a Colombo map fallback; distinguish this from the explicit prediction-location workflow |
 | Profile | Custom upload works on web only; no mobile name/email/phone editor; account avatar sync failures are not visibly reported |
-| Guest experience | No review-status panel, account conversion, or expired-session queue-recovery screen; old NULL review-state rows can be counted as pending but missed by the Pending filter |
+| Guest experience | Expired sessions resume through guest sign-in. Guest goods assistance is coordinated by phone and recorded in the request history |
 | Request editing | Details modal edits description/supporting note only; no citizen cancel/delete or saved-queue editor |
 | User administration | No restore/account-create/delete/role-edit screen; some limited reactivation/type operations exist only in the API |
 | Mission administration | No general mission CRUD or coordinator assignment screen; missions arise through the defined request workflows |

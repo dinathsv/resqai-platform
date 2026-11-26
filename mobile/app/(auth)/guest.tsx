@@ -1,5 +1,5 @@
 /**
- * Flow 4: Guest user emergency access
+ * Flow 4: Guest access with NIC review
  * Sri Lankan NIC format checks and manual identity review
  * Enforces compulsory:
  * 1. NIC format validation
@@ -484,10 +484,9 @@ export default function GuestScreen() {
         const data = await res.json();
         await AsyncStorage.removeItem('token');
         await AsyncStorage.setItem('guest_token', data.access_token);
-        await AsyncStorage.setItem('guest_review_status', data.admin_review_status || 'pending');
         await AsyncStorage.setItem('guest_phone', data.phone_number || trimmedPhone);
         await AsyncStorage.setItem('guest_nic', data.nic_number || trimmedNic);
-        router.replace('/(people)/dashboard');
+        router.replace(data.identity_status === 'approved' ? '/(people)/dashboard' : '/(people)/chatbot');
       } else {
         const errMsg = await parseErrorResponse(res);
         setError(errMsg || t('common.error'));
@@ -546,8 +545,8 @@ export default function GuestScreen() {
             <LanguageSelector variant="segmented" style={{ marginBottom: 18 }} />
 
             <View style={{ marginBottom: 16, gap: 10 }}>
-              <Text style={{ color: theme.textSecondary, lineHeight: 21 }}>Phone verification confirms access to the number. NIC format checks do not prove identity; an administrator reviews the submitted document.</Text>
-              <TouchableOpacity onPress={() => router.push('/(people)/help')}><Text style={{ color: theme.brandActive, fontWeight: '600' }}>Need urgent help? Continue without documents</Text></TouchableOpacity>
+              <Text style={{ color: theme.textSecondary, lineHeight: 21 }}>{t('auth.guestReviewIntro')}</Text>
+              <TouchableOpacity onPress={() => router.push('/(people)/chatbot')}><Text style={{ color: theme.brandActive, fontWeight: '600' }}>{t('relief.firstAid')}</Text></TouchableOpacity>
             </View>
             {error ? (
               <View style={[styles.errorBox, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEF2F2', borderColor: '#EF4444' }]}>

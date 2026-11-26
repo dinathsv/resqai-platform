@@ -186,6 +186,9 @@ async def test_admin_login_requires_password_and_enforces_lockout(client: AsyncC
     valid = await client.post(url, json={"email": email, "password": password})
     assert valid.status_code == 200
 
+    too_long = await client.post(url, json={"email": email, "password": "é" * 37})
+    assert too_long.status_code == 422
+
     for _ in range(5):
         invalid = await client.post(url, json={"email": email, "password": "incorrect-password"})
         assert invalid.status_code == 401
@@ -214,6 +217,51 @@ async def test_guest_phone_verified_identity_pending(client, nic):
     assert response.status_code == 200, response.text
     assert response.json()['identity_status'] == 'pending'
     assert response.json()['decoded']['identity_verified'] is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('decision', ['pending', 'approved', 'rejected'])
+async def test_guest_sign_in_again_restores_the_nic_review(client, decision):
+    import base64
+    import uuid
+    from datetime import datetime, timedelta, timezone
+    from app.database import get_db
+    from app.main import app
+    from app.models.guest_session import GuestSession
+
+    original = 'data:image/png;base64,' + base64.b64encode(b'\x89PNG\r\n\x1a\n' + b'x' * 100).decode()
+    replacement = 'data:image/png;base64,' + base64.b64encode(b'\x89PNG\r\n\x1a\n' + b'y' * 100).decode()
+    guest_id = uuid.uuid4()
+    async for db in app.dependency_overrides[get_db]():
+        db.add(GuestSession(
+            session_id=guest_id, nic_number='881234567V', nic_photo=original, admin_status=decision,
+            nic_verified=decision == 'approved', phone_number='+94771234567', phone_verified=True,
+            temp_token='expired-token', expires_at=datetime.now(timezone.utc) - timedelta(minutes=10),
+        ))
+        await db.commit()
+
+    async def sign_in(photo):
+        sent = await client.post('/api/auth/guest/send-otp', json={'phone_number': '0771234567'})
+        assert sent.status_code == 200
+        code = await (await get_test_redis()).get('guest_otp:+94771234567')
+        response = await client.post('/api/auth/guest/verify-nic', json={
+            'nic_number': '881234567V', 'nic_photo': photo, 'phone_number': '0771234567', 'otp': code,
+        })
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    resumed = await sign_in(original if decision == 'rejected' else replacement)
+    assert resumed['identity_status'] == decision
+    assert resumed['session_id'] == str(guest_id)
+    profile = await client.get('/api/auth/me', headers={'Authorization': 'Bearer ' + resumed['access_token']})
+    assert profile.json()['identity_status'] == decision
+    async for db in app.dependency_overrides[get_db]():
+        assert (await db.get(GuestSession, guest_id)).nic_photo == original
+
+    if decision == 'rejected':
+        review = await sign_in(replacement)
+        assert review['identity_status'] == 'pending'
+        assert review['session_id'] != str(guest_id)
 
 
 @pytest.mark.asyncio

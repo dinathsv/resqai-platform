@@ -7,6 +7,7 @@ const { requireAdmin, verifyToken } = require('../middleware/auth');
 const { requireInternal } = require('../middleware/internal');
 const usersRouter = require('../routes/users');
 const alertsRouter = require('../routes/alerts');
+const guestsRouter = require('../routes/guests');
 
 function response() {
   return { code: 200, status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } };
@@ -19,9 +20,36 @@ function request(role = 'people', rows = []) {
 
 test('user management and alert writes use administrator authorization', () => {
   assert.equal(usersRouter.stack[0].handle, requireAdmin);
+  assert.equal(guestsRouter.stack[0].handle, requireAdmin);
   for (const layer of alertsRouter.stack.filter(item => item.route && (item.route.methods.post || item.route.methods.patch))) {
     assert.equal(layer.route.stack[0].handle, requireAdmin);
   }
+});
+
+test('guest review saves approval and rejection along with the matching identity flag', async () => {
+  const id = 'b589bb5b-894a-408b-8604-d80b92988741';
+  const handler = guestsRouter.stack.find(layer => layer.route?.path === '/:id/status').route.stack.at(-1).handle;
+  const disconnected = [];
+  for (const decision of ['approved', 'rejected', 'pending']) {
+    const approved = decision === 'approved';
+    const req = {
+      params: { id },
+      body: { status: decision, notes: ' Checked the submitted photo. ' },
+      app: { locals: {
+        pool: { async query(sql, params) {
+          assert.match(sql, /admin_status = \$1,\s+nic_verified = \$2/);
+          assert.deepEqual(params, [decision, approved, 'Checked the submitted photo.', id]);
+          return { rows: [{ admin_status: decision, nic_verified: approved }] };
+        } },
+        io: { in: room => ({ disconnectSockets: () => disconnected.push(room) }) },
+      } },
+    };
+    const res = response();
+    await handler(req, res);
+    assert.equal(res.code, 200);
+    assert.deepEqual(res.body.guest, { admin_status: decision, nic_verified: approved });
+  }
+  assert.deepEqual(disconnected, [`user:${id}`, `user:${id}`]);
 });
 
 test('citizens and guests cannot administer users or issue alerts', async () => {

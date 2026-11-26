@@ -45,11 +45,13 @@ test('switching accounts never sends a previous owner queue', async () => {
   assert.equal((await h.api.getMyQueuedRequests()).length, 0);
   h.setUser('alice'); await h.api.syncMyRequests(); assert.equal(h.calls.length, 1);
 });
-test('anonymous SOS sends without Authorization and stays separate from a later login', async () => {
+test('signed-out sessions cannot queue new requests or submit older anonymous drafts', async () => {
   const h = harness(); const sos = { ...payload(), request_type: 'help_rescue', requested_items: [] };
-  await h.api.queueRequest(sos); h.setUser('alice'); await h.api.syncMyRequests(); assert.equal(h.calls.length, 0);
-  h.setUser(null); await h.api.syncMyRequests(); assert.equal(h.calls.length, 1);
-  assert.equal(h.calls[0].options.headers.Authorization, undefined);
+  h.storage.set('resqai:requests:v2:anonymous-device', JSON.stringify([{ owner: 'anonymous-device', payload: sos, status: 'queued' }]));
+  await assert.rejects(h.api.queueRequest(sos), /Sign in/);
+  await h.api.syncMyRequests();
+  h.setUser('alice'); await h.api.syncMyRequests();
+  assert.equal(h.calls.length, 0);
 });
 test('a rejected request remains visible and retries only on explicit user action', async () => {
   const h = harness(); h.setUser('alice'); h.network(async () => new Response(JSON.stringify({ detail: 'Phone verification required' }), { status: 403 }));

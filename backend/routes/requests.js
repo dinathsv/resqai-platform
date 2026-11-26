@@ -268,18 +268,20 @@ router.patch('/:id/status', requireAdmin, async (req, res) => {
   try {
     client = await req.app.locals.pool.connect();
     await client.query('BEGIN');
-    const existing = await client.query('SELECT admin_status, status, emergency_type, verification_status FROM help_requests WHERE request_id = $1 FOR UPDATE', [req.params.id]);
+    const existing = await client.query('SELECT admin_status, status, emergency_type, verification_status, user_id, guest_session_id FROM help_requests WHERE request_id = $1 FOR UPDATE', [req.params.id]);
     if (!existing.rows.length) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Request not found' });
     }
-    const oldStatus = existing.rows[0].admin_status || 'pending';
-    const error = transitionError(existing.rows[0], status, req.body.reason);
+    const request = existing.rows[0];
+    const oldStatus = request.admin_status || 'pending';
+    const error = transitionError(request, status, req.body.reason);
     if (error) { await client.query('ROLLBACK'); return res.status(409).json({ error }); }
     if (oldStatus === status) { await client.query('COMMIT'); return res.json({ success: true, request_id: req.params.id, status }); }
     if (status === 'finished') {
       const missions = await client.query('SELECT status FROM relief_missions WHERE origin_request_id=$1 FOR UPDATE', [req.params.id]);
-      if (!missions.rows.length || missions.rows.some(mission => mission.status !== 'completed')) {
+      const guestGoodsRequest = request.emergency_type === 'donation' && request.guest_session_id && !request.user_id;
+      if ((!missions.rows.length && !guestGoodsRequest) || missions.rows.some(mission => mission.status !== 'completed')) {
         await client.query('ROLLBACK');
         return res.status(409).json({ error: 'Complete the associated response missions and delivery confirmations before closing this request' });
       }
@@ -319,7 +321,9 @@ router.patch('/:id/verification', requireAdmin, async (req, res) => {
     await client.query(`INSERT INTO audit_logs(admin_id,action,entity_type,entity_id) VALUES($1,$2,'help_request',$3)`,
       [req.user.user_id, `request_verification:${decision}`, req.params.id]);
     let goods = null;
-    if (decision === 'verified' && rows[0].emergency_type === 'donation') {
+    // Inventory deliveries require a registered recipient. Coordinators handle
+    // guest goods requests through the request's contact and response history.
+    if (decision === 'verified' && rows[0].emergency_type === 'donation' && rows[0].user_id) {
       goods = await require('./goods').ensureGoodsNeedsForVerifiedRequest(client, { ...rows[0], verification_status: decision }, req.user.user_id);
     } else if (decision !== 'verified') {
       await client.query(`UPDATE relief_missions SET status='paused',updated_at=NOW()

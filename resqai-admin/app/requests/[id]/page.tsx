@@ -16,6 +16,7 @@ interface Participant {
 interface RequestDetail {
   request_id: string; request_type: 'help' | 'donation'; original_message: string;
   submitted_by: string; submitted_by_email?: string; submitted_by_phone?: string; phone_verified: boolean;
+  guest_session_id: string | null;
   created_at: string; admin_status: string; status: string; verification_status: string;
   verification_method?: string; verification_notes?: string; verified_at?: string;
   urgency_level: number; triage_source?: string; incident_type?: string; affected_people: number;
@@ -95,6 +96,7 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
   if (isLoading) return <div className="page">Loading request…</div>;
   if (!request) return <div className="page" role="alert">Unable to load this request.</div>;
   const closed = request.admin_status === 'finished' || ['resolved', 'cancelled'].includes(request.status);
+  const guestGoodsRequest = request.request_type === 'donation' && !!request.guest_session_id;
 
   return <div className="page">
     <Link href="/requests">← Review queue</Link>
@@ -138,15 +140,16 @@ export default function RequestDetailPage({ params }: { params: Promise<{ id: st
       <ActionFeedback feedback={reviewFeedback} />
     </section>
     <section className="section"><h2>Response progress</h2>
-      {!closed && <form className="opsForm" onSubmit={updateStatus} noValidate><label>Next status<select value={nextStatus} onChange={event => setNextStatus(event.target.value)}><option value="in_progress">In progress</option><option value="finished">Finished — missions completed</option></select></label>
+      {guestGoodsRequest && <p>Coordinate goods assistance using the guest’s verified phone number and record the outcome in the response reason.</p>}
+      {!closed && <form className="opsForm" onSubmit={updateStatus} noValidate><label>Next status<select value={nextStatus} onChange={event => setNextStatus(event.target.value)}><option value="in_progress">In progress</option><option value="finished">{guestGoodsRequest ? 'Finished — outcome recorded' : 'Finished — missions completed'}</option></select></label>
         <label>Reason <small id="status-reason-help" className="opsMuted">{reasonHelp}</small>
           <textarea value={reason} minLength={10} maxLength={2000} required readOnly={saving === 'status'} aria-describedby="status-reason-help" onChange={event => setReason(event.target.value)} rows={2} />
         </label>
         <button type="submit" disabled={saving !== null}>{saving === 'status' ? 'Updating…' : 'Update response status'}</button></form>}
       <ActionFeedback feedback={statusFeedback} />
       {request.missions?.map(mission => <p key={mission.mission_id}><Link href={`/missions/${mission.mission_id}`}>{mission.title}</Link> · {readable(mission.status)}</p>)}
-      {!request.missions?.length && <p>No mission yet.</p>}
-      {request.request_type === 'donation' && <p><Link href="/goods">Open goods and delivery coordination</Link></p>}
+      {!request.missions?.length && !guestGoodsRequest && <p>No mission yet.</p>}
+      {request.request_type === 'donation' && !guestGoodsRequest && <p><Link href="/goods">Open goods and delivery coordination</Link></p>}
     </section>
     <section className="section"><h2>Participants</h2>{request.participants?.length ? request.participants.map((person, index) => <div className="opsCard" key={person.assignment_id || person.donation_id || index}><strong>{person.full_name || 'User'}</strong><p>{person.status && readable(person.status)}</p>{person.item_name && <p>{person.quantity} {person.unit} {person.item_name} · confirmed delivered: {person.delivered_quantity || 0}</p>}</div>) : <p>No participants yet.</p>}</section>
     <section className="section"><h2>Verification history</h2><ol className="opsTimeline">{request.verification_history?.map(review => <li key={review.verification_id}><strong>{readable(review.decision)} · {readable(review.method)}</strong><p>{review.notes}</p><small>{review.reviewer_name || 'Administrator'}{review.agency ? ` · ${review.agency}` : ''} · {new Date(review.created_at).toLocaleString()}</small></li>)}</ol>{!request.verification_history?.length && <p>No verification decisions recorded.</p>}</section>

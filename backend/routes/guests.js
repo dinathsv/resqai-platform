@@ -1,5 +1,6 @@
 const express = require('express');
 const { requireAdmin } = require('../middleware/auth');
+const { UUID_PATTERN } = require('../services/requestWorkflow');
 const { revokeUserSockets } = require('../socket');
 
 const router = express.Router();
@@ -52,7 +53,7 @@ router.get('/', async (req, res) => {
 
     if (filterStatus) {
       queryParams.push(filterStatus);
-      whereClauses.push(`admin_status = $${queryParams.length}`);
+      whereClauses.push(`COALESCE(admin_status, 'pending') = $${queryParams.length}`);
     }
 
     const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
@@ -104,25 +105,30 @@ router.get('/', async (req, res) => {
  * Approve or reject guest user NIC verification
  */
 router.patch('/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status: newStatus, notes } = req.body ?? {};
+  if (!UUID_PATTERN.test(id)) {
+    return res.status(400).json({ error: 'Invalid guest session ID' });
+  }
+  if (!['approved', 'rejected', 'pending'].includes(newStatus)) {
+    return res.status(400).json({ error: 'Status must be approved, rejected, or pending' });
+  }
+  if (notes != null && typeof notes !== 'string') {
+    return res.status(400).json({ error: 'Verification notes must be text' });
+  }
+
   try {
-    const { id } = req.params;
-    const { status: newStatus, notes } = req.body;
-
-    if (!['approved', 'rejected', 'pending'].includes(newStatus)) {
-      return res.status(400).json({ error: 'Status must be approved, rejected, or pending' });
-    }
-
     const pool = req.app.locals.pool;
 
     const updateQuery = `
       UPDATE guest_sessions
       SET 
         admin_status = $1,
-        nic_verified = ($1 = 'approved'),
+        nic_verified = $2,
         admin_reviewed_at = NOW(),
-        admin_notes = $2,
+        admin_notes = $3,
         updated_at = NOW()
-      WHERE session_id = $3
+      WHERE session_id = $4
       RETURNING 
         session_id,
         nic_number,
@@ -136,13 +142,19 @@ router.patch('/:id/status', async (req, res) => {
         created_at
     `;
 
-    const { rows } = await pool.query(updateQuery, [newStatus, notes || null, id]);
+    const { rows } = await pool.query(updateQuery, [newStatus, newStatus === 'approved', notes?.trim() || null, id]);
 
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Guest session not found' });
     }
 
-    if (newStatus === 'rejected') revokeUserSockets(req.app.locals.io, id);
+    if (newStatus !== 'approved') {
+      try {
+        revokeUserSockets(req.app.locals.io, id);
+      } catch {
+        console.warn('Guest review saved; live connection could not be disconnected');
+      }
+    }
     return res.json({
       success: true,
       guest: rows[0],

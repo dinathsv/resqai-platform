@@ -14,7 +14,7 @@ from typing import Any, Literal
 
 import httpx
 import redis.asyncio as redis
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from jose import jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -29,7 +29,7 @@ from app.models.guest_session import GuestSession
 from app.models.user import User
 from app.services.otp_service import send_otp
 from app.services.sms_service import normalize_phone_number
-from app.middleware.auth import oauth2_scheme, get_current_user
+from app.middleware.auth import oauth2_scheme, get_current_user, get_session_user
 
 router = APIRouter(tags=["Authentication"])
 
@@ -337,12 +337,12 @@ async def login(
 
 @router.get("/me")
 async def get_me(
+    response: Response,
     db: AsyncSession = Depends(get_db),
-    token: str = Depends(oauth2_scheme),
+    current_user: dict[str, Any] = Depends(get_session_user),
 ):
     """Return current authenticated user profile."""
-    from app.middleware.auth import get_current_user
-    current_user = await get_current_user(token, db)
+    response.headers["Cache-Control"] = "no-store"
     sub = current_user.get("sub")
     role = current_user.get("role")
 
@@ -439,6 +439,9 @@ async def admin_login(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ):
+    if len(req.password.encode("utf-8")) > 72:
+        raise HTTPException(status_code=422, detail="Password must be at most 72 UTF-8 bytes")
+
     email_clean = str(req.email).strip().lower()
     fail_key = f"fails:admin:{email_clean}"
     fails = await redis_client.get(fail_key)
@@ -448,7 +451,7 @@ async def admin_login(
     result = await db.execute(select(Administrator).where(func.lower(Administrator.email) == email_clean))
     admin = result.scalars().first()
 
-    if not admin or not pwd_context.verify(req.password, admin.password_hash):
+    if not admin or not admin.password_hash or not pwd_context.verify(req.password, admin.password_hash):
         await redis_client.incr(fail_key)
         await redis_client.expire(fail_key, 900)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
@@ -583,52 +586,58 @@ async def verify_nic(
     otp_key = f"guest_otp:{phone}"
     await check_otp(redis_client, otp_key, otp_code)
 
-    # Clean up OTP after successful verification
-    await redis_client.delete(otp_key)
+    if not await redis_client.delete(otp_key):
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP")
 
     clean_nic = nic_num.upper()
-    expires = datetime.now(timezone.utc) + timedelta(minutes=settings.GUEST_TOKEN_EXPIRE_MINUTES)
+    guest = await db.scalar(select(GuestSession).where(
+        GuestSession.nic_number == clean_nic,
+        GuestSession.phone_number == phone,
+        GuestSession.phone_verified.is_(True),
+    ).order_by(GuestSession.created_at.desc(), GuestSession.session_id.desc()).limit(1).with_for_update())
 
-    new_session = GuestSession(
-        nic_number=clean_nic[:50],
-        nic_photo=nic_photo,
-        nic_verified=False,
-        nic_format_valid=True,
-        phone_number=phone[:20],
-        phone_verified=True,
-        temp_token="pending",
-        expires_at=expires,
-    )
+    # Resume the same review after OTP sign-in. A replacement for a rejected
+    # photo is a new submission so the previous decision stays with that photo.
+    if guest is None or (guest.admin_status == "rejected" and guest.nic_photo != nic_photo):
+        guest = GuestSession(
+            session_id=uuid.uuid4(), nic_number=clean_nic, nic_photo=nic_photo,
+            nic_verified=False, nic_format_valid=True, phone_number=phone,
+            phone_verified=True, admin_status="pending",
+        )
+        if req.lat is not None and req.lng is not None:
+            guest.gps_location = f"SRID=4326;POINT({req.lng} {req.lat})"
+        db.add(guest)
 
-    if req.lat is not None and req.lng is not None:
-        new_session.gps_location = f"SRID=4326;POINT({req.lng} {req.lat})"
-
-    db.add(new_session)
-    await db.commit()
-    await db.refresh(new_session)
-
+    lifetime = timedelta(minutes=settings.GUEST_TOKEN_EXPIRE_MINUTES)
+    guest.expires_at = datetime.now(timezone.utc) + lifetime
     token = create_access_token(
         data={
-            "sub": str(new_session.session_id),
+            "sub": str(guest.session_id),
             "role": "guest",
             "nic": clean_nic,
             "phone": phone,
         },
-        expires_delta=timedelta(minutes=settings.GUEST_TOKEN_EXPIRE_MINUTES),
+        expires_delta=lifetime,
     )
 
-    new_session.temp_token = token
+    guest.temp_token = token
     await db.commit()
 
+    identity_status = guest.admin_status or "pending"
+    messages = {
+        "pending": "Your NIC review is pending. You can use the chatbot while you wait.",
+        "rejected": "Your NIC verification was rejected. You can still use the chatbot.",
+        "approved": "Your NIC is approved. You can now submit help and donation requests.",
+    }
     return {
         "access_token": token,
         "token_type": "bearer",
         "nic_number": clean_nic,
         "phone_number": phone,
-        "session_id": str(new_session.session_id),
+        "session_id": str(guest.session_id),
         "decoded": decoded_data,
-        "identity_status": "pending",
-        "message": "Phone verified. Identity review is pending; urgent SOS remains available."
+        "identity_status": identity_status,
+        "message": messages.get(identity_status, messages["pending"]),
     }
 
 

@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, NotRequired, TypedDict
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import desc, select, text
 from sqlalchemy.exc import IntegrityError
@@ -20,7 +20,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.config import settings
-from app.middleware.auth import get_current_user, get_optional_user, require_role
+from app.middleware.auth import ensure_guest_approved, get_current_user, require_role
+from app.models.guest_session import GuestSession
 from app.models.help_request import HelpRequest
 from app.models.request_history import RequestVerification, RequestStatusHistory
 from app.services.request_triage import similar_report, triage_request
@@ -158,16 +159,13 @@ async def notify_new_request(
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_request(
     req: SubmitRequest,
-    http_request: Request,
-    current_user: dict[str, Any] | None = Depends(get_optional_user),
+    current_user: dict[str, Any] = Depends(require_role("people", "guest")),
     db: AsyncSession = Depends(get_db),
     redis_client=Depends(get_redis),
 ):
     """Save an unverified incident for its owner and administrator review."""
-    role = current_user.get("role") if current_user else "guest"
-    subject = current_user.get("sub") if current_user else None
-    if req.request_type == "donation" and role != "people":
-        raise HTTPException(status_code=403, detail="A verified registered account is required to request emergency goods.")
+    role = current_user["role"]
+    subject = current_user["sub"]
     fingerprint = hashlib.sha256(json.dumps({
         "owner": subject, "role": role, "payload": req.model_dump(mode="json", exclude={"client_request_id"})
     }, sort_keys=True).encode()).hexdigest()
@@ -178,8 +176,7 @@ async def create_request(
                 raise HTTPException(status_code=409, detail="This submission ID already belongs to different request data.")
             return request_response(existing, private=True)
 
-    rate_subject = subject or (http_request.client.host if http_request.client else "anonymous")
-    rate_key = "request_rate:" + hashlib.sha256(rate_subject.encode()).hexdigest()
+    rate_key = "request_rate:" + hashlib.sha256(subject.encode()).hexdigest()
     try:
         count = await redis_client.incr(rate_key)
         if count == 1:
@@ -196,10 +193,6 @@ async def create_request(
     flags = []
     if req.lat is None:
         flags.append("location_not_confirmed")
-    if not subject:
-        flags.append("anonymous_report")
-    elif current_user is not None and role == "guest" and current_user.get("identity_status") != "approved":
-        flags.append("identity_review_pending")
     recent = (await db.execute(select(HelpRequest).where(
         HelpRequest.created_at >= datetime.now(timezone.utc) - timedelta(hours=24),
         HelpRequest.emergency_type == req.request_type,
@@ -207,9 +200,19 @@ async def create_request(
     if any(similar_report(req.message, other.original_message) for other in recent):
         flags.append("similar_recent_report_review_required")
 
+    owner_id = uuid.UUID(subject)
+    if role == "guest":
+        # A review can change during triage. Hold a shared row lock through
+        # commit to serialize creation with an administrator's decision.
+        guest_status = await db.scalar(select(GuestSession.admin_status).where(
+            GuestSession.session_id == owner_id,
+            GuestSession.expires_at > datetime.now(timezone.utc),
+        ).with_for_update(read=True))
+        ensure_guest_approved(guest_status)
+
     record = HelpRequest(
-        request_id=uuid.uuid4(), user_id=uuid.UUID(subject) if subject and role == "people" else None,
-        guest_session_id=uuid.UUID(subject) if subject and role == "guest" else None,
+        request_id=uuid.uuid4(), user_id=owner_id if role == "people" else None,
+        guest_session_id=owner_id if role == "guest" else None,
         is_guest_request=role == "guest", original_message=req.message,
         emergency_type=req.request_type, status="pending", admin_status="pending",
         verification_status="unverified", affected_people=req.affected_people,

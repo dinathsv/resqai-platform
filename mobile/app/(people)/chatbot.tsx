@@ -14,13 +14,13 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { requireOptionalNativeModule } from 'expo';
 import { useRouter } from 'expo-router';
 import { aiFetch } from '../../config/api';
 import { Colors, Fonts } from '../../constants/theme';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { usePeopleAccess } from '../../context/PeopleAccessContext';
 import TopBar from '../../components/TopBar';
 interface Message {
   id: string;
@@ -93,6 +93,7 @@ declare global {
 export default function ChatbotScreen() {
   const { theme } = useTheme();
   const { language, t } = useLanguage();
+  const { canUseRequests, guestStatus } = usePeopleAccess();
   const router = useRouter();
 
   const initialText = t('chatbot.initialGreeting');
@@ -141,18 +142,6 @@ export default function ChatbotScreen() {
       );
     }
   });
-
-  useEffect(() => {
-    async function checkAuth() {
-      const token = await AsyncStorage.getItem('token');
-      const guestToken = await AsyncStorage.getItem('guest_token');
-
-      if (!token && !guestToken) {
-        console.log('Chatbot: Running as anonymous');
-      }
-    }
-    checkAuth();
-  }, []);
 
   useEffect(() => {
     return () => {
@@ -349,7 +338,7 @@ export default function ChatbotScreen() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace('/(people)/dashboard');
+      router.replace(canUseRequests ? '/(people)/dashboard' : '/(auth)/login');
     }
   };
 
@@ -424,6 +413,16 @@ export default function ChatbotScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 72 : 0}
         >
+          {guestStatus && (
+            <View style={[styles.reviewBanner, { backgroundColor: theme.surfaceSubtle }]}>
+              <Text accessibilityLiveRegion="polite" style={{ color: theme.textPrimary }}>{t(`auth.guestReview.${guestStatus}`)}</Text>
+              {guestStatus === 'approved' && (
+                <TouchableOpacity accessibilityRole="button" onPress={() => router.replace('/(people)/dashboard')}>
+                  <Text style={{ color: theme.accent, fontFamily: Fonts.semiBold }}>{t('nav.home')}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
           <FlatList
             showsVerticalScrollIndicator={false}
             showsHorizontalScrollIndicator={false}
@@ -447,11 +446,12 @@ export default function ChatbotScreen() {
             </View>
           )}
 
-          {show1990 && (
+          {(show1990 || !canUseRequests) && (
             <TouchableOpacity
               style={[styles.banner1990, { backgroundColor: theme.error }]}
               onPress={() => Linking.openURL('tel:1990')}
               activeOpacity={0.8}
+              accessibilityRole="button"
             >
               <Text style={styles.banner1990Text}>
                 {t('chatbot.call1990Now')}
@@ -589,6 +589,13 @@ export default function ChatbotScreen() {
 }
 
 const styles = StyleSheet.create({
+  reviewBanner: {
+    padding: 12,
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 10,
+    gap: 8,
+  },
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',

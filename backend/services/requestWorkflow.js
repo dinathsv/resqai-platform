@@ -12,7 +12,7 @@ function reviewError(body, request) {
   if (request.admin_status === 'finished' || ['resolved', 'cancelled'].includes(request.status)) return 'Closed requests cannot be reviewed';
   if (body.decision === 'needs_information' && request.admin_status !== 'pending') return 'The response has already started. Contact the recipient through the assigned coordinator; the submission cannot be reopened for editing';
   if (body.decision === 'verified' && request.emergency_type === 'donation') {
-    if (!request.user_id) return 'A registered recipient is required for goods requests';
+    if (!request.user_id && !request.guest_session_id) return 'A signed-in recipient is required for goods requests';
     const items = request.requested_items;
     if (!Array.isArray(items) || items.length === 0) return 'The recipient must provide the requested items and quantities before approval';
     if (items.some(item => !item || typeof item.item_name !== 'string' || !item.item_name.trim() || typeof item.unit !== 'string' || !item.unit.trim() || !Number.isFinite(Number(item.quantity)) || Number(item.quantity) <= 0)) return 'Each requested item needs a name, unit, and positive quantity';

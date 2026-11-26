@@ -6,7 +6,7 @@ async function activeSocketAccount(pool, user) {
   let result;
   if (user.role === 'admin') result = await pool.query('SELECT admin_id FROM administrators WHERE admin_id=$1 AND is_active=TRUE', [user.user_id]);
   else if (user.role === 'people') result = await pool.query('SELECT user_id FROM users WHERE user_id=$1 AND is_active=TRUE AND is_verified=TRUE', [user.user_id]);
-  else if (user.role === 'guest') result = await pool.query("SELECT session_id FROM guest_sessions WHERE session_id=$1 AND expires_at>NOW() AND admin_status!='rejected'", [user.user_id]);
+  else if (user.role === 'guest') result = await pool.query("SELECT session_id FROM guest_sessions WHERE session_id=$1 AND expires_at>NOW() AND admin_status='approved'", [user.user_id]);
   else return false;
   return result.rows.length > 0;
 }

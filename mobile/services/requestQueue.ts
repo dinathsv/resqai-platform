@@ -42,9 +42,9 @@ export function ownerFromToken(token: string): string | null {
 }
 async function identity() {
   const token = await getToken();
-  if (token) { const owner = ownerFromToken(token); return owner ? { token, owner } : null; }
-  // Anonymous SOS stays in a separate device queue and is never attached to a later login.
-  return { token: null, owner: 'anonymous-device' };
+  if (!token) return null;
+  const owner = ownerFromToken(token);
+  return owner ? { token, owner } : null;
 }
 const keyFor = (owner: string) => `resqai:requests:v2:${owner}`;
 async function read(owner: string): Promise<QueuedRequest[]> {
@@ -88,7 +88,7 @@ export async function syncMyRequests(includeFailed = false): Promise<void> {
       try {
         const response = await fetch(`${API_BASE}/api/requests`, {
           method: 'POST', signal: controller.signal,
-          headers: { 'Content-Type': 'application/json', ...(active.token ? { Authorization: `Bearer ${active.token}` } : {}) },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${active.token}` },
           body: JSON.stringify(row.payload),
         });
         if (response.ok) {

@@ -7,6 +7,7 @@ import pytest
 
 from app.config import settings
 from app.routers import requests
+from test_request_verification import register_verified
 
 
 def notification_transport(monkeypatch, handler):
@@ -40,8 +41,9 @@ async def test_failed_coordinator_transport_keeps_request_saved(client, monkeypa
         raise httpx.ConnectError("All connection attempts failed", request=request)
 
     monkeypatch.setattr(settings, "NODE_BACKEND_URL", "http://localhost:5000")
+    headers, _ = await register_verified(client)
     notification_transport(monkeypatch, unavailable)
-    response = await client.post("/api/requests", json={
+    response = await client.post("/api/requests", headers=headers, json={
         "message": "Family trapped by flood water", "affected_people": 4,
         "client_request_id": str(uuid.uuid4()),
     })
