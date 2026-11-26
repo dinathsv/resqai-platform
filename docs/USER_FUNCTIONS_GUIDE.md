@@ -410,7 +410,7 @@ Open the administrator website, enter email/password, and select **Login**. Acti
 
 The sidebar contains **Dashboard**, **Alerts**, **Requests**, **Missions**, **Goods & Deliveries**, **Agency Coordination**, **Users**, **NIC Verification**, and **Reports**. Smaller screens use Menu/Close. The light/dark toggle saves locally; Sign Out clears the current browser session.
 
-Administrator **Forgot Password? → email → Send OTP → OTP + New Password → Reset Password** currently sends email through SMTP because administrator records have no mobile number in this flow. **If only SMSlenz is configured, this administrator email recovery path is unavailable.** Its generic “sent” message does not confirm mail delivery. The normal public-user recovery route uses mobile SMS.
+Administrator **Forgot Password? → email → Send OTP → OTP + New Password → Reset Password** sends email through SMTP. The hosted admin panel uses the ResQAI Python API for password recovery. Set `NEXT_PUBLIC_PASSWORD_API_URL` to use a different Python API. If email recovery is unavailable, the deployment owner can run `ADMIN_EMAIL=<account-email> python -m database.seed_admin --reset-password` in an interactive shell with the deployment's `DATABASE_URL`. The new password is entered at the prompt.
 
 Administrator name/agency/district update APIs exist, but no current dashboard profile screen exposes them. Sidebar “Admin / Coordinator” and “TELEMETRY ACTIVE” are fixed labels, not a live identity/connectivity report.
 

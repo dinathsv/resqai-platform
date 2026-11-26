@@ -4,10 +4,8 @@ import Link from 'next/link';
 import { useState, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
+import { PASSWORD_API_URL } from '@/lib/password-api';
 import styles from '../login.module.css';
-
-const PASSWORD_API_URL =
-  process.env.NEXT_PUBLIC_PASSWORD_API_URL || 'http://localhost:8000';
 
 function ResetPasswordForm() {
   const router = useRouter();

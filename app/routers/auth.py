@@ -27,7 +27,7 @@ from app.database import get_db
 from app.models.administrator import Administrator
 from app.models.guest_session import GuestSession
 from app.models.user import User
-from app.services.otp_service import send_otp
+from app.services.otp_service import email_otp_configured, send_otp
 from app.services.sms_service import normalize_phone_number
 from app.middleware.auth import oauth2_scheme, get_current_user, get_session_user
 
@@ -686,18 +686,23 @@ async def admin_forgot_password(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ):
-    result = await db.execute(select(Administrator).where(Administrator.email == req.email))
+    if not email_otp_configured():
+        raise HTTPException(status_code=503, detail="Administrator email recovery is unavailable. Contact the deployment owner to reset your account.")
+
+    email = str(req.email).strip().lower()
+    result = await db.execute(select(Administrator).where(func.lower(Administrator.email) == email))
     admin = result.scalars().first()
     if not admin:
-        return {"message": "If that email is registered, an OTP has been sent."}
+        return {"message": "If a reset code can be sent, check your inbox."}
 
     otp = str(secrets.randbelow(900000) + 100000)
-    await redis_client.set(f"reset_otp_admin:{admin.admin_id}", otp, ex=300)
+    otp_key = f"reset_otp_admin:{admin.admin_id}"
+    await redis_client.set(otp_key, otp, ex=300)
 
     # Admin lacks a phone number, so phone is None. It will use Email OTP.
     await send_otp(email=admin.email, phone=None, otp=otp)
 
-    return {"message": "If that email is registered, an OTP has been sent."}
+    return {"message": "If a reset code can be sent, check your inbox."}
 
 
 @router.post("/admin/reset-password")
@@ -706,7 +711,8 @@ async def admin_reset_password(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ):
-    result = await db.execute(select(Administrator).where(Administrator.email == req.email))
+    email = str(req.email).strip().lower()
+    result = await db.execute(select(Administrator).where(func.lower(Administrator.email) == email))
     admin = result.scalars().first()
     if not admin:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid request")

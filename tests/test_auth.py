@@ -204,6 +204,46 @@ async def get_test_redis():
 
 
 @pytest.mark.asyncio
+async def test_admin_password_recovery_replaces_the_old_password(client, monkeypatch, isolate_otp_delivery):
+    from app.config import settings
+    from app.database import get_db
+    from app.main import app
+    from app.models.administrator import Administrator
+    from app.routers.auth import pwd_context
+
+    url = '/api/auth/admin'
+    email = 'coordinator@example.com'
+    monkeypatch.setattr(settings, 'SMTP_USER', '')
+    unavailable = await client.post(f'{url}/forgot-password', json={'email': email})
+    assert unavailable.status_code == 503
+    isolate_otp_delivery.assert_not_awaited()
+
+    for key in ('SMTP_HOST', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_FROM_EMAIL'):
+        monkeypatch.setattr(settings, key, 'configured-for-test')
+    isolate_otp_delivery.return_value = {'email': True}
+    async for session in app.dependency_overrides[get_db]():
+        account = Administrator(full_name='Test coordinator', email=email.upper(),
+                                password_hash=pwd_context.hash('previous-test-password'))
+        session.add(account)
+        await session.commit()
+
+    sent = await client.post(f'{url}/forgot-password', json={'email': email})
+    assert sent.status_code == 200
+    isolate_otp_delivery.assert_awaited_once()
+    code = isolate_otp_delivery.await_args.kwargs['otp']
+    reset = await client.post(f'{url}/reset-password', json={
+        'email': email, 'otp': code, 'new_password': 'new-test-password',
+    })
+    assert reset.status_code == 200
+
+    async def sign_in(password):
+        return await client.post(f'{url}/login', json={'email': email, 'password': password})
+
+    assert (await sign_in('previous-test-password')).status_code == 401
+    assert (await sign_in('new-test-password')).status_code == 200
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize('nic', ['881234567V', '198812345678'])
 async def test_guest_phone_verified_identity_pending(client, nic):
     import base64

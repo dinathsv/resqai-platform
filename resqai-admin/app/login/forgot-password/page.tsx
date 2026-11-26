@@ -4,10 +4,8 @@ import Link from 'next/link';
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import { PASSWORD_API_URL } from '@/lib/password-api';
 import styles from '../login.module.css';
-
-const PASSWORD_API_URL =
-  process.env.NEXT_PUBLIC_PASSWORD_API_URL || 'http://localhost:8000';
 
 export default function AdminForgotPasswordPage() {
   const router = useRouter();
@@ -24,7 +22,7 @@ export default function AdminForgotPasswordPage() {
 
     try {
       await axios.post(`${PASSWORD_API_URL}/api/auth/admin/forgot-password`, { email });
-      setSuccess('OTP has been sent');
+      setSuccess('Check your inbox for a reset code.');
       setTimeout(() => {
         router.push(`/login/reset-password?email=${encodeURIComponent(email)}`);
       }, 1500);

@@ -117,8 +117,13 @@ class SMSlenzOTPSender(OTPSender):
             return False
 
 
-def _is_configured(*values: str) -> bool:
-    return all(v.strip() for v in values)
+def email_otp_configured() -> bool:
+    return all(value.strip() for value in (
+        settings.SMTP_HOST,
+        settings.SMTP_USER,
+        settings.SMTP_PASSWORD,
+        settings.SMTP_FROM_EMAIL,
+    ))
 
 
 def build_otp_senders() -> list[OTPSender]:
@@ -130,12 +135,7 @@ def build_otp_senders() -> list[OTPSender]:
         logger.info("SMSlenz SMS OTP sender configured (User ID: %s, Sender ID: %s)", settings.SMSLENZ_USER_ID, settings.SMSLENZ_SENDER_ID)
 
     # Email OTP Delivery (fallback for accounts without a phone number, e.g. admins)
-    if _is_configured(
-        settings.SMTP_HOST,
-        settings.SMTP_USER,
-        settings.SMTP_PASSWORD,
-        settings.SMTP_FROM_EMAIL,
-    ):
+    if email_otp_configured():
         senders.append(
             EmailOTPSender(
                 host=settings.SMTP_HOST,
